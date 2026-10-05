@@ -1,0 +1,93 @@
+/// <reference types="vite/client" />
+/**
+ * Mesures de performance sur la topologie de 100 équipements : `npm run perf:measure`.
+ * Ignoré par `npm test` (s'exécute seulement en mode « perf ») ; résultats reportés dans
+ * docs/performance.md.
+ */
+import { describe, it } from 'vitest'
+import {
+  command,
+  deviceHealth,
+  dispatch,
+  endStatus,
+  parseSlab,
+  primaryAddress,
+  serializeSlab,
+  type LabState
+} from '@engine/index'
+import { buildLargeLab } from '../../support/large-lab'
+
+/** Médiane de durées (ms). */
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b)
+  return sorted[Math.floor(sorted.length / 2)] ?? 0
+}
+
+function time<T>(fn: () => T): { ms: number; value: T } {
+  const start = performance.now()
+  const value = fn()
+  return { ms: performance.now() - start, value }
+}
+
+/** Ce que l'interface calcule pour dessiner le canvas : état et IP de chaque nœud, voyants des câbles. */
+function canvasFrame(lab: LabState): void {
+  for (const device of Object.values(lab.devices)) {
+    deviceHealth(lab, device)
+    primaryAddress(lab, device)
+  }
+  for (const link of Object.values(lab.links)) {
+    endStatus(lab, link, 'a')
+    endStatus(lab, link, 'b')
+  }
+}
+
+/** Tâches de fond après un changement, comme le store en mode Temps réel. */
+function settle(lab: LabState): LabState {
+  const r = dispatch(lab, command('background.tick'))
+  return r.ok ? r.state : lab
+}
+
+describe.runIf(import.meta.env.MODE === 'perf')('mesures — topologie de 100 équipements', () => {
+  it('ouverture, glisser, tâches de fond', () => {
+    const { state, ids } = buildLargeLab()
+    const text = serializeSlab(state, { savedAt: '2026-10-05T10:00:00.000Z', appVersion: 'perf' })
+    const rows: [string, number][] = []
+
+    // Ouverture : lecture du fichier, tâches de fond, premier dessin du canvas
+    const opens: number[] = []
+    for (let i = 0; i < 5; i++) {
+      opens.push(
+        time(() => {
+          const parsed = parseSlab(text)
+          if (!parsed.ok) throw new Error(parsed.message)
+          canvasFrame(settle(parsed.doc.lab))
+        }).ms
+      )
+    }
+    rows.push(['Ouverture (lecture + tâches de fond + canvas)', median(opens)])
+
+    // Glisser : 30 mouvements d'un poste, chacun suivi des tâches de fond et du canvas
+    const pc = ids['PC1'] ?? ''
+    let lab = settle(state)
+    const moves: number[] = []
+    const background: number[] = []
+    const frames: number[] = []
+    for (let i = 1; i <= 30; i++) {
+      const moved = dispatch(lab, command('topology.moveDevice', pc, { x: 20 + i * 7, y: 420 + i * 3 }))
+      if (!moved.ok) throw new Error(moved.error.message)
+      const bg = time(() => settle(moved.state))
+      const frame = time(() => canvasFrame(bg.value))
+      lab = bg.value
+      background.push(bg.ms)
+      frames.push(frame.ms)
+      moves.push(bg.ms + frame.ms)
+    }
+    rows.push(['Glisser : par mouvement (tâches de fond + canvas)', median(moves)])
+    rows.push(['  dont tâches de fond', median(background)])
+    rows.push(['  dont calcul du canvas (100 nœuds, câbles)', median(frames)])
+
+    console.log(
+      `\n${'Mesure'.padEnd(52)} médiane (ms)\n${rows.map(([k, v]) => `${k.padEnd(52)} ${v.toFixed(2)}`).join('\n')}\n`
+    )
+  })
+})

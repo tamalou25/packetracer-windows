@@ -7,6 +7,7 @@ import { endStatus, type LedStatus } from '@engine/index'
 import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
 import { ICON_CENTER } from '../../lib/flow'
+import { countRender } from '../../lib/perf'
 
 export type CableEdgeData = { linkId: string; offset: number }
 export type CableFlowEdge = Edge<CableEdgeData, 'cable'>
@@ -26,6 +27,7 @@ const LED_LABEL: Record<LedStatus, string> = {
 }
 
 function CableEdgeComponent({ id, source, target, data, selected }: EdgeProps<CableFlowEdge>) {
+  countRender(`edge:${id}`)
   const sourceNode = useInternalNode(source)
   const targetNode = useInternalNode(target)
   const lab = useLabStore((s) => s.lab)

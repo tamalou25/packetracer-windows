@@ -5,11 +5,12 @@
  */
 import { memo, useEffect, useRef, useState } from 'react'
 import { Handle, NodeToolbar, Position, type Node, type NodeProps } from '@xyflow/react'
+import { deviceHealth, primaryAddress, type DeviceHealth } from '@engine/index'
 import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
 import { PortTray } from './PortTray'
 import { DEVICE_ICONS, KIND_STRIPE } from '../../lib/devices'
-import { deviceHealth, primaryAddress, type DeviceHealth } from '../../lib/health'
+import { countRender } from '../../lib/perf'
 
 export type DeviceNodeData = { deviceId: string }
 export type DeviceFlowNode = Node<DeviceNodeData, 'device'>
@@ -31,6 +32,7 @@ const IP_TONE = { normal: 'text-fg-muted', warn: 'text-warn', none: 'text-fg-sub
 const HOVER_GRACE_MS = 180
 
 function DeviceNodeComponent({ data, selected, dragging }: NodeProps<DeviceFlowNode>) {
+  countRender(`node:${data.deviceId}`)
   const lab = useLabStore((s) => s.lab)
   const tool = useUiStore((s) => s.tool)
   const [hover, setHover] = useState(false)

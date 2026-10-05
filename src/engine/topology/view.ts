@@ -2,16 +2,11 @@
  * Résumé visuel d'un équipement pour le canvas : état (LED du nœud) et adresse IP principale.
  * Purement dérivé de l'état du moteur, sans le modifier.
  */
-import {
-  effectiveIpv4,
-  endStatus,
-  hasUsableAddress,
-  ipConflicts,
-  isHostDevice,
-  linkOnInterface,
-  type Device,
-  type LabState
-} from '@engine/index'
+import type { Device, LabState } from '../model/schema'
+import { effectiveIpv4, hasUsableAddress } from '../net/addressing'
+import { ipConflicts } from '../net/conflicts'
+import { isHostDevice, linkOnInterface } from './queries'
+import { endStatus } from './status'
 
 /** ok : opérationnel · warn : à vérifier · off : éteint · idle : aucun câble raccordé. */
 export type DeviceHealth = 'ok' | 'warn' | 'off' | 'idle'
