@@ -277,7 +277,7 @@
       "title": "Signature de code de l'installeur : procédure",
       "milestone": "v5.0",
       "labels": ["feature", "pedagogy", "security"],
-      "body": "## Objectif\n\nDocumenter la signature pour supprimer l'avertissement SmartScreen.\n\n## Critères d'acceptation\n\n- [ ] Documentation : types de certificats, coûts, secrets GitHub nécessaires, configuration electron-builder\n- [ ] Aucune automatisation sans accord explicite, aucun secret dans le dépôt\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+      "body": "## Objectif\n\nDocumenter la signature pour supprimer l'avertissement SmartScreen.\n\n## Critères d'acceptation\n\n- [ ] Documentation : types de certificats, coûts, secrets GitHub nécessaires, configuration electron-builder\n- [ ] Aucune automatisation sans accord explicite, aucun secret dans le dépôt\n- [ ] Documentation relue, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
     }
   ]
 }
