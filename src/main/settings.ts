@@ -6,12 +6,9 @@ import { app } from 'electron'
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { THEMES, type Theme } from '../shared/ipc'
+import { DEFAULT_SETTINGS, parseSettings, type Settings } from '../shared/persisted'
 
-export interface Settings {
-  theme: Theme
-}
-
-const DEFAULTS: Settings = { theme: 'dark' }
+export type { Settings }
 
 /** Couleur de fond de la fenêtre avant le premier rendu (identique au fond de l'application). */
 export const THEME_BACKGROUND: Record<Theme, string> = { dark: '#0d0f13', light: '#eceef2' }
@@ -24,16 +21,15 @@ function settingsPath(): string {
   return join(app.getPath('userData'), 'settings.json')
 }
 
+/** Préférences enregistrées, validées par SettingsSchema (défauts si absentes ou invalides). */
 export function loadSettings(): Settings {
   const path = settingsPath()
-  if (!existsSync(path)) return { ...DEFAULTS }
+  if (!existsSync(path)) return { ...DEFAULT_SETTINGS }
   try {
-    const raw: unknown = JSON.parse(readFileSync(path, 'utf8'))
-    const theme = (raw as { theme?: unknown } | null)?.theme
-    return { theme: isTheme(theme) ? theme : DEFAULTS.theme }
+    return parseSettings(readFileSync(path, 'utf8'))
   } catch {
     // Fichier illisible : on repart des valeurs par défaut
-    return { ...DEFAULTS }
+    return { ...DEFAULT_SETTINGS }
   }
 }
 

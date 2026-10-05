@@ -9,7 +9,7 @@ export default defineConfig({
     }
   },
   test: {
-    include: ['tests/engine/**/*.test.ts'],
+    include: ['tests/engine/**/*.test.ts', 'tests/shared/**/*.test.ts'],
     environment: 'node'
   }
 })

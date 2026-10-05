@@ -27,7 +27,15 @@ export default tseslint.config(
     plugins: { 'react-hooks': reactHooks },
     rules: {
       'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn'
+      'react-hooks/exhaustive-deps': 'warn',
+      // Contenus importés (labs, fichiers .slab) : jamais injectés comme HTML brut
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+          message: 'HTML brut interdit : afficher le contenu avec des éléments React.'
+        }
+      ]
     }
   },
   // Moteur pur : aucune dépendance UI / Electron / Node

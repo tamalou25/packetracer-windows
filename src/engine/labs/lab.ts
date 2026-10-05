@@ -91,8 +91,31 @@ export const LabDefinitionSchema = z.object({
 export type LabDefinition = z.infer<typeof LabDefinitionSchema>
 export type LabStart = z.infer<typeof LabStartSchema>
 
-/** Valide un lab (fichier JSON) ; message d'erreur explicite si invalide. */
-export function parseLab(raw: unknown): { ok: true; lab: LabDefinition } | { ok: false; message: string } {
+export type LabParseResult = { ok: true; lab: LabDefinition } | { ok: false; message: string }
+
+/** Taille maximale d'un fichier de lab (texte JSON). */
+export const MAX_LAB_LENGTH = 1024 * 1024
+
+/**
+ * Valide le texte d'un fichier de lab (import, bibliothèque) : taille, JSON puis schéma.
+ * Un lab n'est que des données : aucun contenu n'est exécuté ni interprété comme du HTML.
+ */
+export function parseLabText(text: string): LabParseResult {
+  if (text.length > MAX_LAB_LENGTH) return { ok: false, message: 'Lab invalide : fichier trop volumineux.' }
+  let raw: unknown
+  try {
+    raw = JSON.parse(text)
+  } catch {
+    return { ok: false, message: 'Lab invalide : JSON illisible.' }
+  }
+  return parseLab(raw)
+}
+
+/**
+ * Valide un lab (objet JSON) ; message d'erreur explicite si invalide. Les champs inconnus sont
+ * ignorés et retirés du résultat.
+ */
+export function parseLab(raw: unknown): LabParseResult {
   const parsed = LabDefinitionSchema.safeParse(raw)
   if (parsed.success) return { ok: true, lab: parsed.data }
   const issue = parsed.error.issues[0]
