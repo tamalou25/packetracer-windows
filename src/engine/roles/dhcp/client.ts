@@ -2,13 +2,13 @@
  * Client DHCP : obtention (DORA), renouvellement et libération d'un bail.
  * Chaque échange est enregistré dans une trace rejouable en mode Simulation.
  */
-import { logEvent } from '../core/eventlog'
-import { transact } from '../core/result'
-import type { DhcpScope, HostDevice, LabState, ServerDevice } from '../model/schema'
-import { effectiveIpv4 } from '../net/addressing'
-import { formatIpv4, inNetwork, parseIpv4, prefixToMask } from '../net/ipv4'
-import { carrierUp, l2Segment, reversePath, type PortRef, type SegmentMember } from '../net/segment'
-import { createContext, recordBroadcast, recordUnicast, type SimContext } from '../sim/forward'
+import { logEvent } from '../../core/eventlog'
+import { transact } from '../../core/result'
+import type { DhcpScope, HostDevice, LabState, ServerDevice } from '../../model/schema'
+import { effectiveIpv4 } from '../../net/addressing'
+import { formatIpv4, inNetwork, parseIpv4, prefixToMask } from '../../net/ipv4'
+import { carrierUp, l2Segment, reversePath, type PortRef, type SegmentMember } from '../../net/segment'
+import { createContext, recordBroadcast, recordUnicast, type SimContext } from '../../sim/forward'
 import {
   BROADCAST_MAC,
   createRecorder,
@@ -16,9 +16,9 @@ import {
   ipv4Layer,
   type PacketTrace,
   type PduLayer
-} from '../sim/trace'
-import { registerHostDns } from './adds/join'
-import { effectiveOptions, inScopeRange, isExcluded, formatLeaseDuration } from './dhcp'
+} from '../../sim/trace'
+import { registerHostDns } from '../adds/join'
+import { effectiveOptions, inScopeRange, isExcluded, formatLeaseDuration } from './server'
 
 export type DhcpOutcome = 'bound' | 'renewed' | 'released' | 'failed' | 'not-dhcp' | 'no-carrier'
 

@@ -6,8 +6,8 @@ import { logEvent } from '../core/eventlog'
 import { raise, transact, type EngineResult } from '../core/result'
 import type { LabState, ServerDevice } from '../model/schema'
 import { requireDevice } from '../topology/actions'
-import { createDhcpServer } from './dhcp'
-import { createDnsServer } from './dns'
+import { createDhcpServer } from './dhcp/server'
+import { createDnsServer } from './dns/server'
 
 export interface FeatureInfo {
   name: string

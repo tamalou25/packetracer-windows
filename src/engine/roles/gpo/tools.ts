@@ -3,13 +3,13 @@
  */
 import { formatShortDate } from '../../core/clock'
 import type { Domain, FilteredGpo, AppliedGpo } from '../../model/schema'
-import { findContainer, groupsOf, isDomainAdmin } from '../../services/adds/directory'
-import { emptyComputerSettings, emptyUserSettings } from '../../services/gpo/defaults'
-import { processGroupPolicy } from '../../services/gpo/processing'
-import { describeSettings } from '../../services/gpo/settings'
-import { FILTER_REASONS } from '../../services/gpo/scope'
-import type { ExecContext } from '../context'
-import type { ToolDef } from './types'
+import { findContainer, groupsOf, isDomainAdmin } from '../adds/directory'
+import { emptyComputerSettings, emptyUserSettings } from './defaults'
+import { processGroupPolicy } from './processing'
+import { describeSettings } from './settings'
+import { FILTER_REASONS } from './scope'
+import type { ExecContext } from '../../shell/context'
+import type { ToolDef } from '../../shell/tools/types'
 
 const LOCAL_POLICY = 'Stratégie de groupe locale'
 

@@ -10,8 +10,8 @@ import type { Domain, HostDevice, LabState } from '../../model/schema'
 import { effectiveIpv4 } from '../../net/addressing'
 import { isApipa } from '../../net/ipv4'
 import { concatTraces, type PacketTrace } from '../../sim/trace'
-import { normalizeName, ptrQueryName } from '../dns'
-import { dnsServersOf } from '../dns-resolver'
+import { normalizeName, ptrQueryName } from '../dns/server'
+import { dnsServersOf } from '../dns/resolver'
 import {
   defaultContainer,
   findPrincipal,

@@ -1,8 +1,8 @@
 /**
  * Cmdlets Active Directory (module ActiveDirectory, ADDSDeployment) et jonction au domaine.
  */
-import { guidFromSeed } from '../../../core/guid'
-import type { AdComputer, AdContainer, AdGroup, AdUser, Domain } from '../../../model/schema'
+import { guidFromSeed } from '../../core/guid'
+import type { AdComputer, AdContainer, AdGroup, AdUser, Domain } from '../../model/schema'
 import {
   allObjects,
   containerDn,
@@ -13,9 +13,9 @@ import {
   objectDn,
   resolveContainerDn,
   type AdObject
-} from '../../../services/adds/directory'
-import { installForest } from '../../../services/adds/forest'
-import { joinDomain, leaveDomain } from '../../../services/adds/join'
+} from './directory'
+import { installForest } from './forest'
+import { joinDomain, leaveDomain } from './join'
 import {
   addGroup,
   addGroupMembers,
@@ -28,13 +28,13 @@ import {
   setAccountEnabled,
   setOuProtection,
   setUserProperties
-} from '../../../services/adds/objects'
-import { restartComputer } from '../../../services/system'
-import { psError } from '../errors'
-import { evaluateExpression } from '../expression'
-import type { ExecContext } from '../../context'
-import type { CmdContext } from '../interpreter'
-import type { BoundArgs, CmdletDef, ParamDef } from '../registry'
+} from './objects'
+import { restartComputer } from '../../services/system'
+import { psError } from '../../shell/ps/errors'
+import { evaluateExpression } from '../../shell/ps/expression'
+import type { ExecContext } from '../../shell/context'
+import type { CmdContext } from '../../shell/ps/interpreter'
+import type { BoundArgs, CmdletDef, ParamDef } from '../../shell/ps/registry'
 import {
   flatten,
   getProp,
@@ -46,8 +46,8 @@ import {
   psToString,
   type PsObject,
   type PsValue
-} from '../values'
-import { hasFeature } from './helpers'
+} from '../../shell/ps/values'
+import { hasFeature } from '../../shell/ps/cmdlets/helpers'
 
 const adAvailable = (ctx: CmdContext) => hasFeature(ctx, 'RSAT-AD-PowerShell')
 const str = (v: PsValue | undefined): string => psToString(v)

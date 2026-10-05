@@ -3,14 +3,14 @@
  * alias CNAME, redirecteurs, indications de racine) et résolveurs publics d'Internet.
  * Les requêtes et réponses sont acheminées comme de vrais paquets (traçables).
  */
-import type { Device, DnsRecord, DnsRecordType, LabState, ServerDevice } from '../model/schema'
-import { effectiveIpv4 } from '../net/addressing'
-import { PUBLIC_DNS, PUBLIC_RESOLVERS, ROOT_HINT_IP } from '../net/internet'
-import { isLoopback } from '../net/ipv4'
-import { initialTtl } from '../net/routing'
-import { createContext, sendIp, sourceAddressFor, type SimContext } from '../sim/forward'
-import { createRecorder, type PacketTrace, type PduLayer } from '../sim/trace'
-import { findZoneFor, normalizeName, ptrQueryName, relativeName } from './dns'
+import type { Device, DnsRecord, DnsRecordType, LabState, ServerDevice } from '../../model/schema'
+import { effectiveIpv4 } from '../../net/addressing'
+import { PUBLIC_DNS, PUBLIC_RESOLVERS, ROOT_HINT_IP } from '../../net/internet'
+import { isLoopback } from '../../net/ipv4'
+import { initialTtl } from '../../net/routing'
+import { createContext, sendIp, sourceAddressFor, type SimContext } from '../../sim/forward'
+import { createRecorder, type PacketTrace, type PduLayer } from '../../sim/trace'
+import { findZoneFor, normalizeName, ptrQueryName, relativeName } from './server'
 
 export interface DnsAnswerRecord {
   name: string

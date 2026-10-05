@@ -1,8 +1,8 @@
 /**
  * Cmdlets du module DhcpServer (disponible avec les outils RSAT-DHCP).
  */
-import { formatShortDate } from '../../../core/clock'
-import type { DhcpServer, ServerDevice } from '../../../model/schema'
+import { formatShortDate } from '../../core/clock'
+import type { DhcpServer, ServerDevice } from '../../model/schema'
 import {
   addExclusion,
   addReservation,
@@ -12,14 +12,14 @@ import {
   removeScope,
   setDhcpOptions,
   setScopeState
-} from '../../../services/dhcp'
-import { authorizeDhcpServer } from '../../../services/dhcp-authorization'
-import { prefixToMask } from '../../../net/ipv4'
-import { psError } from '../errors'
-import type { CmdContext } from '../interpreter'
-import type { CmdletDef } from '../registry'
-import { flatten, psObject, psToString, type PsValue } from '../values'
-import { hasFeature } from './helpers'
+} from './server'
+import { authorizeDhcpServer } from './authorization'
+import { prefixToMask } from '../../net/ipv4'
+import { psError } from '../../shell/ps/errors'
+import type { CmdContext } from '../../shell/ps/interpreter'
+import type { CmdletDef } from '../../shell/ps/registry'
+import { flatten, psObject, psToString, type PsValue } from '../../shell/ps/values'
+import { hasFeature } from '../../shell/ps/cmdlets/helpers'
 
 const available = (ctx: CmdContext) => hasFeature(ctx, 'RSAT-DHCP')
 

@@ -1,7 +1,7 @@
 /**
  * Cmdlets système : rôles et fonctionnalités, redémarrage, renommage.
  */
-import { FEATURES, featureInfo, installFeatures, uninstallFeatures } from '../../../services/features'
+import { FEATURES, featureInfo, installFeatures, uninstallFeatures } from '../../../roles/features'
 import { renameComputer, restartComputer } from '../../../services/system'
 import { setPower } from '../../../topology/actions'
 import { psError } from '../errors'

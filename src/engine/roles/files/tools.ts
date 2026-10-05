@@ -11,7 +11,7 @@ import {
   principalName,
   sessionToken,
   type AccessToken
-} from '../../services/files/acl'
+} from './acl'
 import {
   adminShares,
   createItem,
@@ -22,11 +22,11 @@ import {
   removeNtfs,
   removeShare,
   setNtfsInheritance
-} from '../../services/files/actions'
-import { findNode, nodePath, parseUnc } from '../../services/files/paths'
-import { mapDrive, openUnc, sessionDrives, unmapDrive } from '../../services/files/smb'
-import { verifyCredentials } from '../../services/adds/join'
-import type { ExecContext } from '../context'
+} from './actions'
+import { findNode, nodePath, parseUnc } from './paths'
+import { mapDrive, openUnc, sessionDrives, unmapDrive } from './smb'
+import { verifyCredentials } from '../adds/join'
+import type { ExecContext } from '../../shell/context'
 import {
   absolutePath,
   formatBytes,
@@ -35,9 +35,9 @@ import {
   shellToken,
   translatePath,
   type FsTarget
-} from '../filesystem'
+} from '../../shell/filesystem'
 import { formatShortDate } from '../../core/clock'
-import type { ToolDef } from './types'
+import type { ToolDef } from '../../shell/tools/types'
 
 const DONE = 'La commande s’est terminée correctement.'
 

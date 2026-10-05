@@ -2,10 +2,10 @@
  * Cmdlets du module GroupPolicy (installé avec la Gestion des stratégies de groupe) :
  * objets GPO, liaisons, héritage, filtrage de sécurité et actualisation.
  */
-import { formatShortDate } from '../../../core/clock'
-import type { Domain, Gpo } from '../../../model/schema'
-import { AUTHENTICATED_USERS_SID } from '../../../model/schema'
-import { containerDn, isDomainAdmin, objectById, resolveContainerDn } from '../../../services/adds/directory'
+import { formatShortDate } from '../../core/clock'
+import type { Domain, Gpo } from '../../model/schema'
+import { AUTHENTICATED_USERS_SID } from '../../model/schema'
+import { containerDn, isDomainAdmin, objectById, resolveContainerDn } from '../adds/directory'
 import {
   createGpo,
   deleteGpo,
@@ -16,14 +16,14 @@ import {
   setInheritanceBlocked,
   unlinkGpo,
   updateGpoLink
-} from '../../../services/gpo/objects'
-import { processGroupPolicy, GP_NO_DC_MESSAGE } from '../../../services/gpo/processing'
-import { findGpo, gpoPrecedence, linksAt } from '../../../services/gpo/scope'
-import { psError } from '../errors'
-import type { CmdContext } from '../interpreter'
-import type { BoundArgs, CmdletDef, ParamDef } from '../registry'
-import { psObject, psToString, type PsObject, type PsValue } from '../values'
-import { hasFeature } from './helpers'
+} from './objects'
+import { processGroupPolicy, GP_NO_DC_MESSAGE } from './processing'
+import { findGpo, gpoPrecedence, linksAt } from './scope'
+import { psError } from '../../shell/ps/errors'
+import type { CmdContext } from '../../shell/ps/interpreter'
+import type { BoundArgs, CmdletDef, ParamDef } from '../../shell/ps/registry'
+import { psObject, psToString, type PsObject, type PsValue } from '../../shell/ps/values'
+import { hasFeature } from '../../shell/ps/cmdlets/helpers'
 
 const gpAvailable = (ctx: CmdContext) => hasFeature(ctx, 'GPMC')
 const str = (v: PsValue | undefined): string => psToString(v)

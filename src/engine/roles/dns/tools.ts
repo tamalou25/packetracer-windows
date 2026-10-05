@@ -1,10 +1,10 @@
 /**
  * nslookup : interrogation d'un serveur DNS (sortie au format console FR).
  */
-import { normalizeName } from '../../services/dns'
-import { dnsServersOf, resolveName, reverseLookup, type Resolution } from '../../services/dns-resolver'
-import type { ExecContext } from '../context'
-import type { ToolDef } from './types'
+import { normalizeName } from './server'
+import { dnsServersOf, resolveName, reverseLookup, type Resolution } from './resolver'
+import type { ExecContext } from '../../shell/context'
+import type { ToolDef } from '../../shell/tools/types'
 
 const IP_RE = /^\d{1,3}(\.\d{1,3}){3}$/
 

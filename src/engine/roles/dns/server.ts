@@ -2,10 +2,10 @@
  * Serveur DNS : zones primaires (directes/inverses), enregistrements, redirecteurs.
  */
 import type { Draft } from 'immer'
-import { raise, transact, type EngineResult } from '../core/result'
-import type { DnsRecordType, DnsServer, DnsZone, LabState, ServerDevice } from '../model/schema'
-import { isIpv4, parseIpv4 } from '../net/ipv4'
-import { requireDevice } from '../topology/actions'
+import { raise, transact, type EngineResult } from '../../core/result'
+import type { DnsRecordType, DnsServer, DnsZone, LabState, ServerDevice } from '../../model/schema'
+import { isIpv4, parseIpv4 } from '../../net/ipv4'
+import { requireDevice } from '../../topology/actions'
 
 export function createDnsServer(): DnsServer {
   return { zones: [], forwarders: [], useRootHints: true }

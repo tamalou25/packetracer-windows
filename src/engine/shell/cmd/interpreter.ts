@@ -2,7 +2,7 @@
  * Invite de commandes simulée.
  */
 import { CommandFailure, type ExecContext } from '../context'
-import { changeDirectory } from '../tools/files'
+import { changeDirectory } from '../../roles/files/tools'
 import type { ToolDef } from '../tools/types'
 
 /** Découpe une ligne façon cmd (guillemets doubles). */

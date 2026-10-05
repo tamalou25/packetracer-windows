@@ -3,7 +3,7 @@
  * Chaque entrée transforme un document de la version N vers N+1.
  * Pour faire évoluer le format : incrémenter CURRENT_SCHEMA_VERSION et ajouter une migration.
  */
-import { DEFAULT_DC_POLICY_ID, DEFAULT_DOMAIN_POLICY_ID, defaultDomainGpos } from '../services/gpo/defaults'
+import { DEFAULT_DC_POLICY_ID, DEFAULT_DOMAIN_POLICY_ID, defaultDomainGpos } from '../roles/gpo/defaults'
 
 export const CURRENT_SCHEMA_VERSION = 3
 

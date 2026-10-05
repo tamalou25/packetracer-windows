@@ -2,15 +2,9 @@
  * Cmdlets de fichiers (Get-ChildItem, New-Item, Remove-Item, Set-Location, Get-Acl) et du module
  * SmbShare (partages, autorisations de partage, lecteurs mappés).
  */
-import type { FsNode, LabState, NtfsAce, ServerDevice, ShareRight, SmbShare } from '../../../model/schema'
-import { SHARE_RIGHTS } from '../../../model/schema'
-import {
-  accessPerms,
-  canonicalAcl,
-  effectiveAcl,
-  principalName,
-  sessionToken
-} from '../../../services/files/acl'
+import type { FsNode, LabState, NtfsAce, ServerDevice, ShareRight, SmbShare } from '../../model/schema'
+import { SHARE_RIGHTS } from '../../model/schema'
+import { accessPerms, canonicalAcl, effectiveAcl, principalName, sessionToken } from './acl'
 import {
   adminShares,
   createItem,
@@ -20,9 +14,9 @@ import {
   removeShare,
   revokeShareAccess,
   setShareAccess
-} from '../../../services/files/actions'
-import { nodePath } from '../../../services/files/paths'
-import { mapDrive, sessionDrives, unmapDrive } from '../../../services/files/smb'
+} from './actions'
+import { nodePath } from './paths'
+import { mapDrive, sessionDrives, unmapDrive } from './smb'
 import {
   absolutePath,
   formatBytes,
@@ -32,12 +26,12 @@ import {
   shellToken,
   translatePath,
   type FsTarget
-} from '../../filesystem'
-import { psError } from '../errors'
-import type { CmdContext } from '../interpreter'
-import type { BoundArgs, CmdletDef } from '../registry'
-import { flatten, psObject, psToString, type PsObject, type PsValue } from '../values'
-import { onServer } from './helpers'
+} from '../../shell/filesystem'
+import { psError } from '../../shell/ps/errors'
+import type { CmdContext } from '../../shell/ps/interpreter'
+import type { BoundArgs, CmdletDef } from '../../shell/ps/registry'
+import { flatten, psObject, psToString, type PsObject, type PsValue } from '../../shell/ps/values'
+import { onServer } from '../../shell/ps/cmdlets/helpers'
 
 const str = (v: PsValue | undefined): string => psToString(v)
 const list = (v: PsValue | undefined): string[] =>

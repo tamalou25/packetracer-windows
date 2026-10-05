@@ -8,13 +8,13 @@ import type { Device, Domain, HostDevice, LabState, ServerDevice } from '../mode
 import { effectiveIpv4 } from '../net/addressing'
 import { isIpv4 } from '../net/ipv4'
 import { ping } from '../net/diagnostics'
-import { allObjects, findContainer, groupsOf } from '../services/adds/directory'
-import { firstAddress, resolveName } from '../services/dns-resolver'
-import { effectiveAccess, PERMS, principalToken, resolvePrincipal } from '../services/files/acl'
-import { findNode, nodePath } from '../services/files/paths'
-import { sessionDrives } from '../services/files/smb'
-import { findGpo, linksAt } from '../services/gpo/scope'
-import { settingValue, type SettingKey } from '../services/gpo/settings'
+import { allObjects, findContainer, groupsOf } from '../roles/adds/directory'
+import { firstAddress, resolveName } from '../roles/dns/resolver'
+import { effectiveAccess, PERMS, principalToken, resolvePrincipal } from '../roles/files/acl'
+import { findNode, nodePath } from '../roles/files/paths'
+import { sessionDrives } from '../roles/files/smb'
+import { findGpo, linksAt } from '../roles/gpo/scope'
+import { settingValue, type SettingKey } from '../roles/gpo/settings'
 
 const PermSchema = z.enum(PERMS)
 

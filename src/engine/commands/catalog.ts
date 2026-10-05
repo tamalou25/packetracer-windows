@@ -19,8 +19,8 @@ import {
   removeObject,
   resetPassword,
   setAccountEnabled
-} from '../services/adds/objects'
-import { installForest } from '../services/adds/forest'
+} from '../roles/adds/objects'
+import { installForest } from '../roles/adds/forest'
 import {
   changePasswordAndLogon,
   joinDomain,
@@ -29,9 +29,9 @@ import {
   logon,
   type DirectoryOperation,
   type LogonOutcome
-} from '../services/adds/join'
-import { autoConfigureDhcp, dhcpRelease, dhcpRenew, type DhcpOperation } from '../services/dhcp-client'
-import { authorizeDhcpServer, completeDhcpPostInstall } from '../services/dhcp-authorization'
+} from '../roles/adds/join'
+import { autoConfigureDhcp, dhcpRelease, dhcpRenew, type DhcpOperation } from '../roles/dhcp/client'
+import { authorizeDhcpServer, completeDhcpPostInstall } from '../roles/dhcp/authorization'
 import {
   addExclusion,
   addReservation,
@@ -41,9 +41,9 @@ import {
   removeScope,
   setDhcpOptions,
   setScopeState
-} from '../services/dhcp'
-import { addPrimaryZone, addRecord, removeRecord, removeZone, setForwarders } from '../services/dns'
-import { installFeatures, uninstallFeatures } from '../services/features'
+} from '../roles/dhcp/server'
+import { addPrimaryZone, addRecord, removeRecord, removeZone, setForwarders } from '../roles/dns/server'
+import { installFeatures, uninstallFeatures } from '../roles/features'
 import {
   createItem,
   createShare,
@@ -53,11 +53,11 @@ import {
   setNtfsEntry,
   setNtfsInheritance,
   setShareAcl
-} from '../services/files/actions'
-import type { AccessToken } from '../services/files/acl'
-import { findNode } from '../services/files/paths'
-import { mapDrive, unmapDrive, type DriveOperation } from '../services/files/smb'
-import { autoGroupPolicy } from '../services/gpo/processing'
+} from '../roles/files/actions'
+import type { AccessToken } from '../roles/files/acl'
+import { findNode } from '../roles/files/paths'
+import { mapDrive, unmapDrive, type DriveOperation } from '../roles/files/smb'
+import { autoGroupPolicy } from '../roles/gpo/processing'
 import {
   createGpo,
   deleteGpo,
@@ -69,7 +69,7 @@ import {
   unlinkGpo,
   updateGpoLink,
   updateGpoSettings
-} from '../services/gpo/objects'
+} from '../roles/gpo/objects'
 import { renameComputer, restartComputer } from '../services/system'
 import { executeLine } from '../shell/exec'
 import type { ShellResult, ShellSession } from '../shell/types'

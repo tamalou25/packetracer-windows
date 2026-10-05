@@ -2,12 +2,12 @@
  * Serveur DHCP : administration des étendues, exclusions, réservations et options.
  */
 import type { Draft } from 'immer'
-import { raise, transact, type EngineResult } from '../core/result'
-import type { DhcpOptions, DhcpScope, DhcpServer, LabState, ServerDevice } from '../model/schema'
-import { effectiveIpv4 } from '../net/addressing'
-import { isInternetHost } from '../net/internet'
-import { broadcastInt, formatIpv4, inNetwork, networkInt, parseIpv4, parseMaskOrPrefix } from '../net/ipv4'
-import { requireDevice } from '../topology/actions'
+import { raise, transact, type EngineResult } from '../../core/result'
+import type { DhcpOptions, DhcpScope, DhcpServer, LabState, ServerDevice } from '../../model/schema'
+import { effectiveIpv4 } from '../../net/addressing'
+import { isInternetHost } from '../../net/internet'
+import { broadcastInt, formatIpv4, inNetwork, networkInt, parseIpv4, parseMaskOrPrefix } from '../../net/ipv4'
+import { requireDevice } from '../../topology/actions'
 
 export const DEFAULT_LEASE_SEC = 8 * 24 * 3600
 

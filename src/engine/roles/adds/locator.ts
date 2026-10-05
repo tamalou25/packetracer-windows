@@ -7,8 +7,8 @@ import { effectiveIpv4 } from '../../net/addressing'
 import { initialTtl } from '../../net/routing'
 import { createContext, sendIp, sourceAddressFor } from '../../sim/forward'
 import { createRecorder, type PacketTrace, type PduLayer, type Protocol } from '../../sim/trace'
-import { normalizeName } from '../dns'
-import { firstAddress, resolveName } from '../dns-resolver'
+import { normalizeName } from '../dns/server'
+import { firstAddress, resolveName } from '../dns/resolver'
 
 /** Contrôleur de domaine localisé par le client. */
 export interface LocatedDc {

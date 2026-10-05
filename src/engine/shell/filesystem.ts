@@ -4,9 +4,9 @@
  */
 import { formatShortDate } from '../core/clock'
 import type { FsNode, ServerDevice, SmbShare } from '../model/schema'
-import { localToken, sessionToken, type AccessToken } from '../services/files/acl'
-import { childrenOf, findNode, parseUnc } from '../services/files/paths'
-import { expandDrivePath, openUnc } from '../services/files/smb'
+import { localToken, sessionToken, type AccessToken } from '../roles/files/acl'
+import { childrenOf, findNode, parseUnc } from '../roles/files/paths'
+import { expandDrivePath, openUnc } from '../roles/files/smb'
 import type { ExecContext } from './context'
 
 /** Jeton de l'utilisateur de la console (session ouverte, sinon compte local par défaut). */

@@ -1,21 +1,14 @@
 /**
  * Cmdlets DNS : module DnsServer (outils RSAT-DNS-Server) et Resolve-DnsName (DnsClient).
  */
-import type { DnsRecordType, DnsServer, ServerDevice } from '../../../model/schema'
-import {
-  addPrimaryZone,
-  addRecord,
-  normalizeName,
-  removeRecord,
-  removeZone,
-  setForwarders
-} from '../../../services/dns'
-import { resolveName, reverseLookup } from '../../../services/dns-resolver'
-import { psError } from '../errors'
-import type { CmdContext } from '../interpreter'
-import type { CmdletDef } from '../registry'
-import { flatten, psObject, psToString, type PsValue } from '../values'
-import { hasFeature } from './helpers'
+import type { DnsRecordType, DnsServer, ServerDevice } from '../../model/schema'
+import { addPrimaryZone, addRecord, normalizeName, removeRecord, removeZone, setForwarders } from './server'
+import { resolveName, reverseLookup } from './resolver'
+import { psError } from '../../shell/ps/errors'
+import type { CmdContext } from '../../shell/ps/interpreter'
+import type { CmdletDef } from '../../shell/ps/registry'
+import { flatten, psObject, psToString, type PsValue } from '../../shell/ps/values'
+import { hasFeature } from '../../shell/ps/cmdlets/helpers'
 
 const available = (ctx: CmdContext) => hasFeature(ctx, 'RSAT-DNS-Server')
 const str = (v: PsValue | undefined): string => psToString(v)

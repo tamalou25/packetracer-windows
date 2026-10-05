@@ -2,11 +2,11 @@
  * Autorisation d'un serveur DHCP dans Active Directory.
  * Un serveur membre d'un domaine doit être autorisé pour distribuer des adresses.
  */
-import { logEvent } from '../core/eventlog'
-import { raise, transact, type EngineResult } from '../core/result'
-import type { LabState } from '../model/schema'
-import { isDomainAdmin } from './adds/directory'
-import { requireDhcp } from './dhcp'
+import { logEvent } from '../../core/eventlog'
+import { raise, transact, type EngineResult } from '../../core/result'
+import type { LabState } from '../../model/schema'
+import { isDomainAdmin } from '../adds/directory'
+import { requireDhcp } from './server'
 
 export function authorizeDhcpServer(state: LabState, deviceId: string, authorized: boolean): EngineResult {
   return transact(state, (draft) => {

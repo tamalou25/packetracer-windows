@@ -7,8 +7,8 @@ import type { LabState } from '../../model/schema'
 import { effectiveIpv4 } from '../../net/addressing'
 import { isLoopback } from '../../net/ipv4'
 import { requireDevice } from '../../topology/actions'
-import { createDnsServer, validDnsName } from '../dns'
-import { applyRestart } from '../system'
+import { createDnsServer, validDnsName } from '../dns/server'
+import { applyRestart } from '../../services/system'
 import { buildDomain, passwordMeetsPolicy } from './directory'
 
 export interface ForestInput {
