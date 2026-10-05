@@ -1,0 +1,121 @@
+# Publication d'une version : sur un tag vX.Y.Z, construit l'installeur Windows (NSIS) et l'AppImage
+# Linux puis les publie dans la release GitHub du tag, avec latest.yml et latest-linux.yml pour les
+# mises à jour automatiques. Seul le jeton GITHUB_TOKEN du workflow est utilisé (aucun secret ajouté).
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    # Même syntaxe sur les deux systèmes (Git Bash sous Windows)
+    shell: bash
+
+jobs:
+  draft:
+    name: Vérifications et brouillon de release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Version du tag
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Le tag $GITHUB_REF_NAME n'est pas de la forme vX.Y.Z"
+            exit 1
+          fi
+
+      - name: Installation des dépendances
+        run: npm ci
+
+      - name: Lint, types et tests du moteur
+        run: npm run lint && npm run typecheck && npm test
+
+      - name: Brouillon de release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "La release $GITHUB_REF_NAME existe déjà : les installeurs y seront ajoutés."
+            exit 0
+          fi
+          version="${GITHUB_REF_NAME#v}"
+          cat > notes.md << EOF
+          ## Installation
+
+          - **Windows** : téléchargez \`ServerLab-Setup-$version.exe\` puis lancez-le. L'installeur n'est pas signé :
+            si SmartScreen s'affiche, cliquez sur « Informations complémentaires » puis « Exécuter quand même ».
+          - **Linux** : téléchargez \`ServerLab-$version-x86_64.AppImage\`, rendez-le exécutable
+            (\`chmod +x ServerLab-$version-x86_64.AppImage\`) puis lancez-le.
+
+          Les versions installées se mettent à jour automatiquement (ou via Aide > Rechercher des mises à jour…).
+          EOF
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --verify-tag \
+            --title "ServerLab $version" --notes-file notes.md --generate-notes
+
+  build:
+    name: Installeur ${{ matrix.label }}
+    needs: draft
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            label: Windows (NSIS)
+            target: --win nsis
+          - os: ubuntu-latest
+            label: Linux (AppImage)
+            target: --linux AppImage
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installation des dépendances
+        run: npm ci
+
+      # La version de l'application (À propos, mises à jour) est celle du tag
+      - name: Version alignée sur le tag
+        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
+
+      - name: Build electron-vite
+        run: npm run build
+
+      - name: Empaquetage et envoi dans la release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder ${{ matrix.target }} --publish always
+
+  publish:
+    name: Publication de la release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Brouillon → release publiée
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Une préversion (v1.2.0-beta.1) n'est pas proposée aux mises à jour automatiques
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then kind=--prerelease; else kind=--latest; fi
+          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false "$kind"

@@ -44,6 +44,13 @@ jobs:
       - name: Tests E2E (Playwright + Electron)
         run: xvfb-run -a npx playwright test
 
+      # Configuration electron-builder vérifiée avant toute release, puis démarrage de l'application
+      # empaquetée (dépendances de production présentes, asar lisible)
+      - name: Empaquetage (dossier Linux) et test de l'application empaquetée
+        run: |
+          npx electron-builder --linux dir --publish never
+          SERVERLAB_E2E_EXECUTABLE=dist/linux-unpacked/serverlab xvfb-run -a npx playwright test smoke.spec.ts
+
       - name: Rapport Playwright
         if: failure()
         uses: actions/upload-artifact@v4
