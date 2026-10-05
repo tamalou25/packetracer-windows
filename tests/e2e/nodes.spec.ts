@@ -7,7 +7,7 @@ test('Nœuds : IP principale, LED d’état (opérationnel, à vérifier, non ra
     await placeDevice(page, 'server', 240, 160)
     await placeDevice(page, 'switch', 520, 290)
     await placeDevice(page, 'client', 240, 420)
-    await placeDevice(page, 'client', 760, 420)
+    await placeDevice(page, 'client', 600, 440)
     await cableDevices(page, 'SRV1', 'Ethernet0', 'SW1', 'Fa0/1')
     await cableDevices(page, 'PC1', 'Ethernet0', 'SW1', 'Fa0/2')
 

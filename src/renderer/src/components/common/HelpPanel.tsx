@@ -53,7 +53,7 @@ export function HelpPanel() {
           </table>
         ) : (
           <ol className="flex list-decimal flex-col gap-2 pl-5 text-[13px] text-fg">
-            <li>Glissez des équipements depuis la palette (en bas) vers le canvas.</li>
+            <li>Glissez des équipements depuis la palette (à gauche) vers le canvas.</li>
             <li>
               Choisissez l’outil « Câble », cliquez sur un équipement, choisissez un port, puis faites de même
               sur le second.
