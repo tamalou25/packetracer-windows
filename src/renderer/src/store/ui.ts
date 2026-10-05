@@ -7,7 +7,7 @@ import type { Device, DeviceKind, Link } from '@engine/index'
 import type { SimMode } from '@shared/ipc'
 
 /** Outil actif sur le canvas. */
-export type Tool = 'select' | 'cable' | 'delete'
+export type Tool = 'select' | 'cable' | 'delete' | 'pdu'
 
 export type DeviceTab = 'config' | 'desktop' | 'console'
 
@@ -21,9 +21,19 @@ export interface DeviceWindowState {
 
 export interface Toast {
   id: number
-  kind: 'info' | 'success' | 'error'
+  kind: 'info' | 'success' | 'warning' | 'error'
   message: string
 }
+
+/** Résultat d'un PDU simple (liste façon « scénario »). */
+export interface PduResult {
+  id: number
+  source: string
+  target: string
+  success: boolean
+}
+
+export type RightTab = 'properties' | 'simulation'
 
 /** Boîte de dialogue modale applicative. */
 export interface ModalState {
@@ -55,6 +65,10 @@ interface UiState {
   armed: DeviceKind | null
   selection: Selection
   cableStart: CableStart | null
+  /** Source choisie avec l'outil PDU simple. */
+  pduSource: string | null
+  pduResults: PduResult[]
+  rightTab: RightTab
   windows: DeviceWindowState[]
   toasts: Toast[]
   modal: ModalState | null
@@ -71,6 +85,10 @@ interface UiState {
   select: (selection: Partial<Selection>) => void
   clearSelection: () => void
   setCableStart: (start: CableStart | null) => void
+  setPduSource: (deviceId: string | null) => void
+  addPduResult: (result: Omit<PduResult, 'id'>) => void
+  clearPduResults: () => void
+  setRightTab: (tab: RightTab) => void
   openWindow: (deviceId: string, tab?: DeviceTab) => void
   closeWindow: (deviceId: string) => void
   focusWindow: (deviceId: string) => void
@@ -86,6 +104,7 @@ interface UiState {
 }
 
 let toastSeq = 0
+let pduSeq = 0
 
 export const useUiStore = create<UiState>()((set, get) => ({
   mode: 'realtime',
@@ -95,6 +114,9 @@ export const useUiStore = create<UiState>()((set, get) => ({
   armed: null,
   selection: { devices: [], link: null },
   cableStart: null,
+  pduSource: null,
+  pduResults: [],
+  rightTab: 'properties',
   windows: [],
   toasts: [],
   modal: null,
@@ -103,14 +125,19 @@ export const useUiStore = create<UiState>()((set, get) => ({
   pasteCount: 0,
   appVersion: '0.0.0',
 
-  setMode: (mode) => set({ mode }),
+  setMode: (mode) => set({ mode, rightTab: mode === 'simulation' ? 'simulation' : 'properties' }),
   togglePortLabels: () => set((s) => ({ showPortLabels: !s.showPortLabels })),
   toggleProperties: () => set((s) => ({ showProperties: !s.showProperties })),
-  setTool: (tool) => set({ tool, cableStart: null, armed: null }),
-  setArmed: (armed) => set({ armed, tool: 'select', cableStart: null }),
+  setTool: (tool) => set({ tool, cableStart: null, pduSource: null, armed: null }),
+  setArmed: (armed) => set({ armed, tool: 'select', cableStart: null, pduSource: null }),
   select: (selection) => set((s) => ({ selection: { ...s.selection, ...selection } })),
   clearSelection: () => set({ selection: { devices: [], link: null } }),
   setCableStart: (cableStart) => set({ cableStart }),
+  setPduSource: (pduSource) => set({ pduSource }),
+  addPduResult: (result) =>
+    set((s) => ({ pduResults: [...s.pduResults, { ...result, id: ++pduSeq }].slice(-8) })),
+  clearPduResults: () => set({ pduResults: [] }),
+  setRightTab: (rightTab) => set({ rightTab }),
 
   openWindow: (deviceId, tab) =>
     set((s) => {
@@ -142,7 +169,7 @@ export const useUiStore = create<UiState>()((set, get) => ({
   notify: (kind, message) => {
     const id = ++toastSeq
     set((s) => ({ toasts: [...s.toasts.slice(-4), { id, kind, message }] }))
-    setTimeout(() => get().dismissToast(id), kind === 'error' ? 6000 : 3500)
+    setTimeout(() => get().dismissToast(id), kind === 'error' || kind === 'warning' ? 6000 : 3500)
   },
   dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
   showModal: (modal) => set({ modal }),

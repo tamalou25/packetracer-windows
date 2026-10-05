@@ -1,7 +1,7 @@
 /**
  * Outils du canvas : sélection, câble, suppression.
  */
-import { Cable, MousePointer2, Trash2, type LucideIcon } from 'lucide-react'
+import { Cable, Mail, MousePointer2, Trash2, type LucideIcon } from 'lucide-react'
 import { useUiStore, type Tool } from '../../store/ui'
 
 const TOOLS: { tool: Tool; label: string; icon: LucideIcon; hint: string }[] = [
@@ -11,6 +11,12 @@ const TOOLS: { tool: Tool; label: string; icon: LucideIcon; hint: string }[] = [
     label: 'Câble',
     icon: Cable,
     hint: 'Relier deux ports : cliquez sur un équipement puis sur un autre'
+  },
+  {
+    tool: 'pdu',
+    label: 'PDU simple',
+    icon: Mail,
+    hint: 'Envoyer un ping : cliquez sur la source puis sur la destination'
   },
   {
     tool: 'delete',
@@ -24,8 +30,9 @@ export function CanvasToolbar() {
   const tool = useUiStore((s) => s.tool)
   const setTool = useUiStore((s) => s.setTool)
   const cableStart = useUiStore((s) => s.cableStart)
+  const pduSource = useUiStore((s) => s.pduSource)
   return (
-    <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2">
+    <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-1.5">
       <div
         className="flex overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
         role="toolbar"
@@ -38,7 +45,7 @@ export function CanvasToolbar() {
             aria-pressed={tool === t}
             data-testid={`tool-${t}`}
             onClick={() => setTool(t)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium whitespace-nowrap transition ${
               tool === t ? 'bg-slate-800 text-white' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -49,6 +56,11 @@ export function CanvasToolbar() {
       {tool === 'cable' && (
         <span className="rounded-md bg-amber-100 px-2 py-1 text-xs text-amber-800 shadow-sm">
           {cableStart ? 'Cliquez sur le second équipement' : 'Cliquez sur le premier équipement'}
+        </span>
+      )}
+      {tool === 'pdu' && (
+        <span className="rounded-md bg-fuchsia-100 px-2 py-1 text-xs text-fuchsia-800 shadow-sm">
+          {pduSource ? 'Cliquez sur l’équipement de destination' : 'Cliquez sur l’équipement source'}
         </span>
       )}
     </div>

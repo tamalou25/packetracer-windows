@@ -1,0 +1,50 @@
+/**
+ * Détection des conflits d'adresses IP dans un même domaine de diffusion.
+ */
+import type { LabState } from '../model/schema'
+import { effectiveIpv4 } from './addressing'
+import { isApipa } from './ipv4'
+import { l2Segment, type PortRef } from './segment'
+
+const cache = new WeakMap<LabState, Set<string>>()
+
+/** Ensemble des ports (« équipement/port ») dont l'adresse est en conflit avec un autre hôte. */
+export function ipConflicts(state: LabState): Set<string> {
+  const cached = cache.get(state)
+  if (cached) return cached
+  const conflicts = new Set<string>()
+  for (const device of Object.values(state.devices)) {
+    if (!device.powered) continue
+    for (const iface of device.interfaces) {
+      const eff = effectiveIpv4(iface)
+      if (!eff || isApipa(eff.address)) continue
+      const origin: PortRef = { deviceId: device.id, ifaceId: iface.id }
+      for (const member of l2Segment(state, origin)) {
+        if (member.port.deviceId === device.id && member.port.ifaceId === iface.id) continue
+        const other = state.devices[member.port.deviceId]?.interfaces.find(
+          (i) => i.id === member.port.ifaceId
+        )
+        const otherEff = other ? effectiveIpv4(other) : null
+        if (otherEff?.address === eff.address) conflicts.add(`${device.id}/${iface.id}`)
+      }
+    }
+  }
+  cache.set(state, conflicts)
+  return conflicts
+}
+
+/** Hôte en conflit avec l'adresse donnée sur le segment de ce port (pour le journal). */
+export function conflictingPeer(
+  state: LabState,
+  origin: PortRef,
+  address: string
+): { name: string; mac: string } | null {
+  for (const member of l2Segment(state, origin)) {
+    if (member.port.deviceId === origin.deviceId && member.port.ifaceId === origin.ifaceId) continue
+    const device = state.devices[member.port.deviceId]
+    const iface = device?.interfaces.find((i) => i.id === member.port.ifaceId)
+    if (device && iface && effectiveIpv4(iface)?.address === address)
+      return { name: device.name, mac: iface.mac }
+  }
+  return null
+}

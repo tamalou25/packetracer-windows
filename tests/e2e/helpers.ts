@@ -1,7 +1,7 @@
 /**
  * Utilitaires E2E : lancement de l'application Electron construite (out/) dans un profil isolé.
  */
-import { _electron as electron, type ElectronApplication, type Page } from '@playwright/test'
+import { _electron as electron, expect, type ElectronApplication, type Page } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -76,4 +76,26 @@ export async function cableDevices(
   await page.getByTestId(`device-${b}`).click()
   await page.getByTestId('port-picker').getByTestId(`port-${portB}`).click()
   await page.getByTestId('tool-select').click()
+}
+
+/** Configure l'adresse IPv4 statique d'un serveur/poste via sa fenêtre (onglet Config). */
+export async function configureHostIp(
+  page: Page,
+  device: string,
+  ip: string,
+  mask: string,
+  gateway = '',
+  dns = ''
+): Promise<void> {
+  await page.getByTestId(`device-${device}`).dblclick()
+  const win = page.getByTestId(`device-window-${device}`)
+  await win.getByTestId('nav-iface-Ethernet0').click()
+  await win.getByTestId('ip-static').check()
+  await win.getByTestId('ip-address').fill(ip)
+  await win.getByTestId('ip-mask').fill(mask)
+  await win.getByTestId('ip-gateway').fill(gateway)
+  await win.getByTestId('ip-dns1').fill(dns)
+  await win.getByTestId('ip-apply').click()
+  await expect(win.getByTestId('ip-effective')).toHaveText(ip)
+  await win.getByTestId('close-device-window').click()
 }

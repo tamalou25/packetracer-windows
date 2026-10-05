@@ -3,6 +3,7 @@
  * Toutes les actions sont pures : (état, paramètres) → EngineResult.
  */
 import type { Draft } from 'immer'
+import { logEvent } from '../core/eventlog'
 import { raise, transact, type EngineResult } from '../core/result'
 import { buildDevice, createInterface, SERVER_MAX_INTERFACES, nextSeq } from '../model/factory'
 import type { DeviceKind } from '../model/kinds'
@@ -100,7 +101,24 @@ export function renameDevice(state: LabState, id: string, name: string): EngineR
 export function setPower(state: LabState, id: string, powered: boolean): EngineResult {
   return transact(state, (draft) => {
     const device = requireDevice(draft, id)
+    if (device.powered === powered) return undefined
+    if (!powered) {
+      logEvent(draft, id, {
+        level: 'information',
+        source: 'EventLog',
+        eventId: 6006,
+        message: 'Le service Journal des événements a été arrêté.'
+      })
+    }
     device.powered = powered
+    if (powered) {
+      logEvent(draft, id, {
+        level: 'information',
+        source: 'EventLog',
+        eventId: 6005,
+        message: 'Le service Journal des événements a été démarré.'
+      })
+    }
     return undefined
   })
 }

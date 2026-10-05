@@ -4,6 +4,7 @@
  */
 import { createLab, parseSlab, serializeSlab } from '@engine/index'
 import { UNTITLED, useLabStore } from '../store/lab'
+import { useSimStore } from '../store/sim'
 import { useUiStore } from '../store/ui'
 import { getFlowInstance } from './flow'
 
@@ -28,7 +29,10 @@ function resetUi(): void {
   const ui = useUiStore.getState()
   ui.clearSelection()
   ui.setCableStart(null)
+  ui.setPduSource(null)
+  ui.clearPduResults()
   for (const w of ui.windows) ui.closeWindow(w.deviceId)
+  useSimStore.getState().discard()
 }
 
 /** Charge un contenu .slab ; affiche une erreur explicite s'il est invalide. */

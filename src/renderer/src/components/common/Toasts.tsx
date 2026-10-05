@@ -1,7 +1,7 @@
 /**
  * Notifications temporaires (coin inférieur droit).
  */
-import { CircleAlert, CircleCheck, Info, X } from 'lucide-react'
+import { CircleAlert, CircleCheck, Info, TriangleAlert, X } from 'lucide-react'
 import { useUiStore } from '../../store/ui'
 
 export function Toasts() {
@@ -13,13 +13,20 @@ export function Toasts() {
       aria-live="polite"
     >
       {toasts.map((t) => {
-        const Icon = t.kind === 'error' ? CircleAlert : t.kind === 'success' ? CircleCheck : Info
-        const color =
+        const Icon =
           t.kind === 'error'
-            ? 'border-red-200 bg-red-50 text-red-800'
+            ? CircleAlert
             : t.kind === 'success'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-              : 'border-slate-200 bg-white text-slate-700'
+              ? CircleCheck
+              : t.kind === 'warning'
+                ? TriangleAlert
+                : Info
+        const color = {
+          error: 'border-red-200 bg-red-50 text-red-800',
+          success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+          warning: 'border-amber-200 bg-amber-50 text-amber-900',
+          info: 'border-slate-200 bg-white text-slate-700'
+        }[t.kind]
         return (
           <div
             key={t.id}

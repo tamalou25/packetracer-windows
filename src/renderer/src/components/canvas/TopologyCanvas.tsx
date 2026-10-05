@@ -27,11 +27,14 @@ import {
 import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
 import { runAction } from '../../lib/run'
+import { sendSimplePdu } from '../../lib/network'
 import { ICON_CENTER, setFlowInstance } from '../../lib/flow'
 import { DND_DEVICE_MIME } from '../Palette'
 import { CableEdge, type CableFlowEdge } from './CableEdge'
 import { CablePreview } from './CablePreview'
 import { CanvasToolbar } from './CanvasToolbar'
+import { PacketAnimation } from './PacketAnimation'
+import { PduList } from './PduList'
 import { DeviceNode, type DeviceFlowNode } from './DeviceNode'
 import { PortPicker, type PortPickerState } from './PortPicker'
 
@@ -56,6 +59,7 @@ export function TopologyCanvas() {
   const tool = useUiStore((s) => s.tool)
   const armed = useUiStore((s) => s.armed)
   const cableStart = useUiStore((s) => s.cableStart)
+  const pduSource = useUiStore((s) => s.pduSource)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const [picker, setPicker] = useState<PortPickerState | null>(null)
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null)
@@ -186,6 +190,7 @@ export function TopologyCanvas() {
         return
       }
       if (ui.cableStart) ui.setCableStart(null)
+      if (ui.pduSource) ui.setPduSource(null)
       setPicker(null)
       ui.clearSelection()
     },
@@ -208,6 +213,13 @@ export function TopologyCanvas() {
       if (ui.tool === 'cable') {
         if (ui.cableStart?.deviceId === node.id) return
         openPicker(node.id, e)
+      } else if (ui.tool === 'pdu') {
+        if (!ui.pduSource) ui.setPduSource(node.id)
+        else if (ui.pduSource !== node.id) {
+          const source = ui.pduSource
+          ui.setPduSource(null)
+          sendSimplePdu(source, node.id)
+        }
       } else if (ui.tool === 'delete') {
         runAction((lab) => removeDevices(lab, [node.id]))
         ui.closeWindow(node.id)
@@ -244,7 +256,8 @@ export function TopologyCanvas() {
 
   const onMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!useUiStore.getState().cableStart) return
+      const ui = useUiStore.getState()
+      if (!ui.cableStart && !ui.pduSource) return
       setCursor(flow.screenToFlowPosition({ x: e.clientX, y: e.clientY }))
     },
     [flow]
@@ -252,7 +265,11 @@ export function TopologyCanvas() {
 
   const isEmpty = nodes.length === 0
   const cursorClass =
-    armed || tool === 'cable' ? 'cursor-crosshair' : tool === 'delete' ? 'cursor-not-allowed' : ''
+    armed || tool === 'cable' || tool === 'pdu'
+      ? 'cursor-crosshair'
+      : tool === 'delete'
+        ? 'cursor-not-allowed'
+        : ''
 
   return (
     <div
@@ -303,9 +320,11 @@ export function TopologyCanvas() {
             return d ? MINIMAP_COLORS[d.kind] : '#94a3b8'
           }}
         />
-        <CablePreview cursor={cableStart ? cursor : null} />
+        <CablePreview cursor={cableStart || pduSource ? cursor : null} />
+        <PacketAnimation />
       </ReactFlow>
       <CanvasToolbar />
+      <PduList />
       {picker && <PortPicker picker={picker} onPick={onPickPort} onClose={() => setPicker(null)} />}
       {isEmpty && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">

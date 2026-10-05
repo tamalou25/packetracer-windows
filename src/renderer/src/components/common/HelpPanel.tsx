@@ -63,7 +63,15 @@ export function HelpPanel() {
               <b className="text-amber-600">orange</b> adressage incomplet,{' '}
               <b className="text-red-600">rouge</b> inactif.
             </li>
-            <li>Double-cliquez sur un équipement pour ouvrir sa fenêtre (Config, Bureau, Console).</li>
+            <li>
+              Double-cliquez sur un équipement pour ouvrir sa fenêtre : l’onglet Config permet de régler
+              l’adressage IP de chaque carte et, pour un routeur, ses routes statiques.
+            </li>
+            <li>
+              L’outil « PDU simple » envoie un ping d’un équipement à un autre. En mode Simulation (Ctrl+2),
+              les trames (ARP, ICMP…) sont rejouées pas à pas : cliquez sur un événement pour voir le détail
+              de chaque couche.
+            </li>
             <li>
               Enregistrez votre lab au format .slab (Fichier &gt; Enregistrer). Une copie de récupération est
               faite toutes les 60 s.

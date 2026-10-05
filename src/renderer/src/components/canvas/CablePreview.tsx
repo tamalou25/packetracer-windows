@@ -1,5 +1,5 @@
 /**
- * Trait pointillé suivant la souris pendant le câblage.
+ * Trait pointillé suivant la souris pendant le câblage ou l'envoi d'un PDU simple.
  */
 import { ViewportPortal } from '@xyflow/react'
 import { useLabStore } from '../../store/lab'
@@ -8,8 +8,10 @@ import { ICON_CENTER } from '../../lib/flow'
 
 export function CablePreview({ cursor }: { cursor: { x: number; y: number } | null }) {
   const cableStart = useUiStore((s) => s.cableStart)
-  const device = useLabStore((s) => (cableStart ? s.lab.devices[cableStart.deviceId] : undefined))
-  if (!cableStart || !device || !cursor) return null
+  const pduSource = useUiStore((s) => s.pduSource)
+  const startId = cableStart?.deviceId ?? pduSource
+  const device = useLabStore((s) => (startId ? s.lab.devices[startId] : undefined))
+  if (!startId || !device || !cursor) return null
   const x1 = device.position.x + ICON_CENTER.x
   const y1 = device.position.y + ICON_CENTER.y
   return (

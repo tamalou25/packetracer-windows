@@ -11,13 +11,15 @@ import { Toasts } from './components/common/Toasts'
 import { DeviceWindows } from './components/device-window/DeviceWindow'
 import { ModeSwitch } from './components/ModeSwitch'
 import { Palette } from './components/Palette'
-import { PropertiesPanel } from './components/properties/PropertiesPanel'
+import { RightPanel } from './components/RightPanel'
 import { useDocumentLifecycle } from './hooks/useDocumentLifecycle'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useMenuBridge } from './hooks/useMenuBridge'
+import { useSimulationPlayback } from './hooks/useSimulationPlayback'
 import { newDocument, openDocument, openRecentDocument, saveDocument } from './lib/document'
 import { copySelection, deleteSelection, paste, redo, selectAll, undo } from './lib/editing'
 import { getFlowInstance } from './lib/flow'
+import { useSimStore } from './store/sim'
 import { useUiStore } from './store/ui'
 
 /** Exécute une commande du menu natif. */
@@ -82,6 +84,15 @@ function handleMenuCommand(msg: MenuCommandMessage): void {
     case 'sim:simulation':
       ui.setMode('simulation')
       break
+    case 'sim:step':
+      useSimStore.getState().step()
+      break
+    case 'sim:play':
+      useSimStore.getState().setPlaying(!useSimStore.getState().playing)
+      break
+    case 'sim:reset':
+      useSimStore.getState().reset()
+      break
     case 'help:guide':
       ui.setHelpPanel('guide')
       break
@@ -99,6 +110,7 @@ export function App() {
   useMenuBridge(onMenu)
   useKeyboardShortcuts()
   useDocumentLifecycle()
+  useSimulationPlayback()
 
   return (
     <ReactFlowProvider>
@@ -107,7 +119,7 @@ export function App() {
           <main className="min-w-0 flex-1">
             <TopologyCanvas />
           </main>
-          {showProperties && <PropertiesPanel />}
+          {showProperties && <RightPanel />}
         </div>
         <footer className="flex items-center justify-between gap-4 border-t border-slate-200 bg-slate-50 px-4 py-2">
           <Palette />

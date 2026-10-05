@@ -1,0 +1,70 @@
+/**
+ * Exécution des opérations réseau selon le mode (Temps réel ou Simulation).
+ */
+import { effectiveIpv4, isApipa, ping, type PacketTrace } from '@engine/index'
+import { useLabStore } from '../store/lab'
+import { useSimStore } from '../store/sim'
+import { useUiStore } from '../store/ui'
+
+/**
+ * Lance une opération réseau : immédiate en Temps réel, rejouée pas à pas en Simulation.
+ * `onComplete` applique le résultat (état, sortie console…) à la fin.
+ */
+export function runNetworkOperation(trace: PacketTrace, onComplete: () => void): void {
+  const ui = useUiStore.getState()
+  if (ui.mode === 'realtime' || trace.events.length === 0) {
+    onComplete()
+    return
+  }
+  useSimStore.getState().enqueue({ trace, onComplete })
+  ui.setRightTab('simulation')
+}
+
+/** Première adresse IP exploitable d'un équipement (cible d'un PDU simple). */
+export function primaryAddress(deviceId: string): string | null {
+  const device = useLabStore.getState().lab.devices[deviceId]
+  if (!device) return null
+  for (const iface of device.interfaces) {
+    const eff = effectiveIpv4(iface)
+    if (eff && !isApipa(eff.address)) return eff.address
+  }
+  for (const iface of device.interfaces) {
+    const eff = effectiveIpv4(iface)
+    if (eff) return eff.address
+  }
+  return null
+}
+
+/** PDU simple : un écho ICMP de la source vers la destination (comme l'enveloppe des simulateurs). */
+export function sendSimplePdu(sourceId: string, targetId: string): void {
+  const ui = useUiStore.getState()
+  const { lab } = useLabStore.getState()
+  const src = lab.devices[sourceId]
+  const dst = lab.devices[targetId]
+  if (!src || !dst) return
+  if (src.kind === 'switch' || dst.kind === 'switch') {
+    ui.notify(
+      'error',
+      'Un switch de niveau 2 n’a pas d’adresse IP : choisissez un serveur, un poste ou un routeur.'
+    )
+    return
+  }
+  const target = primaryAddress(targetId)
+  if (!target) {
+    ui.notify('error', `${dst.name} n’a pas d’adresse IP.`)
+    return
+  }
+  const result = ping(lab, sourceId, target, { count: 1 })
+  if (!result.ok) {
+    ui.notify('error', result.error.message)
+    return
+  }
+  const { value } = result
+  runNetworkOperation(value.trace, () => {
+    ui.addPduResult({ source: src.name, target: `${dst.name} (${target})`, success: value.success })
+    ui.notify(
+      value.success ? 'success' : 'error',
+      `Ping ${src.name} → ${dst.name} : ${value.success ? 'réussi' : 'échec'} — ${value.lines[1] ?? ''}`
+    )
+  })
+}
