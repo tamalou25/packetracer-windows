@@ -1,18 +1,20 @@
 /// <reference types="vite/client" />
 /**
  * Mesures de performance sur la topologie de 100 équipements : `npm run perf:measure`.
+ * Écrit aussi `out/lab-100.slab`, à ouvrir dans l'application pour un essai manuel.
  * Ignoré par `npm test` (s'exécute seulement en mode « perf ») ; résultats reportés dans
  * docs/performance.md.
  */
+import { mkdirSync, writeFileSync } from 'node:fs'
 import { describe, it } from 'vitest'
 import {
+  canvasStatus,
   command,
-  deviceHealth,
   dispatch,
-  endStatus,
   parseSlab,
-  primaryAddress,
+  runBackgroundTasks,
   serializeSlab,
+  type BackgroundMemo,
   type LabState
 } from '@engine/index'
 import { buildLargeLab } from '../../support/large-lab'
@@ -31,20 +33,15 @@ function time<T>(fn: () => T): { ms: number; value: T } {
 
 /** Ce que l'interface calcule pour dessiner le canvas : état et IP de chaque nœud, voyants des câbles. */
 function canvasFrame(lab: LabState): void {
-  for (const device of Object.values(lab.devices)) {
-    deviceHealth(lab, device)
-    primaryAddress(lab, device)
-  }
-  for (const link of Object.values(lab.links)) {
-    endStatus(lab, link, 'a')
-    endStatus(lab, link, 'b')
-  }
+  canvasStatus(lab)
 }
 
-/** Tâches de fond après un changement, comme le store en mode Temps réel. */
+/** Tâches de fond après un changement, comme le store en mode Temps réel (mémo conservé). */
+let memo: BackgroundMemo = {}
 function settle(lab: LabState): LabState {
-  const r = dispatch(lab, command('background.tick'))
-  return r.ok ? r.state : lab
+  const r = runBackgroundTasks(lab, memo)
+  memo = r.memo
+  return r.state
 }
 
 describe.runIf(import.meta.env.MODE === 'perf')('mesures — topologie de 100 équipements', () => {
@@ -58,6 +55,7 @@ describe.runIf(import.meta.env.MODE === 'perf')('mesures — topologie de 100 é
     for (let i = 0; i < 5; i++) {
       opens.push(
         time(() => {
+          memo = {}
           const parsed = parseSlab(text)
           if (!parsed.ok) throw new Error(parsed.message)
           canvasFrame(settle(parsed.doc.lab))
@@ -88,6 +86,15 @@ describe.runIf(import.meta.env.MODE === 'perf')('mesures — topologie de 100 é
 
     console.log(
       `\n${'Mesure'.padEnd(52)} médiane (ms)\n${rows.map(([k, v]) => `${k.padEnd(52)} ${v.toFixed(2)}`).join('\n')}\n`
+    )
+  })
+
+  it('écrit out/lab-100.slab (essai manuel : Fichier > Ouvrir…)', () => {
+    const { state } = buildLargeLab()
+    mkdirSync(new URL('../../../out/', import.meta.url), { recursive: true })
+    writeFileSync(
+      new URL('../../../out/lab-100.slab', import.meta.url),
+      serializeSlab(state, { savedAt: '2026-10-05T10:00:00.000Z', appVersion: 'perf', viewport: null })
     )
   })
 })
