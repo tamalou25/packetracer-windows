@@ -13,7 +13,7 @@ PowerShell / CMD simulées.
 | Phase | Contenu                               | État |
 | ----- | ------------------------------------- | ---- |
 | 1     | Squelette Electron + CI               | ✅   |
-| 2     | Canvas de topologie, fichiers `.slab` | ⏳   |
+| 2     | Canvas de topologie, fichiers `.slab` | ✅   |
 | 3     | Moteur IP, mode Simulation            | ⏳   |
 | 4     | Consoles PowerShell / CMD             | ⏳   |
 | 5–9   | DHCP, DNS, AD DS, GPO, partages       | ⏳   |

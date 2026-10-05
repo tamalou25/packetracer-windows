@@ -1,0 +1,101 @@
+/**
+ * Câble entre deux ports, avec un voyant d'état à chaque extrémité.
+ */
+import { memo } from 'react'
+import { BaseEdge, EdgeLabelRenderer, useInternalNode, type Edge, type EdgeProps } from '@xyflow/react'
+import { endStatus, type LedStatus } from '@engine/index'
+import { useLabStore } from '../../store/lab'
+import { useUiStore } from '../../store/ui'
+import { ICON_CENTER } from '../../lib/flow'
+
+export type CableEdgeData = { linkId: string; offset: number }
+export type CableFlowEdge = Edge<CableEdgeData, 'cable'>
+
+const LED_DISTANCE = 44
+
+const LED_CLASS: Record<LedStatus, string> = {
+  up: 'fill-green-500',
+  degraded: 'fill-amber-500',
+  down: 'fill-red-500'
+}
+
+const LED_LABEL: Record<LedStatus, string> = {
+  up: 'Lien actif',
+  degraded: 'Lien actif, adressage incomplet',
+  down: 'Lien inactif'
+}
+
+function CableEdgeComponent({ id, source, target, data, selected }: EdgeProps<CableFlowEdge>) {
+  const sourceNode = useInternalNode(source)
+  const targetNode = useInternalNode(target)
+  const lab = useLabStore((s) => s.lab)
+  const showPortLabels = useUiStore((s) => s.showPortLabels)
+  const link = data ? lab.links[data.linkId] : undefined
+  if (!sourceNode || !targetNode || !link) return null
+
+  // Extrémités au centre des icônes, décalées si plusieurs câbles relient les mêmes équipements
+  const sx0 = sourceNode.internals.positionAbsolute.x + ICON_CENTER.x
+  const sy0 = sourceNode.internals.positionAbsolute.y + ICON_CENTER.y
+  const tx0 = targetNode.internals.positionAbsolute.x + ICON_CENTER.x
+  const ty0 = targetNode.internals.positionAbsolute.y + ICON_CENTER.y
+  const dx = tx0 - sx0
+  const dy = ty0 - sy0
+  const len = Math.hypot(dx, dy) || 1
+  const ux = dx / len
+  const uy = dy / len
+  const off = data?.offset ?? 0
+  const sx = sx0 - uy * off
+  const sy = sy0 + ux * off
+  const tx = tx0 - uy * off
+  const ty = ty0 + ux * off
+  const path = `M ${sx},${sy} L ${tx},${ty}`
+
+  const ledA = { x: sx + ux * LED_DISTANCE, y: sy + uy * LED_DISTANCE }
+  const ledB = { x: tx - ux * LED_DISTANCE, y: ty - uy * LED_DISTANCE }
+  const statusA = endStatus(lab, link, 'a')
+  const statusB = endStatus(lab, link, 'b')
+  const portA = lab.devices[link.a.deviceId]?.interfaces.find((i) => i.id === link.a.ifaceId)?.name ?? ''
+  const portB = lab.devices[link.b.deviceId]?.interfaces.find((i) => i.id === link.b.ifaceId)?.name ?? ''
+  const visible = len > LED_DISTANCE * 2 + 8
+
+  return (
+    <>
+      <BaseEdge
+        id={id}
+        path={path}
+        interactionWidth={16}
+        className={selected ? '!stroke-sky-500 !stroke-[3px]' : '!stroke-slate-700 !stroke-2'}
+      />
+      {visible && (
+        <g data-testid={`cable-${portA}-${portB}`}>
+          <circle cx={ledA.x} cy={ledA.y} r={5} className={`${LED_CLASS[statusA]} stroke-white stroke-2`}>
+            <title>{`${portA} : ${LED_LABEL[statusA]}`}</title>
+          </circle>
+          <circle cx={ledB.x} cy={ledB.y} r={5} className={`${LED_CLASS[statusB]} stroke-white stroke-2`}>
+            <title>{`${portB} : ${LED_LABEL[statusB]}`}</title>
+          </circle>
+        </g>
+      )}
+      {showPortLabels && visible && (
+        <EdgeLabelRenderer>
+          <PortLabel x={ledA.x + uy * 14} y={ledA.y - ux * 14} text={portA} />
+          <PortLabel x={ledB.x + uy * 14} y={ledB.y - ux * 14} text={portB} />
+        </EdgeLabelRenderer>
+      )}
+    </>
+  )
+}
+
+/** Étiquette de port positionnée via une classe de transformation (compatible CSP). */
+function PortLabel({ x, y, text }: { x: number; y: number; text: string }) {
+  return (
+    <div
+      className="nodrag nopan pointer-events-none absolute rounded bg-white/90 px-1 text-[10px] font-medium text-slate-600 shadow-sm"
+      style={{ transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }}
+    >
+      {text}
+    </div>
+  )
+}
+
+export const CableEdge = memo(CableEdgeComponent)

@@ -2,18 +2,16 @@
  * Palette d'équipements (en bas de l'écran).
  * Glisser un équipement vers le canvas, ou cliquer puis cliquer sur le canvas.
  */
-import { DEVICE_KIND_INFO, DEVICE_KINDS, type DeviceKind } from '@engine/index'
+import { DEVICE_KIND_INFO, DEVICE_KINDS } from '@engine/index'
 import { DEVICE_COLORS, DEVICE_ICONS } from '../lib/devices'
+import { useUiStore } from '../store/ui'
 
 /** Type MIME utilisé pour le glisser-déposer depuis la palette. */
 export const DND_DEVICE_MIME = 'application/x-serverlab-device'
 
-interface PaletteProps {
-  armed: DeviceKind | null
-  onArm: (kind: DeviceKind | null) => void
-}
-
-export function Palette({ armed, onArm }: PaletteProps) {
+export function Palette() {
+  const armed = useUiStore((s) => s.armed)
+  const setArmed = useUiStore((s) => s.setArmed)
   return (
     <div className="flex items-center gap-2" role="toolbar" aria-label="Palette d’équipements">
       {DEVICE_KINDS.map((kind) => {
@@ -27,11 +25,12 @@ export function Palette({ armed, onArm }: PaletteProps) {
             draggable
             data-testid={`palette-${kind}`}
             title={`${info.label} — ${info.description}`}
+            aria-pressed={active}
             onDragStart={(e) => {
               e.dataTransfer.setData(DND_DEVICE_MIME, kind)
               e.dataTransfer.effectAllowed = 'copy'
             }}
-            onClick={() => onArm(active ? null : kind)}
+            onClick={() => setArmed(active ? null : kind)}
             className={`flex w-24 flex-col items-center gap-1 rounded-lg border px-2 py-2 transition ${
               active
                 ? 'border-sky-500 bg-sky-50 ring-2 ring-sky-300'

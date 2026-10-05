@@ -16,3 +16,12 @@ export function isMenuState(value: unknown): value is MenuState {
     typeof value['showProperties'] === 'boolean'
   )
 }
+
+export function isDocState(value: unknown): value is { name: string; dirty: boolean } {
+  return (
+    isRecord(value) &&
+    typeof value['name'] === 'string' &&
+    value['name'].length <= 200 &&
+    typeof value['dirty'] === 'boolean'
+  )
+}

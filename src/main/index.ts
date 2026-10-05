@@ -2,24 +2,50 @@
  * Point d'entrée du process principal Electron.
  * Crée la fenêtre sécurisée, le menu natif et enregistre les handlers IPC.
  */
-import { app, BrowserWindow, ipcMain, Menu } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron'
 import { join } from 'node:path'
-import { IPC, type AppInfo, type MenuState } from '../shared/ipc'
+import { IPC, type AppInfo, type MenuState, type SaveChangesChoice } from '../shared/ipc'
+import { FileService, findSlabArg } from './files'
 import { buildMenu } from './menu'
 import { applyGlobalSecurity } from './security'
-import { isMenuState } from './validate'
+import { isDocState, isMenuState } from './validate'
 
 // Permet aux tests E2E d'isoler les données utilisateur (récents, autosave) dans un dossier temporaire
 const userDataOverride = process.env['SERVERLAB_USER_DATA']
 if (userDataOverride) app.setPath('userData', userDataOverride)
 
+// Une seule instance : un double-clic sur un .slab est transmis à la fenêtre existante
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+  process.exit(0)
+}
+
 let mainWindow: BrowserWindow | null = null
 let menuState: MenuState = { mode: 'realtime', showPortLabels: false, showProperties: true }
+let docState = { name: 'Sans titre', dirty: false }
+/** Vrai quand la fermeture a été confirmée (évite de redemander). */
+let closeConfirmed = false
+
+const files = new FileService(() => refreshMenu())
 
 /** Reconstruit le menu natif à partir de l'état courant. */
 function refreshMenu(): void {
   if (!mainWindow) return
-  Menu.setApplicationMenu(buildMenu({ window: mainWindow, state: menuState, recent: [] }))
+  Menu.setApplicationMenu(buildMenu({ window: mainWindow, state: menuState, recent: files.recentFiles() }))
+}
+
+async function askSaveChanges(win: BrowserWindow, name: string): Promise<SaveChangesChoice> {
+  const res = await dialog.showMessageBox(win, {
+    type: 'warning',
+    title: 'ServerLab',
+    message: `Voulez-vous enregistrer les modifications apportées à « ${name} » ?`,
+    detail: 'Vos modifications seront perdues si vous ne les enregistrez pas.',
+    buttons: ['Enregistrer', 'Ne pas enregistrer', 'Annuler'],
+    defaultId: 0,
+    cancelId: 2,
+    noLink: true
+  })
+  return res.response === 0 ? 'save' : res.response === 1 ? 'discard' : 'cancel'
 }
 
 function createWindow(): BrowserWindow {
@@ -43,6 +69,24 @@ function createWindow(): BrowserWindow {
 
   win.once('ready-to-show', () => win.show())
 
+  // Confirmation avant fermeture si le document a été modifié
+  win.on('close', (event) => {
+    if (closeConfirmed || !docState.dirty) {
+      void files.clearAutosave()
+      return
+    }
+    event.preventDefault()
+    void askSaveChanges(win, docState.name).then((choice) => {
+      if (choice === 'save') {
+        // Le renderer enregistre puis appelle confirmClose()
+        win.webContents.send(IPC.closeRequested)
+      } else if (choice === 'discard') {
+        closeConfirmed = true
+        win.close()
+      }
+    })
+  })
+
   const devUrl = process.env['ELECTRON_RENDERER_URL']
   if (!app.isPackaged && devUrl) {
     void win.loadURL(devUrl)
@@ -53,6 +97,11 @@ function createWindow(): BrowserWindow {
 }
 
 function registerIpc(): void {
+  const win = (): BrowserWindow => {
+    if (!mainWindow) throw new Error('Fenêtre principale indisponible')
+    return mainWindow
+  }
+
   ipcMain.handle(IPC.appInfo, (): AppInfo => ({
     name: app.getName(),
     version: app.getVersion(),
@@ -67,13 +116,63 @@ function registerIpc(): void {
     menuState = state
     refreshMenu()
   })
+
+  ipcMain.on(IPC.docState, (_event, state: unknown) => {
+    if (isDocState(state)) docState = state
+  })
+
+  ipcMain.handle(IPC.fileOpen, () => files.openDialog(win()))
+  ipcMain.handle(IPC.fileOpenRecent, (_e, path: unknown) => files.openRecent(path))
+  ipcMain.handle(IPC.fileSave, (_e, path: unknown, content: unknown) => files.save(path, content))
+  ipcMain.handle(IPC.fileSaveAs, (_e, content: unknown, name: unknown) => files.saveAs(win(), content, name))
+  ipcMain.handle(IPC.filePending, () => files.takePending())
+  ipcMain.handle(IPC.recentList, () => files.recentFiles())
+  ipcMain.handle(IPC.recentClear, () => files.clearRecent())
+
+  ipcMain.handle(IPC.autosaveWrite, (_e, content: unknown) => files.writeAutosave(content))
+  ipcMain.handle(IPC.autosaveClear, () => files.clearAutosave())
+  ipcMain.handle(IPC.autosaveRecover, () => files.recoverAutosave())
+
+  ipcMain.handle(IPC.askSaveChanges, (_e, name: unknown) =>
+    askSaveChanges(win(), typeof name === 'string' ? name.slice(0, 200) : 'Sans titre')
+  )
+  ipcMain.on(IPC.closeConfirmed, () => {
+    closeConfirmed = true
+    mainWindow?.close()
+  })
 }
+
+/** Ouvre un .slab transmis par le système dans la fenêtre existante. */
+async function openFromSystem(path: string): Promise<void> {
+  const res = await files.openExternal(path)
+  if (!mainWindow) return
+  if (res.ok) mainWindow.webContents.send(IPC.fileOpened, res.value)
+  else dialog.showErrorBox('Ouverture impossible', res.error ?? 'Erreur inconnue.')
+}
+
+app.on('second-instance', (_event, argv) => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.focus()
+  }
+  const path = findSlabArg(argv)
+  if (path) void openFromSystem(path)
+})
 
 app.setName('ServerLab')
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   applyGlobalSecurity()
+  await files.init()
   registerIpc()
+
+  // Fichier passé au lancement (association de l'extension .slab)
+  const initial = findSlabArg(process.argv)
+  if (initial) {
+    const res = await files.openExternal(initial)
+    if (res.ok) files.setPending(res.value)
+  }
+
   mainWindow = createWindow()
   mainWindow.on('closed', () => {
     mainWindow = null

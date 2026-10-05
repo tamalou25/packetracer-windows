@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { launchApp } from './helpers'
 
 test('l’application démarre avec une fenêtre sécurisée', async () => {
-  const { app, page, consoleErrors } = await launchApp()
+  const { app, close, page, consoleErrors } = await launchApp()
   try {
     await expect(page).toHaveTitle(/ServerLab/)
     await expect(page.getByTestId('topology-canvas')).toBeVisible()
@@ -31,6 +31,6 @@ test('l’application démarre avec une fenêtre sécurisée', async () => {
 
     expect(consoleErrors).toEqual([])
   } finally {
-    await app.close()
+    await close()
   }
 })
