@@ -107,9 +107,7 @@ export const IPC = {
   docState: 'doc:state',
   askSaveChanges: 'doc:askSaveChanges',
   closeRequested: 'app:closeRequested',
-  closeConfirmed: 'app:closeConfirmed',
-  updateCheck: 'update:check',
-  updateStatus: 'update:status'
+  closeConfirmed: 'app:closeConfirmed'
 } as const
 
 /** Taille maximale acceptée pour un fichier .slab (protection contre les fichiers aberrants). */

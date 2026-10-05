@@ -16,6 +16,7 @@ import { FileService, findSlabArg } from './files'
 import { buildMenu } from './menu'
 import { applyGlobalSecurity } from './security'
 import { isTheme, loadSettings, saveSettings, THEME_BACKGROUND, type Settings } from './settings'
+import { checkForUpdatesFromMenu, initUpdater, installUpdateNow } from './updater'
 import { isDocState, isMenuState } from './validate'
 
 // Permet aux tests E2E d'isoler les données utilisateur (récents, autosave) dans un dossier temporaire
@@ -40,6 +41,15 @@ let docState = { name: 'Sans titre', dirty: false }
 let settings: Settings = { theme: 'dark' }
 /** Vrai quand la fermeture a été confirmée (évite de redemander). */
 let closeConfirmed = false
+/**
+ * Raison de la fermeture : « update » quand l'utilisateur a choisi « Redémarrer maintenant » pour
+ * installer une mise à jour. Elle ne vaut que pour la fermeture en cours : si l'utilisateur annule
+ * (ou abandonne l'enregistrement), une fermeture ultérieure redevient une simple fermeture.
+ */
+type CloseIntent = 'quit' | 'update'
+let closeIntent: CloseIntent = 'quit'
+/** Raison mémorisée pendant que le renderer enregistre avant de confirmer la fermeture. */
+let intentAfterSave: CloseIntent = 'quit'
 
 const files = new FileService(() => refreshMenu())
 
@@ -52,9 +62,20 @@ function refreshMenu(): void {
       state: menuState,
       recent: files.recentFiles(),
       theme: settings.theme,
-      onTheme: applyTheme
+      onTheme: applyTheme,
+      onCheckUpdates: checkForUpdatesFromMenu
     })
   )
+}
+
+/** « Redémarrer maintenant » : fermeture habituelle (avec « Enregistrer ? ») puis installation. */
+function restartToInstall(): void {
+  if (!mainWindow) {
+    installUpdateNow()
+    return
+  }
+  closeIntent = 'update'
+  mainWindow.close()
 }
 
 /**
@@ -116,12 +137,16 @@ function createWindow(): BrowserWindow {
       return
     }
     event.preventDefault()
+    const intent = closeIntent
+    closeIntent = 'quit'
     void askSaveChanges(win, docState.name).then((choice) => {
       if (choice === 'save') {
         // Le renderer enregistre puis appelle confirmClose()
+        intentAfterSave = intent
         win.webContents.send(IPC.closeRequested)
       } else if (choice === 'discard') {
         closeConfirmed = true
+        closeIntent = intent
         win.close()
       }
     })
@@ -182,6 +207,8 @@ function registerIpc(): void {
   )
   ipcMain.on(IPC.closeConfirmed, () => {
     closeConfirmed = true
+    closeIntent = intentAfterSave
+    intentAfterSave = 'quit'
     mainWindow?.close()
   })
 }
@@ -224,8 +251,12 @@ app.whenReady().then(async () => {
     mainWindow = null
   })
   refreshMenu()
+  // Mises à jour : vérification au démarrage de l'application installée
+  initUpdater({ window: () => mainWindow, restartToInstall })
 })
 
 app.on('window-all-closed', () => {
-  app.quit()
+  // Mise à jour acceptée : installation silencieuse puis relance de la nouvelle version
+  if (closeIntent === 'update') installUpdateNow()
+  else app.quit()
 })

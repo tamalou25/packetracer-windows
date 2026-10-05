@@ -19,8 +19,12 @@ export interface LaunchedApp {
 export async function launchApp(options: { userData?: string } = {}): Promise<LaunchedApp> {
   // Profil réutilisable pour vérifier la persistance des préférences entre deux lancements
   const userData = options.userData ?? mkdtempSync(join(tmpdir(), 'serverlab-e2e-'))
+  // SERVERLAB_E2E_EXECUTABLE : application empaquetée (ex. dist/linux-unpacked/serverlab) au lieu de out/
+  const packaged = process.env['SERVERLAB_E2E_EXECUTABLE']
   const app = await electron.launch({
-    args: [resolve(__dirname, '../../out/main/index.js'), '--no-sandbox'],
+    ...(packaged
+      ? { executablePath: resolve(packaged), args: ['--no-sandbox'] }
+      : { args: [resolve(__dirname, '../../out/main/index.js'), '--no-sandbox'] }),
     env: { ...process.env, SERVERLAB_USER_DATA: userData, NODE_ENV: 'production' }
   })
   const page = await app.firstWindow()

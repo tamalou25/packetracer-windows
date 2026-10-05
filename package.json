@@ -7,6 +7,7 @@
   "author": "tamalou25",
   "license": "UNLICENSED",
   "homepage": "https://github.com/tamalou25/packetracer-windows",
+  "desktopName": "serverlab.desktop",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
