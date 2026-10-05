@@ -21,7 +21,7 @@ PowerShell / CMD simulées.
 | 7     | AD DS                                  | ✅   |
 | 7b    | Bureau façon serveur (fenêtres, menus) | ✅   |
 | 8     | Stratégies de groupe (GPO)             | ✅   |
-| 9     | Fichiers, partages, NTFS               | ⏳   |
+| 9     | Fichiers, partages, NTFS               | ✅   |
 | 10    | Mode Labs                              | ⏳   |
 | 11    | Installeur + mises à jour              | ⏳   |
 
@@ -73,3 +73,19 @@ Voir [`CLAUDE.md`](./CLAUDE.md) pour les conventions détaillées.
   `Invoke-GPUpdate`.
 
 ![Console Gestion des stratégies de groupe](docs/captures/gpo/1-console-heritage.webp)
+
+## Fichiers, partages et NTFS
+
+- Volume `C:` simulé sur chaque serveur : **Explorateur de fichiers** (dossiers, fichiers, lecteurs
+  réseau), `dir`, `mkdir`, `rmdir`, `del`, `cd`, `Get-ChildItem`, `New-Item`, `Remove-Item`.
+- Autorisations **NTFS** explicites et héritées (onglet Sécurité, `icacls`, `Get-Acl`), désactivation
+  de l'héritage (conversion ou suppression), ordre canonique : refus explicite prioritaire.
+- **Partages SMB** : Partage avancé, assistant Nouveau partage du Gestionnaire de serveur,
+  `New-SmbShare`, `Grant/Revoke/Block-SmbShareAccess`, `net share`, partages administratifs (`C$`…).
+- **Accès effectif** : droits d'un utilisateur ou d'un groupe, avec ce qui les limite (partage ou NTFS) ;
+  accès réseau = le plus restrictif des deux.
+- Depuis un poste : `\\serveur\partage` dans l'Explorateur, **Connecter un lecteur réseau**, `net use`,
+  `net view`, erreurs réalistes (53, 67, 5), échanges SMB visibles en mode Simulation ; papier peint
+  de stratégie lu sur un partage.
+
+![Accès effectif au travers d'un partage](docs/captures/fichiers/2-acces-effectif.webp)

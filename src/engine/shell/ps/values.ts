@@ -18,6 +18,8 @@ export interface PsObject {
   typeName: string
   props: Record<string, PsValue>
   view?: PsView
+  /** Représentation texte (ToString) affichée dans une cellule ou une collection. */
+  text?: string
 }
 
 export interface PsScriptBlock {
@@ -79,6 +81,7 @@ export function psToString(v: PsValue | undefined): string {
     case 'script':
       return v.source
     case 'object': {
+      if (v.text !== undefined) return v.text
       const name = v.props['Name'] ?? v.props['name']
       return name !== undefined ? psToString(name) : v.typeName
     }

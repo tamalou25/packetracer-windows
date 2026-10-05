@@ -2,6 +2,7 @@
  * Invite de commandes simulée.
  */
 import { CommandFailure, type ExecContext } from '../context'
+import { changeDirectory } from '../tools/files'
 import type { ToolDef } from '../tools/types'
 
 /** Découpe une ligne façon cmd (guillemets doubles). */
@@ -62,14 +63,12 @@ export function executeCmd(ctx: ExecContext, line: string, tools: ToolDef[]): vo
     case 'title':
       return
     case 'cd':
-    case 'chdir':
-      if (rest.length === 0) ctx.write(ctx.session.cwd)
-      else
-        ctx.write(
-          'Le simulateur ne gère pas encore le système de fichiers (disponible avec le rôle Fichiers).',
-          'warning'
-        )
+    case 'chdir': {
+      const target = rest.filter((a) => a.toLowerCase() !== '/d').join(' ')
+      if (target === '') ctx.write(ctx.session.cwd)
+      else changeDirectory(ctx, target)
       return
+    }
     case 'powershell':
     case 'pwsh':
       ctx.session = { ...ctx.session, stack: [...ctx.session.stack, 'powershell'] }

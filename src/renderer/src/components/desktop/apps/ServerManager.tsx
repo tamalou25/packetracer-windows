@@ -18,7 +18,7 @@ import {
   Waypoints,
   type LucideIcon
 } from 'lucide-react'
-import { effectiveIpv4, featureInfo, type EventLogEntry, type ServerDevice } from '@engine/index'
+import { effectiveIpv4, featureInfo, nodePath, type EventLogEntry, type ServerDevice } from '@engine/index'
 import { launch } from '../../../lib/desktop'
 import { formatSimTime } from '../../../lib/format'
 import { useLabStore } from '../../../store/lab'
@@ -178,7 +178,12 @@ export function ServerManager({ device }: { device: ServerDevice }) {
   const domains = useLabStore((s) => s.lab.domains)
   const dc = Object.values(domains).some((d) => d.controllers.includes(device.id))
   const notifications = notificationsOf(device, dc)
-  const installedRoles = ROLES.filter((r) => device.host.features.includes(r.feature))
+  // Les services de fichiers et de stockage sont présents sur tout serveur (rôle Serveur de fichiers)
+  const installedRoles = ROLES.filter(
+    (r) =>
+      device.host.features.includes(r.feature) ||
+      (r.feature === 'FileAndStorage-Services' && device.host.features.includes('FS-FileServer'))
+  )
   const tools = DESKTOP_APPS.filter((a) => a.tool && a.available(device)).sort((a, b) =>
     a.label.localeCompare(b.label, 'fr')
   )
@@ -530,6 +535,43 @@ export function ServerManager({ device }: { device: ServerDevice }) {
             empty="Aucun serveur."
           />
         </Section>
+        {role.feature === 'FileAndStorage-Services' && (
+          <Section title="Partages" subtitle={`Tous les partages | ${device.storage.shares.length} au total`}>
+            <div className="mb-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => launch(device.id, 'newshare')}
+                className="rounded-sm border border-[#adadad] bg-[#e1e1e1] px-2 py-0.5 text-xs hover:border-[#0078d7] hover:bg-[#e5f1fb]"
+                data-testid="sm-new-share"
+              >
+                Tâches › Nouveau partage…
+              </button>
+            </div>
+            <Table
+              columns={['Partage', 'Chemin local', 'Protocole', 'Disponibilité', 'Description']}
+              rows={device.storage.shares.map((sh) => [
+                <button
+                  key="n"
+                  type="button"
+                  className="text-left text-[#1e5aa8] hover:underline"
+                  onClick={() =>
+                    launch(device.id, 'fileprops', {
+                      arg: nodePath(device.storage, sh.folderId)
+                    })
+                  }
+                  data-testid={`sm-share-${sh.name}`}
+                >
+                  {sh.name}
+                </button>,
+                nodePath(device.storage, sh.folderId),
+                'SMB',
+                'Non en cluster',
+                sh.description
+              ])}
+              empty="Aucun partage. Utilisez Tâches › Nouveau partage pour en créer un."
+            />
+          </Section>
+        )}
         <Section title="Événements" subtitle={`${role.label} | événements du rôle`}>
           <Table
             columns={['Nom du serveur', 'ID', 'Gravité', 'Source', 'Journal', 'Date et heure']}

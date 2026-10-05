@@ -3,7 +3,15 @@
  */
 import type { Draft } from 'immer'
 import { DEVICE_KIND_INFO, type DeviceKind } from './kinds'
-import type { Device, Host, LabState, NetInterface, Position } from './schema'
+import {
+  defaultFsNodes,
+  defaultRootAcl,
+  type Device,
+  type Host,
+  type LabState,
+  type NetInterface,
+  type Position
+} from './schema'
 
 /** Nombre de ports par type d'équipement. */
 export const SWITCH_PORT_COUNT = 16
@@ -48,6 +56,7 @@ export function createHost(kind: 'server' | 'client'): Host {
     session: { user: DEFAULT_LOCAL_USER[kind], domain: null },
     bootedAt: 0,
     policy: { computer: null, user: null, attempt: null },
+    drives: [],
     eventLog: []
   }
 }
@@ -116,7 +125,13 @@ export function buildDevice(
   const base = { id, name: deviceName, position: { ...position }, powered: true, interfaces }
   switch (kind) {
     case 'server':
-      return { ...base, kind, host: createHost('server'), services: { dhcp: null, dns: null } }
+      return {
+        ...base,
+        kind,
+        host: createHost('server'),
+        services: { dhcp: null, dns: null },
+        storage: { rootAcl: defaultRootAcl(), nodes: defaultFsNodes(), shares: [] }
+      }
     case 'client':
       return { ...base, kind, host: createHost('client') }
     case 'switch':

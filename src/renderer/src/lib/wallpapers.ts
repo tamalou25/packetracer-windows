@@ -3,7 +3,14 @@
  * résolution du paramètre de stratégie « Papier peint du Bureau ».
  */
 import type { CSSProperties } from 'react'
-import type { WallpaperPolicy } from '@engine/index'
+import {
+  openUnc,
+  parseUnc,
+  sessionToken,
+  type HostDevice,
+  type LabState,
+  type WallpaperPolicy
+} from '@engine/index'
 
 /** Dossier des images intégrées, présent sur chaque ordinateur simulé. */
 export const WALLPAPER_DIR = 'C:\\Windows\\Web\\Wallpaper\\ServerLab'
@@ -52,17 +59,43 @@ function builtinFor(path: string): string | null {
   return file in BUILTIN_WALLPAPERS ? file : null
 }
 
+/** Image générée pour un fichier partagé (dégradé déterministe dérivé du nom). */
+function generatedImage(name: string): string {
+  let hash = 7
+  for (const c of name.toLowerCase()) hash = (hash * 31 + c.charCodeAt(0)) >>> 0
+  const hue = hash % 360
+  return `radial-gradient(ellipse at 30% 30%, hsl(${(hue + 40) % 360} 60% 45% / 0.55), transparent 60%), linear-gradient(135deg, hsl(${hue} 55% 32%), hsl(${(hue + 50) % 360} 60% 14%))`
+}
+
 /**
- * Fond du Bureau selon la stratégie : image intégrée, ou fond noir si l'image est introuvable
- * (chemin inexistant ou inaccessible : comportement réel du paramètre).
+ * Image du papier peint : image intégrée (C:\Windows\Web\Wallpaper\ServerLab\…) ou fichier
+ * image d'un partage accessible à l'utilisateur (\\serveur\partage\fond.jpg) ; null si introuvable.
  */
-export function desktopBackground(policy: WallpaperPolicy | undefined): DesktopBackground {
+function imageFor(path: string, lab?: LabState, device?: HostDevice): { image: string; id: string } | null {
+  const file = builtinFor(path)
+  const builtin = file ? BUILTIN_WALLPAPERS[file] : undefined
+  if (file && builtin) return { image: builtin.image, id: file.replace(/\.jpg$/, '') }
+  if (!lab || !device || !parseUnc(path) || !/\.(jpe?g|png|bmp)$/i.test(path.trim())) return null
+  const opened = openUnc(lab, device.id, path.trim(), sessionToken(lab, device.id))
+  if (!opened.ok || !opened.target.perms.has('read')) return null
+  const node = opened.target.server.storage.nodes.find((n) => n.id === opened.target.nodeId)
+  return node?.kind === 'file' ? { image: generatedImage(node.name), id: 'partage' } : null
+}
+
+/**
+ * Fond du Bureau selon la stratégie : image intégrée ou partagée, ou fond noir si l'image est
+ * introuvable ou inaccessible (comportement réel du paramètre).
+ */
+export function desktopBackground(
+  policy: WallpaperPolicy | undefined,
+  lab?: LabState,
+  device?: HostDevice
+): DesktopBackground {
   if (!policy || policy.state !== 'Enabled')
     return { style: { backgroundImage: DEFAULT_WALLPAPER }, id: 'default' }
-  const file = builtinFor(policy.path)
-  const image = file ? BUILTIN_WALLPAPERS[file]?.image : undefined
-  if (!file || !image) return { style: { backgroundColor: '#000000' }, id: 'black' }
-  const id = file.replace(/\.jpg$/, '')
+  const found = imageFor(policy.path, lab, device)
+  if (!found) return { style: { backgroundColor: '#000000' }, id: 'black' }
+  const { image, id } = found
   switch (policy.style) {
     case 'Center':
       return {

@@ -3,9 +3,11 @@
  * place dans le menu Démarrer…). Les composants sont associés dans renderApp.tsx.
  */
 import {
-  Computer,
   EthernetPort,
   FileCog,
+  FolderCog,
+  FolderOpen,
+  FolderSymlink,
   Globe,
   Monitor,
   Network,
@@ -240,14 +242,34 @@ export const DESKTOP_APPS: DesktopApp[] = [
     available: (d) => has(d, 'GPMC') && !!d.host.domain
   },
   {
-    id: 'thispc',
-    label: 'Ce PC',
-    icon: Computer,
-    color: 'text-sky-500',
-    size: { w: 720, h: 460 },
+    id: 'explorer',
+    label: 'Explorateur de fichiers',
+    icon: FolderOpen,
+    color: 'text-amber-500',
+    size: { w: 820, h: 500 },
     run: ['explorer', 'explorer.exe', 'ce pc'],
     start: 'system',
+    pinned: always,
     available: always
+  },
+  {
+    id: 'fileprops',
+    label: 'Propriétés',
+    icon: FolderCog,
+    color: 'text-amber-500',
+    size: { w: 440, h: 560 },
+    dialog: true,
+    title: (_d, arg) => `Propriétés de : ${arg?.replace(/\\$/, '').split('\\').pop() || arg || ''}`,
+    available: isServer
+  },
+  {
+    id: 'newshare',
+    label: 'Assistant Nouveau partage',
+    icon: FolderSymlink,
+    color: 'text-amber-500',
+    size: { w: 520, h: 470 },
+    dialog: true,
+    available: isServer
   },
   {
     id: 'run',

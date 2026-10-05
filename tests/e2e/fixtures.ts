@@ -8,6 +8,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   addDevice,
+  addGroup,
+  addGroupMembers,
   addOrganizationalUnit,
   addUser,
   connect,
@@ -24,7 +26,7 @@ import {
 } from '../../src/engine/index'
 import { clickMenu } from './helpers'
 
-/** Domaine prêt à l'emploi : SRV1 (contrôleur lab.local), PC1 joint, OU Compta avec jdupont. */
+/** Domaine prêt à l'emploi : SRV1 (contrôleur lab.local), PC1 joint, OU Compta (jdupont, mmartin, GG_Compta). */
 export function domainLab(): LabState {
   let s = createLab()
   const add = (kind: DeviceKind, name: string, x: number, y: number) => {
@@ -56,15 +58,24 @@ export function domainLab(): LabState {
   const joined = joinDomain(s, pc, { domain: 'lab.local', user: 'LAB\\Administrateur', password: 'P@ssw0rd' })
   s = unwrap(restartComputer(joined.state, pc)).state
   s = unwrap(addOrganizationalUnit(s, 'lab.local', { name: 'Compta' })).state
+  for (const [name, sam] of [
+    ['Jean Dupont', 'jdupont'],
+    ['Marie Martin', 'mmartin']
+  ] as const)
+    s = unwrap(
+      addUser(s, 'lab.local', {
+        name,
+        sam,
+        path: 'OU=Compta,DC=lab,DC=local',
+        password: 'Azerty123!',
+        enabled: true
+      })
+    ).state
+  // GG_Compta : groupe global de jdupont (mmartin n'en fait pas partie)
   s = unwrap(
-    addUser(s, 'lab.local', {
-      name: 'Jean Dupont',
-      sam: 'jdupont',
-      path: 'OU=Compta,DC=lab,DC=local',
-      password: 'Azerty123!',
-      enabled: true
-    })
+    addGroup(s, 'lab.local', { name: 'GG_Compta', scope: 'Global', path: 'OU=Compta,DC=lab,DC=local' })
   ).state
+  s = unwrap(addGroupMembers(s, 'lab.local', 'GG_Compta', ['jdupont'])).state
   return s
 }
 

@@ -27,7 +27,9 @@ import { RecycleBin } from './apps/RecycleBin'
 import { RunDialog } from './apps/RunDialog'
 import { ServerManager } from './apps/ServerManager'
 import { ComputerNameDialog, SystemProperties } from './apps/System'
-import { ThisPc } from './apps/ThisPc'
+import { Explorer } from './apps/Explorer'
+import { FileProperties } from './apps/FileProperties'
+import { NewShareDialog } from './apps/NewShareDialog'
 
 function unavailable(): ReactNode {
   return <div className="p-6 text-sm text-slate-500">Application indisponible sur cet ordinateur.</div>
@@ -75,8 +77,12 @@ export function renderApp(win: DesktopWindow, device: HostDevice): ReactNode {
       return <GpmcApp device={device} />
     case 'gpme':
       return <GpoEditor device={device} gpoId={win.arg} />
-    case 'thispc':
-      return <ThisPc device={device} />
+    case 'explorer':
+      return <Explorer device={device} {...(win.arg !== undefined ? { initial: win.arg } : {})} />
+    case 'fileprops':
+      return <FileProperties device={device} path={win.arg} />
+    case 'newshare':
+      return server ? <NewShareDialog device={server} /> : unavailable()
     case 'run':
       return <RunDialog device={device} />
     case 'addroles':

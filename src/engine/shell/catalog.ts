@@ -7,10 +7,12 @@ import { adCmdlets } from './ps/cmdlets/ad'
 import { coreCmdlets } from './ps/cmdlets/core'
 import { dhcpCmdlets } from './ps/cmdlets/dhcp'
 import { dnsCmdlets } from './ps/cmdlets/dns'
+import { fileCmdlets } from './ps/cmdlets/files'
 import { gpoCmdlets } from './ps/cmdlets/gpo'
 import { netCmdlets } from './ps/cmdlets/net'
 import { systemCmdlets } from './ps/cmdlets/system'
 import { nslookupTool } from './tools/dns'
+import { fileTools } from './tools/files'
 import { gpresultTool, gpupdateTool } from './tools/gpo'
 import { hostnameTool, ipconfigTool, pingTool, tracertTool, whoamiTool } from './tools/net'
 
@@ -22,7 +24,8 @@ export const CATALOG: CommandCatalog = {
     ...dhcpCmdlets,
     ...dnsCmdlets,
     ...adCmdlets,
-    ...gpoCmdlets
+    ...gpoCmdlets,
+    ...fileCmdlets
   ],
   tools: [
     ipconfigTool,
@@ -32,6 +35,7 @@ export const CATALOG: CommandCatalog = {
     hostnameTool,
     whoamiTool,
     gpupdateTool,
-    gpresultTool
+    gpresultTool,
+    ...fileTools
   ]
 }

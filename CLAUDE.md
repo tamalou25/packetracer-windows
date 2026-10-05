@@ -24,7 +24,7 @@ src/shared/    types partagés main/preload/renderer (contrat IPC)
 src/renderer/  application React (index.html + src/)
 src/engine/    moteur de simulation pur :
                model/ (schémas zod) · net/ (IPv4, routage, ARP) · sim/ (traces de paquets)
-               services/ (rôles, DHCP, DNS, adds/ Active Directory, gpo/ stratégies de groupe)
+               services/ (rôles, DHCP, DNS, adds/ Active Directory, gpo/ stratégies, files/ NTFS et SMB)
                shell/ (PowerShell, cmd)
 src/renderer/src/components/desktop/  Bureau simulé : DesktopShell (verrouillage, fenêtres, barre des
                tâches, menu Démarrer), apps.ts (registre des applications), apps/ (Gestionnaire de

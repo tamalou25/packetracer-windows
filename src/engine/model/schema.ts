@@ -70,6 +70,28 @@ export const HostSessionSchema = z.object({
   domain: z.string().nullable().default(null)
 })
 
+/** Lecteur réseau connecté manuellement (net use, « Connecter un lecteur réseau »). */
+export const MappedDriveSchema = z.object({
+  /** Lettre sans les deux-points (Z). */
+  letter: z.string(),
+  /** Chemin UNC (\\SRV1\Commun). */
+  path: z.string(),
+  /** Compte de la session qui a connecté le lecteur (LAB\jdupont). */
+  account: z.string(),
+  /** Reconnecté à l'ouverture de session suivante. */
+  persistent: z.boolean().default(true)
+})
+
+/** SID bien connus utilisés dans les listes de contrôle d'accès. */
+export const WELL_KNOWN_SIDS = {
+  everyone: 'S-1-1-0',
+  creatorOwner: 'S-1-3-0',
+  authenticatedUsers: 'S-1-5-11',
+  system: 'S-1-5-18',
+  administrators: 'S-1-5-32-544',
+  users: 'S-1-5-32-545'
+} as const
+
 // ---------------------------------------------------------------------------
 // Stratégies de groupe : paramètres simulés
 // ---------------------------------------------------------------------------
@@ -211,6 +233,8 @@ export const HostSchema = z.object({
   bootedAt: z.number().default(0),
   /** Stratégies de groupe appliquées (ordinateur et utilisateur de la session). */
   policy: HostPolicySchema.default(() => ({ computer: null, user: null, attempt: null })),
+  /** Lecteurs réseau connectés (net use). */
+  drives: z.array(MappedDriveSchema).default([]),
   eventLog: z.array(EventLogEntrySchema).default([])
 })
 
@@ -299,6 +323,108 @@ export const DnsServerSchema = z.object({
   useRootHints: z.boolean().default(true)
 })
 
+// ---------------------------------------------------------------------------
+// Fichiers : volume C:, autorisations NTFS, partages SMB
+// ---------------------------------------------------------------------------
+
+/** Autorisations NTFS de base (onglet Sécurité). */
+export const NTFS_RIGHTS = [
+  'FullControl',
+  'Modify',
+  'ReadAndExecute',
+  'ListDirectory',
+  'Read',
+  'Write'
+] as const
+
+/** Entrée de contrôle d'accès NTFS explicite. */
+export const NtfsAceSchema = z.object({
+  /** SID bien connu (S-1-…) ou identifiant d'objet de l'annuaire. */
+  principal: z.string(),
+  type: z.enum(['Allow', 'Deny']).default('Allow'),
+  rights: z.enum(NTFS_RIGHTS)
+})
+
+/** Dossier ou fichier du volume C: d'un serveur. */
+export const FsNodeSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  /** Dossier parent (null = racine du volume C:\). */
+  parentId: z.string().nullable(),
+  kind: z.enum(['folder', 'file']),
+  /** Taille en octets (fichiers). */
+  size: z.number().int().nonnegative().default(0),
+  /** Autorisations explicites ; les autorisations héritées sont calculées depuis les parents. */
+  acl: z.array(NtfsAceSchema).default([]),
+  /** Hérite des autorisations du dossier parent. */
+  inherits: z.boolean().default(true),
+  owner: z.string().default(WELL_KNOWN_SIDS.administrators),
+  modifiedAt: z.number().default(0),
+  /** Dossier du système (non supprimable). */
+  system: z.boolean().default(false)
+})
+
+/** Autorisations de partage (Contrôle total, Modifier, Lecture). */
+export const SHARE_RIGHTS = ['Full', 'Change', 'Read'] as const
+
+export const ShareAceSchema = z.object({
+  principal: z.string(),
+  type: z.enum(['Allow', 'Deny']).default('Allow'),
+  rights: z.enum(SHARE_RIGHTS)
+})
+
+/** Dossier partagé (SMB). */
+export const SmbShareSchema = z.object({
+  /** Nom du partage (Compta, Compta$ pour un partage masqué). */
+  name: z.string(),
+  folderId: z.string(),
+  description: z.string().default(''),
+  /** Par défaut : Tout le monde, Lecture. */
+  acl: z
+    .array(ShareAceSchema)
+    .default(() => [{ principal: WELL_KNOWN_SIDS.everyone, type: 'Allow' as const, rights: 'Read' as const }])
+})
+
+/** Autorisations de la racine C:\ : Administrateurs et SYSTEM (contrôle total), Utilisateurs (lecture). */
+export function defaultRootAcl(): z.infer<typeof NtfsAceSchema>[] {
+  return [
+    { principal: WELL_KNOWN_SIDS.administrators, type: 'Allow', rights: 'FullControl' },
+    { principal: WELL_KNOWN_SIDS.system, type: 'Allow', rights: 'FullControl' },
+    { principal: WELL_KNOWN_SIDS.users, type: 'Allow', rights: 'ReadAndExecute' }
+  ]
+}
+
+/** Dossiers présents sur un serveur neuf. */
+export function defaultFsNodes(): z.infer<typeof FsNodeSchema>[] {
+  const folder = (id: string, name: string, parentId: string | null) => ({
+    id,
+    name,
+    parentId,
+    kind: 'folder' as const,
+    size: 0,
+    acl: [],
+    inherits: true,
+    owner: WELL_KNOWN_SIDS.administrators,
+    modifiedAt: 0,
+    system: true
+  })
+  return [
+    folder('fs-perflogs', 'PerfLogs', null),
+    folder('fs-programfiles', 'Program Files', null),
+    folder('fs-users', 'Users', null),
+    folder('fs-users-admin', 'Administrateur', 'fs-users'),
+    folder('fs-users-public', 'Public', 'fs-users'),
+    folder('fs-windows', 'Windows', null)
+  ]
+}
+
+/** Stockage d'un serveur : volume C: et partages. */
+export const StorageSchema = z.object({
+  rootAcl: z.array(NtfsAceSchema).default(defaultRootAcl),
+  nodes: z.array(FsNodeSchema).default(defaultFsNodes),
+  shares: z.array(SmbShareSchema).default([])
+})
+
 /** Données des rôles serveur. */
 export const ServerServicesSchema = z.object({
   dhcp: DhcpServerSchema.nullable().default(null),
@@ -317,7 +443,9 @@ export const ServerDeviceSchema = z.object({
   ...deviceBase,
   kind: z.literal('server'),
   host: HostSchema,
-  services: ServerServicesSchema.default({ dhcp: null, dns: null })
+  services: ServerServicesSchema.default({ dhcp: null, dns: null }),
+  /** Volume C: et dossiers partagés. */
+  storage: StorageSchema.default(() => ({ rootAcl: defaultRootAcl(), nodes: defaultFsNodes(), shares: [] }))
 })
 export const ClientDeviceSchema = z.object({ ...deviceBase, kind: z.literal('client'), host: HostSchema })
 export const SwitchDeviceSchema = z.object({ ...deviceBase, kind: z.literal('switch') })
@@ -383,7 +511,7 @@ export const GPO_STATUSES = [
 ] as const
 
 /** SID bien connu « Utilisateurs authentifiés » (filtrage de sécurité par défaut). */
-export const AUTHENTICATED_USERS_SID = 'S-1-5-11'
+export const AUTHENTICATED_USERS_SID = WELL_KNOWN_SIDS.authenticatedUsers
 
 /** Objet de stratégie de groupe (GPO). */
 export const GpoSchema = z.object({
@@ -519,6 +647,14 @@ export type FilteredGpo = z.infer<typeof FilteredGpoSchema>
 export type ComputerPolicyResult = z.infer<typeof ComputerPolicyResultSchema>
 export type UserPolicyResult = z.infer<typeof UserPolicyResultSchema>
 export type HostPolicy = z.infer<typeof HostPolicySchema>
+export type MappedDrive = z.infer<typeof MappedDriveSchema>
+export type NtfsRight = (typeof NTFS_RIGHTS)[number]
+export type NtfsAce = z.infer<typeof NtfsAceSchema>
+export type FsNode = z.infer<typeof FsNodeSchema>
+export type ShareRight = (typeof SHARE_RIGHTS)[number]
+export type ShareAce = z.infer<typeof ShareAceSchema>
+export type SmbShare = z.infer<typeof SmbShareSchema>
+export type Storage = z.infer<typeof StorageSchema>
 export type HostDevice = ServerDevice | ClientDevice
 export type LinkEnd = z.infer<typeof LinkEndSchema>
 export type Link = z.infer<typeof LinkSchema>

@@ -375,6 +375,8 @@ export function logoff(state: LabState, deviceId: string): LabState {
       d.host.session = null
       // Le profil de l'utilisateur est déchargé : sa stratégie sera retraitée à la prochaine ouverture
       d.host.policy.user = null
+      // Les lecteurs réseau non persistants sont déconnectés
+      d.host.drives = d.host.drives.filter((drive) => drive.persistent)
     }
     return undefined
   })

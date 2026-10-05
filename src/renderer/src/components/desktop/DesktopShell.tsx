@@ -64,6 +64,7 @@ const REASONS = [
 
 export function DesktopShell({ device }: { device: HostDevice }) {
   const desktop = useDesktopStore((s) => s.desktops[device.id])
+  const lab = useLabStore((s) => s.lab)
   const store = useDesktopStore.getState()
   const areaRef = useRef<HTMLDivElement>(null)
   const [area, setArea] = useState({ w: 960, h: 560 })
@@ -111,7 +112,7 @@ export function DesktopShell({ device }: { device: HostDevice }) {
   const active = activeWindow(desktop)
   const closeMenu = () => setMenu(null)
   // Papier peint imposé par la stratégie de groupe de l'utilisateur
-  const background = desktopBackground(device.host.policy.user?.settings.wallpaper)
+  const background = desktopBackground(device.host.policy.user?.settings.wallpaper, lab, device)
 
   const power = (action: PowerAction) => {
     closeMenu()
@@ -148,7 +149,7 @@ export function DesktopShell({ device }: { device: HostDevice }) {
           <DesktopIcon
             icon={Computer}
             label="Ce PC"
-            onOpen={() => launch(device.id, 'thispc')}
+            onOpen={() => launch(device.id, 'explorer')}
             testId="desktop-icon-thispc"
           />
           <DesktopIcon
