@@ -85,6 +85,13 @@ npm run dist         # installeur local via electron-builder → dist/
    (type, obligatoire, position), handler qui appelle l'action → la complétion Tab est automatique.
 3. Test Vitest dans `tests/engine/shell/` : sortie + état identique à l'action GUI.
 
+### Publier une version
+
+1. `git tag vX.Y.Z && git push origin vX.Y.Z` → workflow `release.yml` : brouillon, installeurs
+   Windows (NSIS) et Linux (AppImage) envoyés par electron-builder, puis publication.
+2. La version de l'application est celle du tag (alignée dans le workflow). Mises à jour :
+   `src/main/updater.ts` (electron-updater, releases GitHub publiques, aucun jeton embarqué).
+
 ### Ajouter un critère de lab
 
 1. Ajouter le type dans `src/engine/labs/criteria.ts` (schéma zod + évaluateur).
