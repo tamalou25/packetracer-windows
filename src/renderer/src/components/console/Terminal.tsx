@@ -53,9 +53,11 @@ export function Terminal({ deviceId, kind, autoFocus }: TerminalProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Création de la console hors du rendu (mise à jour du store)
+  // Recréée aussi après une réinitialisation (changement de session, redémarrage)
+  const exists = !!term
   useEffect(() => {
-    ensureTerminal(deviceId, kind)
-  }, [deviceId, kind])
+    if (!exists) ensureTerminal(deviceId, kind)
+  }, [deviceId, kind, exists])
 
   useEffect(() => {
     if (autoFocus) inputRef.current?.focus()

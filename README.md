@@ -18,7 +18,8 @@ PowerShell / CMD simulées.
 | 4     | Consoles PowerShell / CMD             | ✅   |
 | 5     | DHCP                                  | ✅   |
 | 6     | DNS                                   | ✅   |
-| 7–9   | AD DS, GPO, partages                  | ⏳   |
+| 7     | AD DS                                 | ✅   |
+| 8–9   | GPO, partages                         | ⏳   |
 | 10    | Mode Labs                             | ⏳   |
 | 11    | Installeur + mises à jour             | ⏳   |
 

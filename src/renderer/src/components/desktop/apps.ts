@@ -9,6 +9,7 @@ import {
   ScrollText,
   SquareTerminal,
   TerminalSquare,
+  UsersRound,
   Waypoints,
   type LucideIcon
 } from 'lucide-react'
@@ -72,6 +73,14 @@ export const DESKTOP_APPS: DesktopAppInfo[] = [
     color: 'bg-sky-600',
     tool: true,
     available: (d) => has(d, 'RSAT-DNS-Server')
+  },
+  {
+    id: 'aduc',
+    label: 'Utilisateurs et ordinateurs Active Directory',
+    icon: UsersRound,
+    color: 'bg-indigo-600',
+    tool: true,
+    available: (d) => has(d, 'RSAT-ADDS') && !!d.host.domain
   },
   {
     id: 'events',

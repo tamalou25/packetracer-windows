@@ -4,7 +4,6 @@
  * appliqué immédiatement (Temps réel) ou à la fin de la lecture des paquets (Simulation).
  */
 import {
-  activeShell,
   createShellSession,
   executeLine,
   shellBanner,
@@ -37,6 +36,33 @@ function commitState(base: LabState, next: LabState): void {
   useLabStore.getState().run(() => ({ ok: true, state: next, value: undefined }))
 }
 
+/** Ouvre une nouvelle session dans la console (l'affichage précédent est conservé). */
+function restartTerminal(key: string, notice: string): void {
+  const store = useConsoleStore.getState()
+  const term = store.terminals[key]
+  if (!term) return
+  store.append(key, [
+    { text: '', kind: 'out' },
+    { text: notice, kind: 'verbose' },
+    ...shellBanner(term.kind).map((t) => ({ text: t, kind: 'out' as const }))
+  ])
+  store.update(key, {
+    session: createShellSession(useLabStore.getState().lab, term.deviceId, term.kind),
+    busy: false,
+    pending: null
+  })
+}
+
+/**
+ * Les consoles d'un ordinateur repartent sur une nouvelle session quand l'utilisateur connecté
+ * change (promotion, ouverture/fermeture de session, redémarrage d'un poste du domaine).
+ */
+export function restartConsoles(deviceId: string): void {
+  for (const term of Object.values(useConsoleStore.getState().terminals)) {
+    if (term.deviceId === deviceId) restartTerminal(term.key, '[Session fermée — nouvelle session ouverte]')
+  }
+}
+
 /** Applique le résultat final d'une commande. */
 function finalize(
   key: string,
@@ -56,21 +82,19 @@ function finalize(
     displayed = 0
     base = current
   }
-  commitState(base, final.state)
+  // La sortie est affichée avant d'appliquer l'état (qui peut rouvrir la session)
   if (final.clear) store.clear(key)
   store.append(key, final.output.slice(displayed))
+  const sessionBefore = useConsoleStore.getState().terminals[key]?.session ?? null
+  commitState(base, final.state)
+  const sessionAfter = useConsoleStore.getState().terminals[key]?.session ?? null
+  if (sessionAfter !== sessionBefore) {
+    // Nouvelle session ouverte par le changement d'utilisateur : rien d'autre à appliquer
+    store.update(key, { busy: false, pending: null })
+    return
+  }
   if (final.exit) {
-    const kind = activeShell(session)
-    store.append(key, [
-      { text: '', kind: 'out' },
-      { text: '[Session terminée — nouvelle console]', kind: 'verbose' },
-      ...shellBanner(kind).map((t) => ({ text: t, kind: 'out' as const }))
-    ])
-    store.update(key, {
-      session: createShellSession(useLabStore.getState().lab, session.deviceId, kind),
-      busy: false,
-      pending: null
-    })
+    restartTerminal(key, '[Session terminée — nouvelle console]')
     return
   }
   store.update(key, { session: final.session, busy: false, pending: null })

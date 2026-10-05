@@ -7,6 +7,12 @@ import { Terminal } from './Terminal'
 
 export function ConsoleTab({ device }: { device: HostDevice }) {
   const [kind, setKind] = useState<ShellKind>(device.kind === 'server' ? 'powershell' : 'cmd')
+  if (!device.host.session)
+    return (
+      <div className="flex h-full items-center justify-center p-8 text-center text-sm text-slate-500">
+        Aucune session ouverte : connectez-vous depuis l’onglet Bureau.
+      </div>
+    )
   return (
     <div className="flex h-full flex-col">
       <div className="flex gap-1 border-b border-slate-200 bg-slate-50 px-2 py-1">

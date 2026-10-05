@@ -5,7 +5,7 @@
 import type { EngineResult } from '../core/result'
 import { DEFAULT_LOCAL_USER } from '../model/factory'
 import type { Device, HostDevice, LabState } from '../model/schema'
-import type { PacketTrace } from '../sim/trace'
+import { concatTraces, type PacketTrace } from '../sim/trace'
 import { NeedInput, type LineKind, type OutputLine, type ShellSession } from './types'
 
 /** Erreur métier remontée par une commande (le shell la met en forme). */
@@ -99,16 +99,6 @@ export class ExecContext {
   mergedTrace(title: string): PacketTrace | null {
     if (this.traces.length === 0) return null
     if (this.traces.length === 1) return this.traces[0] as PacketTrace
-    const events = []
-    let offset = 0
-    for (const t of this.traces) {
-      let max = 0
-      for (const e of t.events) {
-        events.push({ ...e, step: e.step + offset })
-        max = Math.max(max, e.step)
-      }
-      offset += max
-    }
-    return { title, events }
+    return concatTraces(title, this.traces)
   }
 }

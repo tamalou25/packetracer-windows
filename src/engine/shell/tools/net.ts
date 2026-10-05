@@ -10,6 +10,8 @@ import { carrierUp } from '../../net/segment'
 import type { NetInterface } from '../../model/schema'
 import { dhcpRelease, dhcpRenew } from '../../services/dhcp-client'
 import { firstAddress, resolveName } from '../../services/dns-resolver'
+import { registerDnsAction } from '../../services/adds/registration'
+import { currentUserGroups } from '../ps/cmdlets/ad'
 import type { ExecContext } from '../context'
 import type { ToolDef } from './types'
 
@@ -179,6 +181,7 @@ export const ipconfigTool: ToolDef = {
       return
     }
     if (opt === '/registerdns') {
+      ctx.apply(registerDnsAction(ctx.state, device.id))
       ctx.writeLines([
         '',
         'Configuration IP',
@@ -305,6 +308,21 @@ export const whoamiTool: ToolDef = {
     const user = ctx.user
     const prefix = (user.domain ?? ctx.host.name).toLowerCase()
     const opt = (args[0] ?? '').toLowerCase()
+    if (opt === '/groups') {
+      const groups = currentUserGroups(ctx)
+      ctx.writeLines([
+        '',
+        'INFORMATIONS DE GROUPE',
+        '----------------------',
+        '',
+        `${'Nom du groupe'.padEnd(52)}Type`,
+        `${'='.repeat(51)} ==============`
+      ])
+      for (const g of groups) ctx.write(`${g.padEnd(52)}Groupe`)
+      if (groups.length === 0) ctx.write(`${'Tout le monde'.padEnd(52)}Groupe bien connu`)
+      ctx.write('')
+      return
+    }
     if (opt === '/upn') {
       if (!user.domain || !ctx.host.host.domain) {
         ctx.write(

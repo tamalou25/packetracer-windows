@@ -3,12 +3,14 @@
  */
 import type { ReactNode } from 'react'
 import { LogOut, X } from 'lucide-react'
-import { formatShortDate, type HostDevice } from '@engine/index'
+import { formatShortDate, logoff, type HostDevice } from '@engine/index'
+import { LogonScreen } from './LogonScreen'
 import { useDesktopStore } from '../../store/desktop'
 import { useLabStore } from '../../store/lab'
 import { Terminal } from '../console/Terminal'
 import { EventLogView } from '../device-window/config/EventLogView'
 import { appInfo, DESKTOP_APPS } from './apps'
+import { AducApp } from '../apps/AducApp'
 import { DhcpApp } from '../apps/DhcpApp'
 import { DnsApp } from '../apps/DnsApp'
 import { NetworkSettingsApp } from './NetworkSettingsApp'
@@ -29,6 +31,8 @@ function renderApp(id: string, device: HostDevice): ReactNode {
       return device.kind === 'server' ? <DhcpApp device={device} /> : null
     case 'dns':
       return device.kind === 'server' ? <DnsApp device={device} /> : null
+    case 'aduc':
+      return <AducApp device={device} />
     case 'system':
       return <SystemApp device={device} />
     case 'events':
@@ -53,6 +57,7 @@ export function DesktopTab({ device }: { device: HostDevice }) {
   const apps = DESKTOP_APPS.filter((a) => a.available(device))
   const current = active ? appInfo(active) : undefined
   const session = device.host.session
+  if (!session) return <LogonScreen device={device} />
 
   return (
     <div className="flex h-full flex-col">
@@ -120,12 +125,23 @@ export function DesktopTab({ device }: { device: HostDevice }) {
           )
         })}
         <span className="ml-auto flex items-center gap-3 pr-1 text-slate-400">
-          {session && (
-            <span className="flex items-center gap-1">
-              <LogOut size={12} className="opacity-0" />
-              {session.domain ?? device.name}\{session.user}
-            </span>
-          )}
+          <span>
+            {session.domain ?? device.name}\{session.user}
+          </span>
+          <button
+            type="button"
+            className="flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-white/10"
+            title="Se déconnecter"
+            data-testid="logoff"
+            onClick={() => {
+              useDesktopStore.getState().reset()
+              useLabStore
+                .getState()
+                .run((lab) => ({ ok: true, state: logoff(lab, device.id), value: undefined }))
+            }}
+          >
+            <LogOut size={12} /> Se déconnecter
+          </button>
           <span className="font-mono">{formatShortDate(clock)}</span>
         </span>
       </div>

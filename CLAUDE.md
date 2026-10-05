@@ -22,7 +22,9 @@ src/main/      process principal : fenêtre, menu natif, IPC, fichiers .slab, mi
 src/preload/   pont contextBridge → window.serverlab (API minimale)
 src/shared/    types partagés main/preload/renderer (contrat IPC)
 src/renderer/  application React (index.html + src/)
-src/engine/    moteur de simulation pur (modèle, réseau, services, shells, labs)
+src/engine/    moteur de simulation pur :
+               model/ (schémas zod) · net/ (IPv4, routage, ARP) · sim/ (traces de paquets)
+               services/ (rôles, DHCP, DNS, adds/ Active Directory) · shell/ (PowerShell, cmd)
 labs/          labs pédagogiques *.json
 tests/engine/  tests Vitest du moteur
 tests/e2e/     scénarios Playwright Electron

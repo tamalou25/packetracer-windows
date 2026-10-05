@@ -72,3 +72,18 @@ export function ipv4Layer(src: string, dst: string, ttl: number, protocol: strin
 }
 
 export const BROADCAST_MAC = 'FF-FF-FF-FF-FF-FF'
+
+/** Concatène plusieurs traces en décalant les pas (opérations successives). */
+export function concatTraces(title: string, traces: PacketTrace[]): PacketTrace {
+  const events: PduEvent[] = []
+  let offset = 0
+  for (const t of traces) {
+    let max = 0
+    for (const e of t.events) {
+      events.push({ ...e, step: e.step + offset })
+      max = Math.max(max, e.step)
+    }
+    offset += max
+  }
+  return { title, events }
+}

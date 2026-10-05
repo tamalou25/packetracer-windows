@@ -3,7 +3,8 @@
  */
 import { useState } from 'react'
 import { ChevronDown, Flag, Plus } from 'lucide-react'
-import { effectiveIpv4, FEATURES, installFeatures, type ServerDevice } from '@engine/index'
+import { effectiveIpv4, FEATURES, installFeatures, installForest, type ServerDevice } from '@engine/index'
+import { FormDialog } from '../common/FormDialog'
 import { runAction } from '../../lib/run'
 import { useUiStore } from '../../store/ui'
 import { useDesktopStore } from '../../store/desktop'
@@ -16,6 +17,7 @@ const INSTALLABLE = FEATURES.filter((f) => f.role && !f.parent && f.name !== 'Fi
 export function ServerManagerApp({ device }: { device: ServerDevice }) {
   const [wizard, setWizard] = useState(false)
   const [toolsOpen, setToolsOpen] = useState(false)
+  const [promote, setPromote] = useState(false)
   const tools = DESKTOP_APPS.filter((a) => a.tool && a.available(device))
   const launch = (id: string) => useDesktopStore.getState().launch(device.id, id)
   const installedRoles = FEATURES.filter((f) => f.role && device.host.features.includes(f.name))
@@ -109,15 +111,60 @@ export function ServerManagerApp({ device }: { device: ServerDevice }) {
               <p key={n}>⚠ {n}</p>
             ))}
             {device.host.features.includes('AD-Domain-Services') && !device.host.domain && (
-              <p className="mt-1 text-amber-700">
-                Utilisez « Promouvoir ce serveur en contrôleur de domaine » (outil AD DS) ou
-                Install-ADDSForest dans PowerShell.
-              </p>
+              <Button
+                variant="primary"
+                className="mt-2"
+                onClick={() => setPromote(true)}
+                data-testid="promote-dc"
+              >
+                Promouvoir ce serveur en contrôleur de domaine
+              </Button>
             )}
           </section>
         )}
       </div>
       {wizard && <AddRolesDialog device={device} onClose={() => setWizard(false)} />}
+      {promote && (
+        <FormDialog
+          title="Assistant Configuration des services de domaine Active Directory"
+          description="Ajouter une nouvelle forêt : le serveur redémarrera à la fin de l’installation."
+          fields={[
+            { key: 'domain', label: 'Nom de domaine racine', placeholder: 'lab.local' },
+            { key: 'netbios', label: 'Nom de domaine NetBIOS (facultatif)' },
+            {
+              key: 'password',
+              label: 'Mot de passe du mode de restauration des services d’annuaire (DSRM)',
+              type: 'password'
+            },
+            { key: 'confirm', label: 'Confirmer le mot de passe', type: 'password' }
+          ]}
+          submitLabel="Installer"
+          testId="promote-dialog"
+          onClose={() => setPromote(false)}
+          onSubmit={(v) => {
+            if (v['password'] !== v['confirm']) {
+              useUiStore.getState().notify('error', 'Les mots de passe ne correspondent pas.')
+              return false
+            }
+            const result = runAction((lab) =>
+              installForest(lab, device.id, {
+                domainName: String(v['domain']),
+                ...(v['netbios'] ? { netbios: String(v['netbios']) } : {}),
+                safeModePassword: String(v['password'])
+              })
+            )
+            if (!result) return false
+            result.warnings.forEach((w) => useUiStore.getState().notify('warning', w))
+            useUiStore
+              .getState()
+              .notify(
+                'success',
+                `${device.name} est maintenant contrôleur du domaine ${result.domain} (${result.netbios}). Le serveur a redémarré.`
+              )
+            return true
+          }}
+        />
+      )}
     </div>
   )
 }

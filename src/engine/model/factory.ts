@@ -43,6 +43,8 @@ export function createHost(kind: 'server' | 'client'): Host {
     features: kind === 'server' ? [...DEFAULT_SERVER_FEATURES] : ['PowerShell'],
     pendingReboot: false,
     pendingName: null,
+    pendingDomain: null,
+    localAdminPassword: 'P@ssw0rd',
     session: { user: DEFAULT_LOCAL_USER[kind], domain: null },
     eventLog: []
   }

@@ -17,6 +17,7 @@ import {
   type PacketTrace,
   type PduLayer
 } from '../sim/trace'
+import { registerHostDns } from './adds/join'
 import { effectiveOptions, inScopeRange, isExcluded, formatLeaseDuration } from './dhcp'
 
 export type DhcpOutcome = 'bound' | 'renewed' | 'released' | 'failed' | 'not-dhcp' | 'no-carrier'
@@ -398,6 +399,8 @@ export function dhcpAcquire(
       }
       target.dhcpReleased = false
     }
+    // Un membre du domaine inscrit sa nouvelle adresse dans le DNS
+    registerHostDns(draft, cli)
     logAnomalies(draft)
     return undefined
   })

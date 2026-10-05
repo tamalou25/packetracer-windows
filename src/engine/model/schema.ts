@@ -80,6 +80,10 @@ export const HostSchema = z.object({
   pendingReboot: z.boolean().default(false),
   /** Nouveau nom appliqué au prochain redémarrage (Rename-Computer). */
   pendingName: z.string().nullable().default(null),
+  /** Domaine rejoint, effectif au prochain redémarrage (Add-Computer) ; '' = retour en groupe de travail. */
+  pendingDomain: z.string().nullable().default(null),
+  /** Mot de passe du compte Administrateur local. */
+  localAdminPassword: z.string().default('P@ssw0rd'),
   /** Session ouverte (null = écran de connexion). */
   session: HostSessionSchema.nullable().default(null),
   eventLog: z.array(EventLogEntrySchema).default([])

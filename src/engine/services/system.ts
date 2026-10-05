@@ -7,6 +7,7 @@ import { raise, transact, type EngineResult } from '../core/result'
 import { DEFAULT_LOCAL_USER } from '../model/factory'
 import type { HostDevice, LabState } from '../model/schema'
 import { deviceNameError, requireDevice } from '../topology/actions'
+import { registerHostDns } from './adds/join'
 
 /** Applique les opérations en attente d'un redémarrage (renommage…). */
 export function applyRestart(draft: Draft<LabState>, device: Draft<HostDevice>): void {
@@ -26,6 +27,15 @@ export function applyRestart(draft: Draft<LabState>, device: Draft<HostDevice>):
     device.name = device.host.pendingName
     device.host.pendingName = null
   }
+  // Jonction (ou départ) du domaine en attente
+  if (device.host.pendingDomain !== null) {
+    const target = device.host.pendingDomain
+    device.host.domain = target === '' ? null : target
+    device.host.workgroup =
+      target === '' ? 'WORKGROUP' : (draft.domains[target]?.netbios ?? device.host.workgroup)
+    device.host.pendingDomain = null
+    if (device.host.session?.domain) device.host.session = null
+  }
   device.host.pendingReboot = false
   // Les baux DHCP sont redemandés au démarrage
   for (const iface of device.interfaces) {
@@ -41,6 +51,8 @@ export function applyRestart(draft: Draft<LabState>, device: Draft<HostDevice>):
     eventId: 6005,
     message: 'Le service Journal des événements a été démarré.'
   })
+  // Membre d'un domaine : inscription de son nom dans le DNS (mise à jour dynamique)
+  registerHostDns(draft, device)
 }
 
 /** Redémarre un serveur ou un poste. */
