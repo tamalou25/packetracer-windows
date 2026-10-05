@@ -10,18 +10,19 @@ PowerShell / CMD simulées.
 
 ## État d'avancement
 
-| Phase | Contenu                               | État |
-| ----- | ------------------------------------- | ---- |
-| 1     | Squelette Electron + CI               | ✅   |
-| 2     | Canvas de topologie, fichiers `.slab` | ✅   |
-| 3     | Moteur IP, mode Simulation            | ✅   |
-| 4     | Consoles PowerShell / CMD             | ✅   |
-| 5     | DHCP                                  | ✅   |
-| 6     | DNS                                   | ✅   |
-| 7     | AD DS                                 | ✅   |
-| 8–9   | GPO, partages                         | ⏳   |
-| 10    | Mode Labs                             | ⏳   |
-| 11    | Installeur + mises à jour             | ⏳   |
+| Phase | Contenu                                | État |
+| ----- | -------------------------------------- | ---- |
+| 1     | Squelette Electron + CI                | ✅   |
+| 2     | Canvas de topologie, fichiers `.slab`  | ✅   |
+| 3     | Moteur IP, mode Simulation             | ✅   |
+| 4     | Consoles PowerShell / CMD              | ✅   |
+| 5     | DHCP                                   | ✅   |
+| 6     | DNS                                    | ✅   |
+| 7     | AD DS                                  | ✅   |
+| 7b    | Bureau façon serveur (fenêtres, menus) | ✅   |
+| 8–9   | GPO, partages                          | ⏳   |
+| 10    | Mode Labs                              | ⏳   |
+| 11    | Installeur + mises à jour              | ⏳   |
 
 ## Développement
 

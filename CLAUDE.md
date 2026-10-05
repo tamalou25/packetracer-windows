@@ -25,6 +25,9 @@ src/renderer/  application React (index.html + src/)
 src/engine/    moteur de simulation pur :
                model/ (schémas zod) · net/ (IPv4, routage, ARP) · sim/ (traces de paquets)
                services/ (rôles, DHCP, DNS, adds/ Active Directory) · shell/ (PowerShell, cmd)
+src/renderer/src/components/desktop/  Bureau simulé : DesktopShell (verrouillage, fenêtres, barre des
+               tâches, menu Démarrer), apps.ts (registre des applications), apps/ (Gestionnaire de
+               serveur, assistants, Connexions réseau, Propriétés système…), shell/ (fenêtres, menus)
 labs/          labs pédagogiques *.json
 tests/engine/  tests Vitest du moteur
 tests/e2e/     scénarios Playwright Electron
@@ -66,7 +69,8 @@ npm run dist         # installeur local via electron-builder → dist/
   « Packet Tracer » ni « Windows » dans le nom ou le logo de l'application.
 - Interface : couleurs via les **design tokens** de `src/renderer/src/styles.css` (`bg-panel`, `bg-surface`,
   `text-fg-muted`, `border-line`, `bg-accent`, `text-ok`…), jamais de couleur Tailwind brute dans l'application.
-  Thème sombre par défaut + thème clair (Affichage > Thème). Le Bureau simulé reste en `data-theme="light"`.
+  Thème sombre par défaut + thème clair (Affichage > Thème). Le Bureau simulé reste en `data-theme="light"`
+  et garde sa propre palette « système » (couleurs fixes dans `components/desktop`, `components/apps`, `mmc`).
   Polices : Inter (UI, 13 px) et JetBrains Mono (IP, MAC, consoles), embarquées.
 - Commits : Conventional Commits (`feat(engine): …`, `fix(renderer): …`, `test: …`, `ci: …`, `docs: …`).
 - Un commit par étape, tests verts avant d'enchaîner.

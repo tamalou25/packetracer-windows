@@ -10,12 +10,15 @@ import { deviceNameError, requireDevice } from '../topology/actions'
 import { registerHostDns } from './adds/join'
 
 /** Applique les opérations en attente d'un redémarrage (renommage…). */
-export function applyRestart(draft: Draft<LabState>, device: Draft<HostDevice>): void {
+export function applyRestart(draft: Draft<LabState>, device: Draft<HostDevice>, reason?: string): void {
+  const account = device.host.session
+    ? `${device.host.session.domain ?? device.name}\\${device.host.session.user}`
+    : 'SYSTEM'
   logEvent(draft, device.id, {
     level: 'information',
     source: 'User32',
     eventId: 1074,
-    message: `Le processus a déclenché le redémarrage de l’ordinateur ${device.name} pour le compte ${device.host.session?.user ?? 'SYSTEM'}.`
+    message: `Le processus a déclenché le redémarrage de l’ordinateur ${device.name} pour le compte ${account}${reason ? ` pour la raison suivante : ${reason}` : ''}.`
   })
   logEvent(draft, device.id, {
     level: 'information',
@@ -37,6 +40,7 @@ export function applyRestart(draft: Draft<LabState>, device: Draft<HostDevice>):
     if (device.host.session?.domain) device.host.session = null
   }
   device.host.pendingReboot = false
+  device.host.bootedAt = draft.clock
   // Les baux DHCP sont redemandés au démarrage
   for (const iface of device.interfaces) {
     if (iface.addressing === 'dhcp') iface.dhcpLease = null
@@ -55,14 +59,14 @@ export function applyRestart(draft: Draft<LabState>, device: Draft<HostDevice>):
   registerHostDns(draft, device)
 }
 
-/** Redémarre un serveur ou un poste. */
-export function restartComputer(state: LabState, deviceId: string): EngineResult {
+/** Redémarre un serveur ou un poste (raison facultative, comme le suivi des arrêts d'un serveur). */
+export function restartComputer(state: LabState, deviceId: string, reason?: string): EngineResult {
   return transact(state, (draft) => {
     const device = requireDevice(draft, deviceId)
     if (device.kind !== 'server' && device.kind !== 'client')
       raise('NotSupported', 'Équipement non redémarrable.')
     if (!device.powered) raise('PoweredOff', `${device.name} est éteint.`)
-    applyRestart(draft, device)
+    applyRestart(draft, device, reason)
     return undefined
   })
 }

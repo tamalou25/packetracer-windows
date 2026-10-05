@@ -4,6 +4,7 @@
 import type { Draft } from 'immer'
 import type { EventLogEntry, LabState } from '../model/schema'
 import { nextSeq } from '../model/factory'
+import { raise, transact, type EngineResult } from './result'
 
 /** Nombre maximal d'entrées conservées par équipement. */
 export const EVENT_LOG_LIMIT = 500
@@ -21,4 +22,37 @@ export function logEvent(draft: Draft<LabState>, deviceId: string, event: NewEve
   device.host.eventLog.push({ log: 'Système', ...event, id: nextSeq(draft), time: draft.clock })
   if (device.host.eventLog.length > EVENT_LOG_LIMIT)
     device.host.eventLog.splice(0, device.host.eventLog.length - EVENT_LOG_LIMIT)
+}
+
+/**
+ * Efface un journal (Observateur d'événements > Effacer le journal) et trace l'opération,
+ * comme le système : événement 1102 dans le journal Sécurité, 104 dans le journal Système sinon.
+ */
+export function clearEventLog(state: LabState, deviceId: string, log: EventLogEntry['log']): EngineResult {
+  return transact(state, (draft) => {
+    const device = draft.devices[deviceId]
+    if (!device || (device.kind !== 'server' && device.kind !== 'client'))
+      raise('NotSupported', 'Cet équipement n’a pas de journal d’événements.')
+    const user = device.host.session
+      ? `${device.host.session.domain ?? device.name}\\${device.host.session.user}`
+      : 'SYSTEM'
+    device.host.eventLog = device.host.eventLog.filter((e) => e.log !== log)
+    if (log === 'Sécurité')
+      logEvent(draft, deviceId, {
+        level: 'information',
+        source: 'Eventlog',
+        eventId: 1102,
+        log: 'Sécurité',
+        message: `Le journal d’audit a été effacé. Sujet : ${user}.`
+      })
+    else
+      logEvent(draft, deviceId, {
+        level: 'information',
+        source: 'Eventlog',
+        eventId: 104,
+        log: 'Système',
+        message: `Le fichier journal ${log} a été effacé par ${user}.`
+      })
+    return undefined
+  })
 }

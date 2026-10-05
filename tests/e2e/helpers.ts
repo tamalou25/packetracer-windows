@@ -109,6 +109,32 @@ export async function openConsole(page: Page, device: string, shell: 'cmd' | 'po
   await win.getByTestId(`console-${shell}`).click()
 }
 
+/** Ouvre l'onglet Bureau d'un équipement ; renvoie la fenêtre de l'équipement. */
+export async function openDesktop(page: Page, device: string) {
+  const win = page.getByTestId(`device-window-${device}`)
+  if ((await win.count()) === 0) await page.getByTestId(`device-${device}`).dblclick()
+  await win.getByTestId('tab-desktop').click()
+  await expect(win.getByTestId('taskbar')).toBeVisible()
+  return win
+}
+
+/** Lance un outil d'administration depuis le menu Outils du Gestionnaire de serveur. */
+export async function openTool(page: Page, device: string, tool: string): Promise<void> {
+  const win = await openDesktop(page, device)
+  await win.getByTestId('app-servermanager').getByTestId('sm-tools').click()
+  await win.getByTestId(`sm-tool-${tool}`).click()
+  await expect(win.getByTestId(`app-${tool}`)).toBeVisible()
+}
+
+/** Déverrouille ou ouvre la session de l'écran de verrouillage (Ctrl+Alt+Suppr puis mot de passe). */
+export async function unlock(page: Page, device: string, password: string, user?: string): Promise<void> {
+  const win = page.getByTestId(`device-window-${device}`)
+  await win.getByTestId('send-cad').click()
+  if (user) await win.getByTestId('logon-user').fill(user)
+  await win.getByTestId('logon-password').fill(password)
+  await win.getByTestId('logon-submit').click()
+}
+
 /** Tape une commande dans la console visible et valide. */
 export async function typeCommand(page: Page, device: string, command: string): Promise<void> {
   const input = page.getByTestId(`device-window-${device}`).getByTestId('terminal-input')

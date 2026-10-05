@@ -86,6 +86,8 @@ export const HostSchema = z.object({
   localAdminPassword: z.string().default('P@ssw0rd'),
   /** Session ouverte (null = écran de connexion). */
   session: HostSessionSchema.nullable().default(null),
+  /** Horloge du lab au dernier démarrage (redémarrage, mise sous tension). */
+  bootedAt: z.number().default(0),
   eventLog: z.array(EventLogEntrySchema).default([])
 })
 
@@ -138,6 +140,8 @@ export const DhcpScopeSchema = z.object({
 export const DhcpServerSchema = z.object({
   /** Autorisé dans Active Directory (obligatoire pour un serveur membre d'un domaine). */
   authorized: z.boolean().default(false),
+  /** Configuration post-installation terminée (groupes de sécurité créés, notification levée). */
+  configured: z.boolean().default(false),
   scopes: z.array(DhcpScopeSchema).default([]),
   serverOptions: DhcpOptionsSchema.default({ router: [], dnsServers: [], dnsDomain: null })
 })

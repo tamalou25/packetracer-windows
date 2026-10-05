@@ -379,6 +379,26 @@ export function logon(state: LabState, deviceId: string, input: LogonInput): Log
   return { state: r.ok ? r.state : state, trace, ok: true, message: '' }
 }
 
+/**
+ * Vérifie un mot de passe sans ouvrir de session ni contacter le contrôleur (déverrouillage
+ * d'une session déjà ouverte : identifiants mis en cache par l'ordinateur).
+ */
+export function verifyCredentials(state: LabState, deviceId: string, input: LogonInput): boolean {
+  const host = hostOf(state, deviceId)
+  if (!host) return false
+  const sam = accountName(input.user).toLowerCase()
+  if (!input.domain || input.domain.toUpperCase() === host.name.toUpperCase()) {
+    if (sam === 'administrateur') return input.password === host.host.localAdminPassword
+    return host.kind === 'client' && sam === 'utilisateur' && input.password === ''
+  }
+  const domain = Object.values(state.domains).find(
+    (d) => d.netbios.toUpperCase() === input.domain?.toUpperCase() || d.name === input.domain?.toLowerCase()
+  )
+  if (!domain) return false
+  const principal = findPrincipal(domain, sam)
+  return principal?.kind === 'user' && principal.obj.enabled && principal.obj.password === input.password
+}
+
 /** Changement du mot de passe imposé à la première ouverture de session, puis connexion. */
 export function changePasswordAndLogon(
   state: LabState,

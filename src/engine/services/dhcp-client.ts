@@ -284,6 +284,7 @@ export function dhcpAcquire(
   const opts = effectiveOptions(
     server.services.dhcp ?? {
       authorized: true,
+      configured: true,
       scopes: [],
       serverOptions: { router: [], dnsServers: [], dnsDomain: null }
     },

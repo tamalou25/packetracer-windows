@@ -47,3 +47,13 @@ export function formatShortDate(clock: number): string {
   const t = parts(clock)
   return `${p2(t.date)}/${p2(t.month + 1)}/${t.year} ${p2(t.h)}:${p2(t.m)}:${p2(t.s)}`
 }
+
+/** Éléments d'horloge pour l'affichage (barre des tâches, écran de verrouillage). */
+export function formatClockParts(clock: number): { time: string; date: string; longDate: string } {
+  const t = parts(clock)
+  return {
+    time: `${p2(t.h)}:${p2(t.m)}`,
+    date: `${p2(t.date)}/${p2(t.month + 1)}/${t.year}`,
+    longDate: `${DAYS[t.day]} ${t.date} ${MONTHS[t.month]}`
+  }
+}

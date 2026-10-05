@@ -1,15 +1,16 @@
 /**
  * Fenêtre flottante d'un équipement (double-clic) avec onglets Config / Bureau / Console.
+ * Déplaçable, redimensionnable (coin inférieur droit) et agrandissable (double-clic sur le titre).
  */
 import { useRef, type PointerEvent } from 'react'
-import { Monitor, Settings, SquareTerminal, X, type LucideIcon } from 'lucide-react'
+import { Maximize2, Minimize2, Monitor, Settings, SquareTerminal, X, type LucideIcon } from 'lucide-react'
 import { DEVICE_KIND_INFO } from '@engine/index'
 import { useLabStore } from '../../store/lab'
 import { useUiStore, type DeviceTab, type DeviceWindowState } from '../../store/ui'
 import { DEVICE_COLORS, DEVICE_ICONS } from '../../lib/devices'
 import { ConfigTab } from './ConfigTab'
 import { ConsoleTab } from '../console/ConsoleTab'
-import { DesktopTab } from '../desktop/DesktopTab'
+import { DesktopShell } from '../desktop/DesktopShell'
 import { isHostDevice } from '@engine/index'
 
 const TABS: { id: DeviceTab; label: string; icon: LucideIcon }[] = [
@@ -20,8 +21,10 @@ const TABS: { id: DeviceTab; label: string; icon: LucideIcon }[] = [
 
 export function DeviceWindow({ win }: { win: DeviceWindowState }) {
   const device = useLabStore((s) => s.lab.devices[win.deviceId])
-  const { closeWindow, focusWindow, moveWindow, setWindowTab } = useUiStore.getState()
+  const { closeWindow, focusWindow, moveWindow, resizeWindow, toggleMaximizeWindow, setWindowTab } =
+    useUiStore.getState()
   const drag = useRef<{ dx: number; dy: number } | null>(null)
+  const resize = useRef<{ px: number; py: number; w: number; h: number } | null>(null)
 
   if (!device) return null
   const Icon = DEVICE_ICONS[device.kind]
@@ -30,7 +33,7 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
   const tab = tabs.some((t) => t.id === win.tab) ? win.tab : 'config'
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLElement).closest('button')) return
+    if ((e.target as HTMLElement).closest('button') || win.maximized) return
     drag.current = { dx: e.clientX - win.x, dy: e.clientY - win.y }
     e.currentTarget.setPointerCapture(e.pointerId)
   }
@@ -43,11 +46,26 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
   const onPointerUp = () => {
     drag.current = null
   }
+  const onResizeDown = (e: PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+    resize.current = { px: e.clientX, py: e.clientY, w: win.w, h: win.h }
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+  const onResizeMove = (e: PointerEvent<HTMLDivElement>) => {
+    const r = resize.current
+    if (!r) return
+    const w = Math.max(640, Math.min(window.innerWidth - win.x, r.w + e.clientX - r.px))
+    const h = Math.max(420, Math.min(window.innerHeight - win.y, r.h + e.clientY - r.py))
+    resizeWindow(win.deviceId, w, h)
+  }
+  const style = win.maximized
+    ? { left: 0, top: 0, width: '100%', height: '100%', zIndex: 100 + win.z }
+    : { left: win.x, top: win.y, width: win.w, height: win.h, zIndex: 100 + win.z }
 
   return (
     <div
-      className="pointer-events-auto absolute flex h-[620px] w-[880px] flex-col overflow-hidden rounded-md border border-line-strong bg-panel text-fg shadow-lg"
-      style={{ left: win.x, top: win.y, zIndex: 100 + win.z }}
+      className={`pointer-events-auto absolute flex flex-col overflow-hidden border border-line-strong bg-panel text-fg shadow-lg ${win.maximized ? '' : 'rounded-md'}`}
+      style={style}
       onPointerDownCapture={() => focusWindow(win.deviceId)}
       role="dialog"
       aria-label={`${device.name} — ${DEVICE_KIND_INFO[device.kind].label}`}
@@ -58,6 +76,9 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
+        onDoubleClick={(e) => {
+          if (!(e.target as HTMLElement).closest('button')) toggleMaximizeWindow(win.deviceId)
+        }}
       >
         <span className={`flex h-6 w-6 items-center justify-center rounded-md ${DEVICE_COLORS[device.kind]}`}>
           <Icon size={14} />
@@ -66,7 +87,16 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
         <span className="text-xs text-fg-muted">— {DEVICE_KIND_INFO[device.kind].label}</span>
         <button
           type="button"
-          className="ml-auto rounded p-1 text-fg-muted hover:bg-danger hover:text-white"
+          className="ml-auto rounded p-1 text-fg-muted hover:bg-surface-2 hover:text-fg"
+          onClick={() => toggleMaximizeWindow(win.deviceId)}
+          title={win.maximized ? 'Restaurer' : 'Agrandir'}
+          data-testid="maximize-device-window"
+        >
+          {win.maximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+        </button>
+        <button
+          type="button"
+          className="rounded p-1 text-fg-muted hover:bg-danger hover:text-white"
           onClick={() => closeWindow(win.deviceId)}
           title="Fermer"
           data-testid="close-device-window"
@@ -95,11 +125,25 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
         {tab === 'config' && <ConfigTab device={device} />}
         {tab === 'desktop' &&
           isHostDevice(device) &&
-          (device.powered ? <DesktopTab device={device} /> : <Placeholder text="L’ordinateur est éteint." />)}
+          (device.powered ? (
+            <DesktopShell device={device} />
+          ) : (
+            <Placeholder text="L’ordinateur est éteint." />
+          ))}
         {tab === 'console' &&
           isHostDevice(device) &&
           (device.powered ? <ConsoleTab device={device} /> : <Placeholder text="L’ordinateur est éteint." />)}
       </div>
+      {!win.maximized && (
+        <div
+          className="absolute right-0 bottom-0 h-3 w-3 cursor-nwse-resize"
+          onPointerDown={onResizeDown}
+          onPointerMove={onResizeMove}
+          onPointerUp={() => (resize.current = null)}
+          title="Redimensionner"
+          data-testid="resize-device-window"
+        />
+      )}
     </div>
   )
 }

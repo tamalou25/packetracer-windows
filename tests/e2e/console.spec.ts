@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { cableDevices, launchApp, openConsole, placeDevice, typeCommand } from './helpers'
+import { cableDevices, launchApp, openConsole, openDesktop, placeDevice, typeCommand } from './helpers'
 
 test('configurer les IP en PowerShell puis pinger en invite de commandes', async () => {
   const { close, page, consoleErrors } = await launchApp()
@@ -62,14 +62,30 @@ test('Bureau : Gestionnaire de serveur et installation d’un rôle', async () =
   const { close, page, consoleErrors } = await launchApp()
   try {
     await placeDevice(page, 'server', 300, 200)
-    await page.getByTestId('device-SRV1').dblclick()
-    const win = page.getByTestId('device-window-SRV1')
-    await win.getByTestId('tab-desktop').click()
-    await win.getByTestId('desktop-app-servermanager').dblclick()
-    await win.getByTestId('add-roles').click()
-    await win.getByTestId('role-DHCP').check()
-    await win.getByTestId('install-roles').click()
-    await expect(win.getByTestId('app-servermanager')).toContainText('Serveur DHCP')
+    // Le Gestionnaire de serveur s'ouvre automatiquement à l'ouverture de session
+    const win = await openDesktop(page, 'SRV1')
+    const sm = win.getByTestId('app-servermanager')
+    await expect(sm).toContainText('BIENVENUE DANS GESTIONNAIRE DE SERVEUR')
+    await sm.getByTestId('sm-manage').click()
+    await sm.getByTestId('add-roles').click()
+    const wizard = win.getByTestId('app-addroles')
+    for (let i = 0; i < 3; i++) await wizard.getByTestId('wiz-next').click()
+    await expect(wizard.getByTestId('wiz-heading')).toHaveText('Sélectionner des rôles de serveurs')
+    // Cocher un rôle propose d'abord ses fonctionnalités requises (la case n'est cochée qu'après)
+    await wizard.getByTestId('role-DHCP').click()
+    // Fonctionnalités requises proposées (outils de gestion)
+    await expect(wizard.getByTestId('required-features')).toContainText('Outils du serveur DHCP')
+    await wizard.getByTestId('add-required').click()
+    while (await wizard.getByTestId('install-roles').isDisabled())
+      await wizard.getByTestId('wiz-next').click()
+    await expect(wizard.getByTestId('wiz-confirm-list')).toContainText('Serveur DHCP')
+    await wizard.getByTestId('install-roles').click()
+    await expect(wizard.getByTestId('wiz-results')).toContainText('Installation réussie sur SRV1')
+    await wizard.getByTestId('wiz-close').click()
+    // Rôle visible dans le Gestionnaire de serveur et configuration post-déploiement signalée
+    await expect(sm.getByTestId('sm-nav-DHCP')).toBeVisible()
+    await sm.getByTestId('sm-notifications').click()
+    await expect(sm.getByTestId('dhcp-postinstall')).toBeVisible()
     expect(consoleErrors).toEqual([])
   } finally {
     await close()

@@ -118,6 +118,8 @@ export function setPower(state: LabState, id: string, powered: boolean): EngineR
         eventId: 6005,
         message: 'Le service Journal des événements a été démarré.'
       })
+      // Nouveau démarrage : le Bureau simulé revient à l'écran de verrouillage
+      if (device.kind === 'server' || device.kind === 'client') device.host.bootedAt = draft.clock
     }
     return undefined
   })

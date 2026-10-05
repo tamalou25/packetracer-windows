@@ -1,5 +1,13 @@
 import { expect, test } from '@playwright/test'
-import { cableDevices, configureHostIp, launchApp, openConsole, placeDevice, typeCommand } from './helpers'
+import {
+  cableDevices,
+  configureHostIp,
+  launchApp,
+  openConsole,
+  openTool,
+  placeDevice,
+  typeCommand
+} from './helpers'
 
 test('DHCP : étendue créée dans la console, le poste obtient une adresse (DORA visible en simulation)', async () => {
   const { close, page, consoleErrors } = await launchApp()
@@ -16,8 +24,7 @@ test('DHCP : étendue créée dans la console, le poste obtient une adresse (DOR
     await typeCommand(page, 'SRV1', 'Install-WindowsFeature DHCP -IncludeManagementTools')
     const srv = page.getByTestId('device-window-SRV1')
     await expect(srv.getByTestId('terminal-powershell')).toContainText('Serveur DHCP')
-    await srv.getByTestId('tab-desktop').click()
-    await srv.getByTestId('desktop-app-dhcp').dblclick()
+    await openTool(page, 'SRV1', 'dhcp')
     await srv.getByTestId('dhcp-new-scope').click()
     await srv.getByTestId('scope-name').fill('LAN')
     await srv.getByTestId('scope-start').fill('192.168.10.100')

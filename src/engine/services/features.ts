@@ -128,7 +128,7 @@ export function uninstallFeatures(
     for (const name of names) {
       const info = featureInfo(name)
       if (!info) raise('ArgumentNotValid', `La fonctionnalité « ${name} » est introuvable.`)
-      if (info.name === 'AD-Domain-Services' && isDomainControllerDraft(device))
+      if (info.name === 'AD-Domain-Services' && isDomainControllerDraft(draft, device))
         raise(
           'DcRoleRemoval',
           'Le rôle Services AD DS ne peut pas être supprimé tant que le serveur est contrôleur de domaine. Rétrogradez-le d’abord.'
@@ -154,6 +154,7 @@ function onFeatureRemoved(_draft: Draft<LabState>, _device: Draft<ServerDevice>,
   // Les données propres aux rôles sont conservées (comme une désinstallation sans suppression de la base).
 }
 
-function isDomainControllerDraft(_device: Draft<ServerDevice>): boolean {
-  return false
+/** Le serveur est-il contrôleur d'un domaine du lab ? */
+function isDomainControllerDraft(draft: Draft<LabState>, device: Draft<ServerDevice>): boolean {
+  return Object.values(draft.domains).some((d) => d.controllers.includes(device.id))
 }

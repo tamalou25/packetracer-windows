@@ -4,6 +4,7 @@
  */
 import { useState, type ReactNode } from 'react'
 import { ChevronDown, ChevronRight, type LucideIcon } from 'lucide-react'
+import { useAppWindow } from '../desktop/shell/AppWindow'
 
 export interface MmcNode {
   id: string
@@ -69,20 +70,97 @@ function TreeItem({
   )
 }
 
+/** Libellé du nœud sélectionné (en-tête du volet Actions). */
+function findLabel(nodes: MmcNode[], id: string): string | undefined {
+  for (const n of nodes) {
+    if (n.id === id) return n.label
+    const child = n.children ? findLabel(n.children, id) : undefined
+    if (child) return child
+  }
+  return undefined
+}
+
 export function Mmc({ nodes, selected, onSelect, actions, children, testId }: MmcProps) {
+  const win = useAppWindow()
+  const [menu, setMenu] = useState<'file' | 'action' | 'help' | null>(null)
+  const [about, setAbout] = useState(false)
+  const menuButton = (id: 'file' | 'action' | 'help', label: string) => (
+    <button
+      type="button"
+      onClick={() => setMenu(menu === id ? null : id)}
+      className={`px-2 py-0.5 ${menu === id ? 'bg-[#cce8ff]' : 'hover:bg-[#e5f3ff]'}`}
+      data-testid={`mmc-menu-${id}`}
+    >
+      {label}
+    </button>
+  )
   return (
-    <div className="flex h-full bg-white" data-testid={testId}>
-      <ul className="w-56 shrink-0 overflow-y-auto border-r border-slate-200 bg-slate-50 p-1">
-        {nodes.map((n) => (
-          <TreeItem key={n.id} node={n} depth={0} selected={selected} onSelect={onSelect} />
-        ))}
-      </ul>
-      <div className="min-w-0 flex-1 overflow-y-auto">{children}</div>
-      {actions && (
-        <aside className="w-44 shrink-0 overflow-y-auto border-l border-slate-200 bg-slate-50 p-2">
-          <div className="mb-1 text-[10px] font-semibold tracking-wide text-slate-400 uppercase">Actions</div>
-          <div className="flex flex-col gap-1">{actions}</div>
-        </aside>
+    <div className="flex h-full flex-col bg-white" data-testid={testId}>
+      {/* Barre de menus de la console */}
+      <div className="relative flex shrink-0 border-b border-slate-200 bg-white px-1 text-xs text-black">
+        {menuButton('file', 'Fichier')}
+        {actions && menuButton('action', 'Action')}
+        {menuButton('help', '?')}
+        {menu && (
+          <>
+            <div className="fixed inset-0 z-30" onClick={() => setMenu(null)} />
+            <div
+              className="absolute top-full z-40 flex w-52 flex-col border border-[#cccccc] bg-[#f2f2f2] py-1 shadow-lg"
+              style={{ left: menu === 'file' ? 4 : menu === 'action' ? 52 : actions ? 104 : 52 }}
+              onClick={() => setMenu(null)}
+            >
+              {menu === 'file' && (
+                <button
+                  type="button"
+                  className="px-3 py-1 text-left hover:bg-[#91c9f7]"
+                  onClick={() => win?.close()}
+                >
+                  Quitter
+                </button>
+              )}
+              {menu === 'action' && actions}
+              {menu === 'help' && (
+                <button
+                  type="button"
+                  className="px-3 py-1 text-left hover:bg-[#91c9f7]"
+                  onClick={() => setAbout(true)}
+                >
+                  À propos de la console…
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+      <div className="flex min-h-0 flex-1">
+        <ul className="w-56 shrink-0 overflow-y-auto border-r border-slate-200 bg-white p-1">
+          {nodes.map((n) => (
+            <TreeItem key={n.id} node={n} depth={0} selected={selected} onSelect={onSelect} />
+          ))}
+        </ul>
+        <div className="min-w-0 flex-1 overflow-y-auto">{children}</div>
+        {actions && (
+          <aside className="w-48 shrink-0 overflow-y-auto border-l border-slate-200 bg-white">
+            <div className="border-b border-slate-200 bg-[#f0f0f0] px-2 py-1 text-xs font-semibold text-black">
+              Actions
+            </div>
+            <div className="truncate bg-[#e8e8e8] px-2 py-0.5 text-xs font-semibold text-black">
+              {findLabel(nodes, selected) ?? ''}
+            </div>
+            <div className="flex flex-col gap-0.5 p-1.5">{actions}</div>
+          </aside>
+        )}
+      </div>
+      {about && (
+        <div
+          className="absolute inset-0 z-40 flex items-center justify-center bg-black/10"
+          onClick={() => setAbout(false)}
+        >
+          <div className="w-80 border border-slate-400 bg-white p-4 text-xs text-black shadow-xl">
+            Console de gestion simulée (ServerLab). Les composants enfichables reproduisent les consoles
+            d’administration d’un serveur, sans exécuter de commande réelle.
+          </div>
+        </div>
       )}
     </div>
   )

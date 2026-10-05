@@ -16,8 +16,23 @@ export interface DeviceWindowState {
   deviceId: string
   x: number
   y: number
+  /** Taille de la fenêtre (redimensionnable par le coin inférieur droit). */
+  w: number
+  h: number
+  maximized: boolean
   z: number
   tab: DeviceTab
+}
+
+/**
+ * Taille par défaut d'une fenêtre d'équipement : le panneau de droite (Propriétés / Simulation)
+ * reste visible ; la fenêtre peut ensuite être agrandie ou redimensionnée.
+ */
+function defaultWindowSize(): { w: number; h: number } {
+  return {
+    w: Math.max(760, Math.min(1080, window.innerWidth - 420)),
+    h: Math.max(520, Math.min(740, window.innerHeight - 90))
+  }
 }
 
 export interface Toast {
@@ -110,6 +125,8 @@ interface UiState {
   closeWindow: (deviceId: string) => void
   focusWindow: (deviceId: string) => void
   moveWindow: (deviceId: string, x: number, y: number) => void
+  resizeWindow: (deviceId: string, w: number, h: number) => void
+  toggleMaximizeWindow: (deviceId: string) => void
   setWindowTab: (deviceId: string, tab: DeviceTab) => void
   notify: (kind: Toast['kind'], message: string) => void
   dismissToast: (id: number) => void
@@ -179,8 +196,11 @@ export const useUiStore = create<UiState>()((set, get) => ({
         }
       }
       const offset = (s.windows.length % 6) * 28
+      const size = defaultWindowSize()
+      const x = Math.max(0, Math.min(80 + offset, window.innerWidth - size.w - 20))
+      const y = Math.max(0, Math.min(30 + offset, window.innerHeight - size.h - 20))
       return {
-        windows: [...s.windows, { deviceId, x: 120 + offset, y: 60 + offset, z, tab: tab ?? 'config' }]
+        windows: [...s.windows, { deviceId, x, y, ...size, maximized: false, z, tab: tab ?? 'config' }]
       }
     }),
   closeWindow: (deviceId) => set((s) => ({ windows: s.windows.filter((w) => w.deviceId !== deviceId) })),
@@ -193,6 +213,12 @@ export const useUiStore = create<UiState>()((set, get) => ({
     }),
   moveWindow: (deviceId, x, y) =>
     set((s) => ({ windows: s.windows.map((w) => (w.deviceId === deviceId ? { ...w, x, y } : w)) })),
+  resizeWindow: (deviceId, w, h) =>
+    set((s) => ({ windows: s.windows.map((win) => (win.deviceId === deviceId ? { ...win, w, h } : win)) })),
+  toggleMaximizeWindow: (deviceId) =>
+    set((s) => ({
+      windows: s.windows.map((w) => (w.deviceId === deviceId ? { ...w, maximized: !w.maximized } : w))
+    })),
   setWindowTab: (deviceId, tab) =>
     set((s) => ({ windows: s.windows.map((w) => (w.deviceId === deviceId ? { ...w, tab } : w)) })),
 

@@ -1,5 +1,13 @@
 import { expect, test } from '@playwright/test'
-import { cableDevices, configureHostIp, launchApp, openConsole, placeDevice, typeCommand } from './helpers'
+import {
+  cableDevices,
+  configureHostIp,
+  launchApp,
+  openConsole,
+  openTool,
+  placeDevice,
+  typeCommand
+} from './helpers'
 
 test('DNS : zone et hôte créés dans le gestionnaire DNS, nslookup et ping par nom', async () => {
   const { close, page, consoleErrors } = await launchApp()
@@ -16,8 +24,7 @@ test('DNS : zone et hôte créés dans le gestionnaire DNS, nslookup et ping par
     await typeCommand(page, 'SRV1', 'Install-WindowsFeature DNS -IncludeManagementTools')
     const srv = page.getByTestId('device-window-SRV1')
     await expect(srv.getByTestId('terminal-powershell')).toContainText('Serveur DNS')
-    await srv.getByTestId('tab-desktop').click()
-    await srv.getByTestId('desktop-app-dns').dblclick()
+    await openTool(page, 'SRV1', 'dns')
     await srv.getByTestId('dns-new-zone').click()
     await srv.getByTestId('field-value').fill('lab.local')
     await srv.getByTestId('form-submit').click()

@@ -12,7 +12,12 @@ import { requireDevice } from '../topology/actions'
 export const DEFAULT_LEASE_SEC = 8 * 24 * 3600
 
 export function createDhcpServer(): DhcpServer {
-  return { authorized: false, scopes: [], serverOptions: { router: [], dnsServers: [], dnsDomain: null } }
+  return {
+    authorized: false,
+    configured: false,
+    scopes: [],
+    serverOptions: { router: [], dnsServers: [], dnsDomain: null }
+  }
 }
 
 /** Normalise une adresse MAC au format XX-XX-XX-XX-XX-XX (null si invalide). */
