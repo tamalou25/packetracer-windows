@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type
 import {
   Background,
   BackgroundVariant,
-  Controls,
   MiniMap,
   ReactFlow,
   useReactFlow,
@@ -37,6 +36,7 @@ import { PacketAnimation } from './PacketAnimation'
 import { PduList } from './PduList'
 import { DeviceNode, type DeviceFlowNode } from './DeviceNode'
 import { PortPicker, type PortPickerState } from './PortPicker'
+import { ZoomControls } from './ZoomControls'
 
 const nodeTypes: NodeTypes = { device: DeviceNode }
 const edgeTypes: EdgeTypes = { cable: CableEdge }
@@ -305,14 +305,13 @@ export function TopologyCanvas() {
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1.2} color="var(--sl-canvas-grid)" />
-        <Controls showInteractive={false} position="bottom-left" />
         {showMinimap && (
           <MiniMap
             position="bottom-right"
             pannable
             zoomable
             ariaLabel="Minimap"
-            className="serverlab-minimap"
+            className="!mr-3 !mb-12"
             style={{ width: 168, height: 104 }}
             nodeBorderRadius={3}
             nodeColor={(n) => {
@@ -321,6 +320,7 @@ export function TopologyCanvas() {
             }}
           />
         )}
+        <ZoomControls />
         <CablePreview cursor={cableStart || pduSource ? cursor : null} />
         <PacketAnimation />
       </ReactFlow>
