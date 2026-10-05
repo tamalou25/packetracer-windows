@@ -97,7 +97,7 @@ export function addPrimaryZone(state: LabState, deviceId: string, input: ZoneInp
   return transact(state, (draft) => {
     const { device, dns } = requireDns(draft, deviceId)
     let name: string
-    let reverse = false
+    let reverse: boolean
     if (input.networkId) {
       const z = reverseZoneFor(input.networkId)
       if (!z)
