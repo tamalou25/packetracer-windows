@@ -78,19 +78,34 @@ export function TopologyCanvas() {
     return () => cancelAnimationFrame(id)
   }, [revision, viewport, flow])
 
-  const nodes = useMemo<DeviceFlowNode[]>(
-    () =>
-      Object.values(devices).map((d) => ({
-        id: d.id,
-        type: 'device',
-        position: d.position,
-        data: { deviceId: d.id },
-        selected: selection.devices.includes(d.id),
-        deletable: false,
-        ...(sizes[d.id] ? { measured: sizes[d.id] } : {})
-      })),
-    [devices, selection.devices, sizes]
-  )
+  // Nœuds dérivés incrémentalement : un nœud inchangé (position, sélection, taille) garde le même
+  // objet, que React Flow et `memo` reconnaissent : seul le nœud déplacé est redessiné.
+  const nodeCache = useRef(new Map<string, DeviceFlowNode>())
+  const nodes = useMemo<DeviceFlowNode[]>(() => {
+    const cache = nodeCache.current
+    const next = new Map<string, DeviceFlowNode>()
+    const list = Object.values(devices).map((d) => {
+      const selected = selection.devices.includes(d.id)
+      const measured = sizes[d.id]
+      const prev = cache.get(d.id)
+      const node: DeviceFlowNode =
+        prev && prev.position === d.position && prev.selected === selected && prev.measured === measured
+          ? prev
+          : {
+              id: d.id,
+              type: 'device',
+              position: d.position,
+              data: prev?.data ?? { deviceId: d.id },
+              selected,
+              deletable: false,
+              ...(measured ? { measured } : {})
+            }
+      next.set(d.id, node)
+      return node
+    })
+    nodeCache.current = next
+    return list
+  }, [devices, selection.devices, sizes])
 
   const edges = useMemo<CableFlowEdge[]>(() => {
     // Décale les câbles parallèles entre deux mêmes équipements

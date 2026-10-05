@@ -5,7 +5,7 @@
  */
 import { memo, useEffect, useRef, useState } from 'react'
 import { Handle, NodeToolbar, Position, type Node, type NodeProps } from '@xyflow/react'
-import { deviceHealth, primaryAddress, type DeviceHealth } from '@engine/index'
+import { canvasStatus, type DeviceHealth } from '@engine/index'
 import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
 import { PortTray } from './PortTray'
@@ -33,7 +33,10 @@ const HOVER_GRACE_MS = 180
 
 function DeviceNodeComponent({ data, selected, dragging }: NodeProps<DeviceFlowNode>) {
   countRender(`node:${data.deviceId}`)
-  const lab = useLabStore((s) => s.lab)
+  // Abonné à son seul équipement et à son résumé (réutilisé tant qu'il ne change pas) :
+  // déplacer un autre nœud ne redessine pas celui-ci
+  const device = useLabStore((s) => s.lab.devices[data.deviceId])
+  const view = useLabStore((s) => canvasStatus(s.lab).devices[data.deviceId])
   const tool = useUiStore((s) => s.tool)
   const [hover, setHover] = useState(false)
   const leaveTimer = useRef<number | null>(null)
@@ -43,22 +46,22 @@ function DeviceNodeComponent({ data, selected, dragging }: NodeProps<DeviceFlowN
     },
     []
   )
-  const enter = () => {
+  const enter = (e?: { buttons: number }) => {
     if (leaveTimer.current) window.clearTimeout(leaveTimer.current)
+    // Bouton enfoncé : un autre élément est en cours de glisser, pas de panneau de ports
+    if (e && e.buttons !== 0) return
     setHover(true)
   }
   const leave = () => {
     leaveTimer.current = window.setTimeout(() => setHover(false), HOVER_GRACE_MS)
   }
 
-  const device = lab.devices[data.deviceId]
-  if (!device) return null
+  if (!device || !view) return null
   const cableMode = tool === 'cable'
   // Panneau de ports au survol (outils Sélection et Câble), jamais pendant un déplacement
   const showPorts = hover && !dragging && (tool === 'select' || cableMode)
   const Icon = DEVICE_ICONS[device.kind]
-  const health = deviceHealth(lab, device)
-  const ip = primaryAddress(lab, device)
+  const { health, ip } = view
   return (
     <div
       className="relative h-14 w-14"

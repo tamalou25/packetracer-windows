@@ -3,7 +3,7 @@
  */
 import { memo } from 'react'
 import { BaseEdge, EdgeLabelRenderer, useInternalNode, type Edge, type EdgeProps } from '@xyflow/react'
-import { endStatus, type LedStatus } from '@engine/index'
+import { canvasStatus, type LedStatus } from '@engine/index'
 import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
 import { ICON_CENTER } from '../../lib/flow'
@@ -30,11 +30,12 @@ function CableEdgeComponent({ id, source, target, data, selected }: EdgeProps<Ca
   countRender(`edge:${id}`)
   const sourceNode = useInternalNode(source)
   const targetNode = useInternalNode(target)
-  const lab = useLabStore((s) => s.lab)
+  // Abonné à son seul câble et à son résumé (voyants, noms de ports)
+  const link = useLabStore((s) => (data ? s.lab.links[data.linkId] : undefined))
+  const view = useLabStore((s) => (data ? canvasStatus(s.lab).links[data.linkId] : undefined))
   // Noms de ports aux extrémités : option d'affichage, ou automatiquement pendant le câblage
   const showPortLabels = useUiStore((s) => s.showPortLabels || s.tool === 'cable')
-  const link = data ? lab.links[data.linkId] : undefined
-  if (!sourceNode || !targetNode || !link) return null
+  if (!sourceNode || !targetNode || !link || !view) return null
 
   // Extrémités au centre des icônes, décalées si plusieurs câbles relient les mêmes équipements
   const sx0 = sourceNode.internals.positionAbsolute.x + ICON_CENTER.x
@@ -55,10 +56,7 @@ function CableEdgeComponent({ id, source, target, data, selected }: EdgeProps<Ca
 
   const ledA = { x: sx + ux * LED_DISTANCE, y: sy + uy * LED_DISTANCE }
   const ledB = { x: tx - ux * LED_DISTANCE, y: ty - uy * LED_DISTANCE }
-  const statusA = endStatus(lab, link, 'a')
-  const statusB = endStatus(lab, link, 'b')
-  const portA = lab.devices[link.a.deviceId]?.interfaces.find((i) => i.id === link.a.ifaceId)?.name ?? ''
-  const portB = lab.devices[link.b.deviceId]?.interfaces.find((i) => i.id === link.b.ifaceId)?.name ?? ''
+  const { a: statusA, b: statusB, portA, portB } = view
   const visible = len > LED_DISTANCE * 2 + 8
 
   return (

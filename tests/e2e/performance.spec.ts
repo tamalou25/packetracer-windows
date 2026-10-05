@@ -15,6 +15,9 @@ test('topologie de 100 équipements : ouverture et glisser fluides', async () =>
     await openLab(app, page, state)
     const openMs = Date.now() - openStart
 
+    // Laisse le canvas terminer ses mesures de taille avant de compter les rendus
+    await page.waitForTimeout(500)
+
     // Glisser un poste : 30 mouvements, durée des images mesurée dans la page
     const node = page.getByTestId('device-PC1')
     const box = await node.boundingBox()
@@ -32,6 +35,8 @@ test('topologie de 100 équipements : ouverture et glisser fluides', async () =>
       requestAnimationFrame(tick)
     })
     await node.hover()
+    // Fin des effets de survol précédents (panneau de ports masqué après un délai)
+    await page.waitForTimeout(300)
     await page.evaluate(() => {
       ;(window as unknown as { serverlabPerf: { renders: Record<string, number> } }).serverlabPerf = {
         renders: {}
