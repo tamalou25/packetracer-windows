@@ -20,7 +20,8 @@ PowerShell / CMD simulées.
 | 6     | DNS                                    | ✅   |
 | 7     | AD DS                                  | ✅   |
 | 7b    | Bureau façon serveur (fenêtres, menus) | ✅   |
-| 8–9   | GPO, partages                          | ⏳   |
+| 8     | Stratégies de groupe (GPO)             | ✅   |
+| 9     | Fichiers, partages, NTFS               | ⏳   |
 | 10    | Mode Labs                              | ⏳   |
 | 11    | Installeur + mises à jour              | ⏳   |
 
@@ -54,3 +55,21 @@ Sous Linux sans écran (CI, conteneur) : `xvfb-run -a npm run test:e2e`.
 Sécurité : `contextIsolation`, `sandbox`, pas de `nodeIntegration`, CSP stricte, navigation bloquée.
 
 Voir [`CLAUDE.md`](./CLAUDE.md) pour les conventions détaillées.
+
+## Stratégies de groupe (GPO)
+
+- Console **Gestion des stratégies de groupe** (`gpmc.msc`, menu Outils du Gestionnaire de serveur) :
+  création et liaison de GPO au domaine ou aux OU, ordre des liens, **Appliqué**, lien activé,
+  **blocage de l'héritage**, état GPO, filtrage de sécurité, onglets Étendue / Détails / Paramètres.
+- **Éditeur de gestion des stratégies de groupe** : stratégie de mot de passe (Default Domain Policy),
+  message avant ouverture de session, papier peint, interdiction du Panneau de configuration, du menu
+  Exécuter et de l'invite de commandes, mappage de lecteurs réseau (préférences).
+- Application réaliste : stratégie d'ordinateur au démarrage, stratégie utilisateur à l'ouverture
+  de session, `gpupdate /force`, `gpresult /r` (GPO appliquées et filtrées avec leur raison :
+  sécurité, lien désactivé, GPO désactivée, vide), événements GroupPolicy, échanges LDAP/SMB visibles
+  en mode Simulation.
+- PowerShell : `New-GPO`, `Get-GPO`, `Rename-GPO`, `Remove-GPO`, `New-GPLink`, `Set-GPLink`,
+  `Remove-GPLink`, `Get-GPInheritance`, `Set-GPInheritance`, `Get-GPPermission`, `Set-GPPermission`,
+  `Invoke-GPUpdate`.
+
+![Console Gestion des stratégies de groupe](docs/captures/gpo/1-console-heritage.webp)

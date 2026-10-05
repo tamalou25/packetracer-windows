@@ -3,7 +3,9 @@
  * place dans le menu Démarrer…). Les composants sont associés dans renderApp.tsx.
  */
 import {
+  Computer,
   EthernetPort,
+  FileCog,
   Globe,
   Monitor,
   Network,
@@ -217,6 +219,35 @@ export const DESKTOP_APPS: DesktopApp[] = [
     start: 'admin',
     tool: true,
     available: (d) => has(d, 'RSAT-ADDS') && !!d.host.domain
+  },
+  {
+    id: 'gpmc',
+    label: 'Gestion des stratégies de groupe',
+    icon: ScrollText,
+    color: 'text-amber-600',
+    size: { w: 980, h: 620 },
+    run: ['gpmc.msc'],
+    start: 'admin',
+    tool: true,
+    available: (d) => has(d, 'GPMC') && !!d.host.domain
+  },
+  {
+    id: 'gpme',
+    label: 'Éditeur de gestion des stratégies de groupe',
+    icon: FileCog,
+    color: 'text-amber-600',
+    size: { w: 980, h: 600 },
+    available: (d) => has(d, 'GPMC') && !!d.host.domain
+  },
+  {
+    id: 'thispc',
+    label: 'Ce PC',
+    icon: Computer,
+    color: 'text-sky-500',
+    size: { w: 720, h: 460 },
+    run: ['explorer', 'explorer.exe', 'ce pc'],
+    start: 'system',
+    available: always
   },
   {
     id: 'run',

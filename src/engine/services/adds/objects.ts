@@ -18,6 +18,7 @@ import {
   resolveContainerDn,
   type AdObject
 } from './directory'
+import { domainPasswordPolicy } from '../gpo/scope'
 
 export function requireDomain(draft: Draft<LabState>, name: string): Draft<Domain> {
   const domain = draft.domains[name.toLowerCase()]
@@ -75,7 +76,9 @@ export function addOrganizationalUnit(
       kind: 'ou',
       description: input.description ?? '',
       protected: input.protectedFromDeletion ?? true,
-      builtin: false
+      builtin: false,
+      gpLinks: [],
+      blockInheritance: false
     })
     return id
   })
@@ -122,7 +125,7 @@ export function addUser(
     const password = input.password ?? ''
     let enabled = input.enabled ?? false
     if (enabled || password) {
-      if (!passwordMeetsPolicy(password, sam)) {
+      if (!passwordMeetsPolicy(password, sam, domainPasswordPolicy(domain as Domain))) {
         passwordError = PASSWORD_POLICY_ERROR
         enabled = false
       }
@@ -260,7 +263,7 @@ export function setAccountEnabled(
     if (!found || (found.kind !== 'user' && found.kind !== 'computer')) notFound(domain as Domain, identity)
     if (found.kind === 'user') {
       const user = domain.users.find((u) => u.id === found.obj.id)
-      if (user && enabled && !user.password)
+      if (user && enabled && !user.password && domainPasswordPolicy(domain as Domain).minLength > 0)
         raise(
           'PasswordRequired',
           `${PASSWORD_POLICY_ERROR} Définissez d’abord un mot de passe pour ce compte.`
@@ -285,7 +288,8 @@ export function resetPassword(
     const domain = requireDomain(draft, domainName)
     const found = findPrincipal(domain as Domain, identity)
     if (!found || found.kind !== 'user') notFound(domain as Domain, identity)
-    if (!passwordMeetsPolicy(password, found.obj.sam)) raise('PasswordPolicy', PASSWORD_POLICY_ERROR)
+    if (!passwordMeetsPolicy(password, found.obj.sam, domainPasswordPolicy(domain as Domain)))
+      raise('PasswordPolicy', PASSWORD_POLICY_ERROR)
     const user = domain.users.find((u) => u.id === found.obj.id)
     if (user) {
       user.password = password

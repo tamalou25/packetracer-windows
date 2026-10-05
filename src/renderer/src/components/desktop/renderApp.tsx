@@ -7,8 +7,11 @@ import type { DesktopWindow } from '../../store/desktop'
 import { AducApp } from '../apps/AducApp'
 import { DhcpApp } from '../apps/DhcpApp'
 import { DnsApp } from '../apps/DnsApp'
+import { GpmcApp } from '../apps/GpmcApp'
+import { GpoEditor } from '../apps/GpoEditor'
 import { Terminal } from '../console/Terminal'
 import { AddRolesWizard } from './apps/AddRolesWizard'
+import { CmdDisabled } from './apps/CmdDisabled'
 import { ControlPanel } from './apps/ControlPanel'
 import { DhcpPostInstall } from './apps/DhcpPostInstall'
 import { EventViewer } from './apps/EventViewer'
@@ -24,6 +27,7 @@ import { RecycleBin } from './apps/RecycleBin'
 import { RunDialog } from './apps/RunDialog'
 import { ServerManager } from './apps/ServerManager'
 import { ComputerNameDialog, SystemProperties } from './apps/System'
+import { ThisPc } from './apps/ThisPc'
 
 function unavailable(): ReactNode {
   return <div className="p-6 text-sm text-slate-500">Application indisponible sur cet ordinateur.</div>
@@ -37,7 +41,12 @@ export function renderApp(win: DesktopWindow, device: HostDevice): ReactNode {
     case 'powershell':
       return <Terminal deviceId={device.id} kind="powershell" autoFocus />
     case 'cmd':
-      return <Terminal deviceId={device.id} kind="cmd" autoFocus />
+      // Invite de commandes désactivée par stratégie de groupe (PowerShell reste disponible)
+      return device.host.policy.user?.settings.noCmd === 'Enabled' ? (
+        <CmdDisabled />
+      ) : (
+        <Terminal deviceId={device.id} kind="cmd" autoFocus />
+      )
     case 'ncpa':
       return <NetworkConnections device={device} />
     case 'netstatus':
@@ -62,6 +71,12 @@ export function renderApp(win: DesktopWindow, device: HostDevice): ReactNode {
       return server ? <DnsApp device={server} /> : unavailable()
     case 'aduc':
       return <AducApp device={device} />
+    case 'gpmc':
+      return <GpmcApp device={device} />
+    case 'gpme':
+      return <GpoEditor device={device} gpoId={win.arg} />
+    case 'thispc':
+      return <ThisPc device={device} />
     case 'run':
       return <RunDialog device={device} />
     case 'addroles':

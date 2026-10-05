@@ -47,6 +47,7 @@ export function createHost(kind: 'server' | 'client'): Host {
     localAdminPassword: 'P@ssw0rd',
     session: { user: DEFAULT_LOCAL_USER[kind], domain: null },
     bootedAt: 0,
+    policy: { computer: null, user: null, attempt: null },
     eventLog: []
   }
 }

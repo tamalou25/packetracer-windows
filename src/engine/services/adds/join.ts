@@ -9,11 +9,9 @@ import { transact } from '../../core/result'
 import type { Domain, HostDevice, LabState } from '../../model/schema'
 import { effectiveIpv4 } from '../../net/addressing'
 import { isApipa } from '../../net/ipv4'
-import { initialTtl } from '../../net/routing'
-import { createContext, sendIp, sourceAddressFor } from '../../sim/forward'
-import { concatTraces, createRecorder, type PacketTrace, type PduLayer, type Protocol } from '../../sim/trace'
+import { concatTraces, type PacketTrace } from '../../sim/trace'
 import { normalizeName, ptrQueryName } from '../dns'
-import { dnsServersOf, firstAddress, resolveName } from '../dns-resolver'
+import { dnsServersOf } from '../dns-resolver'
 import {
   defaultContainer,
   findPrincipal,
@@ -22,99 +20,15 @@ import {
   PASSWORD_POLICY_ERROR,
   resolveContainerDn
 } from './directory'
+import { domainPasswordPolicy } from '../gpo/scope'
+import { computerPolicyStale, processGroupPolicy } from '../gpo/processing'
+import { exchange, locateDc } from './locator'
 
 export interface DirectoryOperation {
   state: LabState
   trace: PacketTrace
   ok: boolean
   message: string
-}
-
-/** Contrôleur de domaine localisé par le client. */
-interface LocatedDc {
-  domain: Domain
-  dcId: string
-  dcIp: string
-}
-
-function exchange(
-  state: LabState,
-  fromId: string,
-  dstIp: string,
-  protocol: Protocol,
-  port: number,
-  request: string,
-  reply: string,
-  fields: [string, string][]
-): { trace: PacketTrace; ok: boolean } {
-  const rec = createRecorder()
-  const ctx = createContext(state, rec)
-  const from = state.devices[fromId]
-  const src = from ? sourceAddressFor(state, from, dstIp) : null
-  if (!from || !src) return { trace: { title: protocol, events: [] }, ok: false }
-  const layer = (kind: string): PduLayer[] => [
-    { layer: 4, name: port === 88 ? 'TCP' : 'UDP', fields: [['Port destination', String(port)]] },
-    { layer: 7, name: protocol === 'LDAP' ? 'LDAP' : 'Kerberos', fields: [['Message', kind], ...fields] }
-  ]
-  const req = sendIp(ctx, fromId, {
-    src,
-    dst: dstIp,
-    ttl: initialTtl(from),
-    protocol,
-    ipProtocol: port === 88 ? '6 (TCP)' : '17 (UDP)',
-    summary: request,
-    upper: layer(request)
-  })
-  if (req.kind !== 'delivered') return { trace: { title: protocol, events: rec.events }, ok: false }
-  const dc = state.devices[req.deviceId]
-  if (!dc) return { trace: { title: protocol, events: rec.events }, ok: false }
-  const rep = sendIp(ctx, dc.id, {
-    src: dstIp,
-    dst: src,
-    ttl: initialTtl(dc),
-    protocol,
-    ipProtocol: port === 88 ? '6 (TCP)' : '17 (UDP)',
-    summary: reply,
-    upper: layer(reply)
-  })
-  return { trace: { title: protocol, events: rec.events }, ok: rep.kind === 'delivered' }
-}
-
-/** Localise un contrôleur du domaine via le DNS du client puis le contacte (ping LDAP). */
-function locateDc(
-  state: LabState,
-  clientId: string,
-  domainName: string,
-  traces: PacketTrace[]
-): LocatedDc | null {
-  const srv = resolveName(state, clientId, `_ldap._tcp.dc._msdcs.${domainName}`, 'SRV')
-  traces.push(srv.trace)
-  if (srv.result.kind !== 'answer') return null
-  const target = srv.result.records.find((r) => r.type === 'SRV')?.data.split(' ')[3]
-  if (!target) return null
-  const a = resolveName(state, clientId, normalizeName(target), 'A')
-  traces.push(a.trace)
-  const dcIp = firstAddress(a)
-  if (!dcIp) return null
-  const dc = Object.values(state.devices).find(
-    (d) => d.powered && d.interfaces.some((i) => effectiveIpv4(i)?.address === dcIp)
-  )
-  const domain = Object.values(state.domains).find(
-    (d) => d.name === normalizeName(domainName) || d.netbios.toLowerCase() === domainName.toLowerCase()
-  )
-  if (!dc || !domain || !domain.controllers.includes(dc.id)) return null
-  const ldap = exchange(
-    state,
-    clientId,
-    dcIp,
-    'LDAP',
-    389,
-    'LDAP ping (recherche du DC)',
-    'LDAP réponse : contrôleur disponible',
-    [['Domaine', domain.name]]
-  )
-  traces.push(ldap.trace)
-  return ldap.ok ? { domain, dcId: dc.id, dcIp } : null
 }
 
 /** Nom d'ouverture de session sans domaine (LAB\jdupont, jdupont@lab.local → jdupont). */
@@ -376,7 +290,20 @@ export function logon(state: LabState, deviceId: string, input: LogonInput): Log
     })
     return undefined
   })
-  return { state: r.ok ? r.state : state, trace, ok: true, message: '' }
+  if (!r.ok) return { state, trace, ok: false, message: r.error.message }
+  // Stratégies de groupe : utilisateur à chaque ouverture, ordinateur si pas encore traitée
+  const opened = r.state.devices[deviceId] as HostDevice
+  const gp = processGroupPolicy(r.state, deviceId, {
+    computer: computerPolicyStale(opened),
+    user: true,
+    dc: located
+  })
+  return {
+    state: gp.state,
+    trace: concatTraces(`Ouverture de session ${domain.netbios}\\${sam}`, [...traces, gp.trace]),
+    ok: true,
+    message: ''
+  }
 }
 
 /**
@@ -419,7 +346,7 @@ export function changePasswordAndLogon(
       ok: false,
       message: 'Le nom d’utilisateur ou le mot de passe est incorrect.'
     }
-  if (!passwordMeetsPolicy(input.newPassword, sam))
+  if (!passwordMeetsPolicy(input.newPassword, sam, domainPasswordPolicy(domain)))
     return { state, trace: empty, ok: false, message: PASSWORD_POLICY_ERROR }
   const r = transact(state, (draft) => {
     const u = draft.domains[domain.name]?.users.find((x) => x.id === user.id)
@@ -446,6 +373,8 @@ export function logoff(state: LabState, deviceId: string): LabState {
         message: `Fermeture de session : ${d.host.session.domain ?? d.name}\\${d.host.session.user}.`
       })
       d.host.session = null
+      // Le profil de l'utilisateur est déchargé : sa stratégie sera retraitée à la prochaine ouverture
+      d.host.policy.user = null
     }
     return undefined
   })

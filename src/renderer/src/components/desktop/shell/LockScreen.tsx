@@ -20,7 +20,7 @@ import { runAction } from '../../../lib/run'
 import { useDesktopStore } from '../../../store/desktop'
 import { useLabStore } from '../../../store/lab'
 
-type Stage = 'lock' | 'form' | 'busy' | 'error' | 'change'
+type Stage = 'lock' | 'notice' | 'form' | 'busy' | 'error' | 'change'
 
 /** Compte saisi : « LAB\\jdupont », « jdupont@lab.local », « .\\Administrateur » ou « jdupont ». */
 export function parseAccount(
@@ -74,6 +74,13 @@ export function LockScreen({ device, mode }: { device: HostDevice; mode: 'logon'
         ? parseAccount(user, device, defaultDomain)
         : { user: LOCAL_USER[device.kind], domain: null }
   const signInTo = account.domain ?? device.name
+  // Message légal imposé par la stratégie d'ordinateur, affiché avant l'ouverture de session
+  const computerPolicy = device.host.policy.computer?.settings
+  const legal =
+    mode === 'logon' && (computerPolicy?.logonMessageTitle || computerPolicy?.logonMessageText)
+      ? { title: computerPolicy.logonMessageTitle ?? '', text: computerPolicy.logonMessageText ?? '' }
+      : null
+  const afterCad = () => setStage(legal ? 'notice' : 'form')
 
   const fail = (message: string, back: Stage = 'form') => {
     setError(message)
@@ -130,7 +137,7 @@ export function LockScreen({ device, mode }: { device: HostDevice; mode: 'logon'
       e.key === ' '
     ) {
       e.preventDefault()
-      setStage('form')
+      afterCad()
     }
   }
 
@@ -163,7 +170,7 @@ export function LockScreen({ device, mode }: { device: HostDevice; mode: 'logon'
       ref={rootRef}
       tabIndex={-1}
       onKeyDown={stage === 'lock' ? onLockKey : undefined}
-      onClick={stage === 'lock' ? () => setStage('form') : undefined}
+      onClick={stage === 'lock' ? afterCad : undefined}
       className="relative h-full overflow-hidden bg-[radial-gradient(ellipse_at_30%_20%,#1d5f9e_0%,#123d6b_45%,#0a1f3a_100%)] text-white outline-none select-none"
       data-testid="logon-screen"
     >
@@ -181,7 +188,7 @@ export function LockScreen({ device, mode }: { device: HostDevice; mode: 'logon'
               type="button"
               onClick={(e) => {
                 e.stopPropagation()
-                setStage('form')
+                afterCad()
               }}
               className="rounded border border-white/40 px-3 py-1 text-xs hover:bg-white/15"
               title="Envoie la combinaison Ctrl+Alt+Suppr à l’ordinateur"
@@ -191,6 +198,24 @@ export function LockScreen({ device, mode }: { device: HostDevice; mode: 'logon'
             </button>
           </div>
         </>
+      ) : stage === 'notice' && legal ? (
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/35 px-10 backdrop-blur-sm"
+          data-testid="logon-notice"
+        >
+          <div className="text-2xl font-light">{legal.title}</div>
+          <p className="max-w-xl text-center text-sm leading-relaxed whitespace-pre-line text-white/90">
+            {legal.text}
+          </p>
+          <button
+            type="button"
+            className="min-w-24 border-2 border-white/40 bg-white/15 px-4 py-1 text-sm hover:bg-white/25"
+            onClick={() => setStage('form')}
+            data-testid="logon-notice-ok"
+          >
+            OK
+          </button>
+        </div>
       ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/25 backdrop-blur-sm">
           <div className="mb-4 flex h-28 w-28 items-center justify-center rounded-full bg-white/20">

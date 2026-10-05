@@ -70,6 +70,127 @@ export const HostSessionSchema = z.object({
   domain: z.string().nullable().default(null)
 })
 
+// ---------------------------------------------------------------------------
+// Stratégies de groupe : paramètres simulés
+// ---------------------------------------------------------------------------
+
+/** État d'un paramètre de modèle d'administration. */
+export const POLICY_STATES = ['NotConfigured', 'Enabled', 'Disabled'] as const
+export const PolicyStateSchema = z.enum(POLICY_STATES)
+
+/** Styles du papier peint (Remplir, Ajuster, Étirer, Vignette, Centrer, Étendre). */
+export const WALLPAPER_STYLES = ['Fill', 'Fit', 'Stretch', 'Tile', 'Center', 'Span'] as const
+
+/** « Papier peint du Bureau » (Configuration utilisateur > Modèles d'administration > Bureau > Bureau). */
+export const WallpaperPolicySchema = z.object({
+  state: PolicyStateSchema.default('NotConfigured'),
+  /** Chemin local ou UNC de l'image. */
+  path: z.string().default(''),
+  style: z.enum(WALLPAPER_STYLES).default('Fill')
+})
+
+/** Préférence « Lecteur mappé » (Configuration utilisateur > Préférences > Mappages de lecteurs). */
+export const DriveMapSchema = z.object({
+  action: z.enum(['Create', 'Replace', 'Update', 'Delete']).default('Update'),
+  /** Lettre de lecteur, sans les deux-points (Z). */
+  letter: z.string(),
+  /** Emplacement UNC (\\SRV1\Commun). */
+  path: z.string().default(''),
+  /** Libellé affiché dans « Ce PC ». */
+  label: z.string().default(''),
+  reconnect: z.boolean().default(true)
+})
+
+/** Partie « Configuration ordinateur » d'une GPO (sous-ensemble simulé). */
+export const GpoComputerSettingsSchema = z.object({
+  /** Stratégie de mot de passe : longueur minimale (null = non défini). */
+  minPasswordLength: z.number().int().min(0).max(14).nullable().default(null),
+  /** Le mot de passe doit respecter des exigences de complexité (null = non défini). */
+  passwordComplexity: z.boolean().nullable().default(null),
+  /** Ouverture de session interactive : titre du message (null = non défini). */
+  logonMessageTitle: z.string().nullable().default(null),
+  /** Ouverture de session interactive : texte du message (null = non défini). */
+  logonMessageText: z.string().nullable().default(null)
+})
+
+/** Partie « Configuration utilisateur » d'une GPO (sous-ensemble simulé). */
+export const GpoUserSettingsSchema = z.object({
+  wallpaper: WallpaperPolicySchema.default(() => ({
+    state: 'NotConfigured' as const,
+    path: '',
+    style: 'Fill' as const
+  })),
+  /** Interdire l'accès au Panneau de configuration et à l'application Paramètres du PC. */
+  noControlPanel: PolicyStateSchema.default('NotConfigured'),
+  /** Supprimer le menu Exécuter du menu Démarrer. */
+  noRun: PolicyStateSchema.default('NotConfigured'),
+  /** Désactiver l'accès à l'invite de commandes. */
+  noCmd: PolicyStateSchema.default('NotConfigured'),
+  driveMaps: z.array(DriveMapSchema).default([])
+})
+
+/** Paramètres vides (valeurs par défaut des schémas). */
+const noComputerSettings = (): z.infer<typeof GpoComputerSettingsSchema> => ({
+  minPasswordLength: null,
+  passwordComplexity: null,
+  logonMessageTitle: null,
+  logonMessageText: null
+})
+const noUserSettings = (): z.infer<typeof GpoUserSettingsSchema> => ({
+  wallpaper: { state: 'NotConfigured', path: '', style: 'Fill' },
+  noControlPanel: 'NotConfigured',
+  noRun: 'NotConfigured',
+  noCmd: 'NotConfigured',
+  driveMaps: []
+})
+
+/** GPO appliquée à un ordinateur ou à un utilisateur (résultat de stratégie). */
+export const AppliedGpoSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  /** Emplacement de la liaison (lab.local/Compta). */
+  location: z.string().default('')
+})
+
+/** GPO de l'étendue non appliquée, avec la raison affichée par gpresult. */
+export const FilteredGpoSchema = AppliedGpoSchema.extend({ reason: z.string() })
+
+const policyResultBase = {
+  /** Horloge du lab lors du traitement. */
+  time: z.number(),
+  /** Contrôleur de domaine ayant fourni les stratégies (FQDN). */
+  source: z.string().default(''),
+  /** Nom distinctif de l'ordinateur ou de l'utilisateur traité. */
+  dn: z.string().default(''),
+  /** GPO appliquées, de la plus prioritaire à la moins prioritaire. */
+  applied: z.array(AppliedGpoSchema).default([]),
+  filtered: z.array(FilteredGpoSchema).default([])
+}
+
+/** Stratégie d'ordinateur résultante (appliquée au démarrage ou par gpupdate). */
+export const ComputerPolicyResultSchema = z.object({
+  ...policyResultBase,
+  /** Démarrage (bootedAt) au cours duquel la stratégie a été traitée. */
+  boot: z.number().default(0),
+  settings: GpoComputerSettingsSchema.default(noComputerSettings)
+})
+
+/** Stratégie utilisateur résultante (appliquée à l'ouverture de session ou par gpupdate). */
+export const UserPolicyResultSchema = z.object({
+  ...policyResultBase,
+  /** Compte traité (LAB\jdupont). */
+  account: z.string(),
+  settings: GpoUserSettingsSchema.default(noUserSettings)
+})
+
+/** Stratégies de groupe appliquées sur un ordinateur. */
+export const HostPolicySchema = z.object({
+  computer: ComputerPolicyResultSchema.nullable().default(null),
+  user: UserPolicyResultSchema.nullable().default(null),
+  /** Dernier traitement automatique tenté (« démarrage|compte ») : évite de réessayer en boucle. */
+  attempt: z.string().nullable().default(null)
+})
+
 /** Partie « système d'exploitation » commune aux serveurs et postes clients. */
 export const HostSchema = z.object({
   workgroup: z.string().default('WORKGROUP'),
@@ -88,6 +209,8 @@ export const HostSchema = z.object({
   session: HostSessionSchema.nullable().default(null),
   /** Horloge du lab au dernier démarrage (redémarrage, mise sous tension). */
   bootedAt: z.number().default(0),
+  /** Stratégies de groupe appliquées (ordinateur et utilisateur de la session). */
+  policy: HostPolicySchema.default(() => ({ computer: null, user: null, attempt: null })),
   eventLog: z.array(EventLogEntrySchema).default([])
 })
 
@@ -226,6 +349,15 @@ export const LinkSchema = z.object({
 // Active Directory
 // ---------------------------------------------------------------------------
 
+/** Liaison d'une GPO à la racine du domaine ou à une unité d'organisation (attribut gPLink). */
+export const GpLinkSchema = z.object({
+  gpoId: z.string(),
+  /** Lien activé. */
+  enabled: z.boolean().default(true),
+  /** Appliqué : ne peut pas être bloqué et l'emporte sur les GPO des OU enfants. */
+  enforced: z.boolean().default(false)
+})
+
 /** Unité d'organisation ou conteneur (CN=Users, CN=Computers…). */
 export const AdContainerSchema = z.object({
   id: z.string(),
@@ -236,7 +368,42 @@ export const AdContainerSchema = z.object({
   description: z.string().default(''),
   /** Protéger contre la suppression accidentelle. */
   protected: z.boolean().default(false),
-  builtin: z.boolean().default(false)
+  builtin: z.boolean().default(false),
+  /** GPO liées (ordre de liaison : la première est prioritaire). Réservé aux OU. */
+  gpLinks: z.array(GpLinkSchema).default([]),
+  /** Bloquer l'héritage des GPO des conteneurs parents (sauf liaisons appliquées). */
+  blockInheritance: z.boolean().default(false)
+})
+
+export const GPO_STATUSES = [
+  'AllSettingsEnabled',
+  'UserSettingsDisabled',
+  'ComputerSettingsDisabled',
+  'AllSettingsDisabled'
+] as const
+
+/** SID bien connu « Utilisateurs authentifiés » (filtrage de sécurité par défaut). */
+export const AUTHENTICATED_USERS_SID = 'S-1-5-11'
+
+/** Objet de stratégie de groupe (GPO). */
+export const GpoSchema = z.object({
+  /** GUID de l'objet ({31B2F340-016D-11D2-945F-00C04FB984F9}). */
+  id: z.string(),
+  name: z.string(),
+  comment: z.string().default(''),
+  status: z.enum(GPO_STATUSES).default('AllSettingsEnabled'),
+  /**
+   * Filtrage de sécurité (droit « Appliquer la stratégie de groupe ») : SID bien connu
+   * des Utilisateurs authentifiés ou identifiants d'objets de l'annuaire.
+   */
+  securityFilter: z.array(z.string()).default(() => [AUTHENTICATED_USERS_SID]),
+  createdAt: z.number().default(0),
+  modifiedAt: z.number().default(0),
+  /** Versions incrémentées à chaque modification (0 = partie vide). */
+  userVersion: z.number().int().nonnegative().default(0),
+  computerVersion: z.number().int().nonnegative().default(0),
+  computer: GpoComputerSettingsSchema.default(noComputerSettings),
+  user: GpoUserSettingsSchema.default(noUserSettings)
 })
 
 export const AdUserSchema = z.object({
@@ -289,7 +456,11 @@ export const DomainSchema = z.object({
   containers: z.array(AdContainerSchema).default([]),
   users: z.array(AdUserSchema).default([]),
   groups: z.array(AdGroupSchema).default([]),
-  computers: z.array(AdComputerSchema).default([])
+  computers: z.array(AdComputerSchema).default([]),
+  /** Objets de stratégie de groupe du domaine. */
+  gpos: z.array(GpoSchema).default([]),
+  /** GPO liées à la racine du domaine (ordre de liaison). */
+  gpLinks: z.array(GpLinkSchema).default([])
 })
 
 /** État complet d'un lab : source de vérité unique de l'application. */
@@ -334,6 +505,20 @@ export type AdUser = z.infer<typeof AdUserSchema>
 export type AdGroup = z.infer<typeof AdGroupSchema>
 export type AdComputer = z.infer<typeof AdComputerSchema>
 export type Domain = z.infer<typeof DomainSchema>
+export type PolicyState = z.infer<typeof PolicyStateSchema>
+export type WallpaperStyle = (typeof WALLPAPER_STYLES)[number]
+export type WallpaperPolicy = z.infer<typeof WallpaperPolicySchema>
+export type DriveMap = z.infer<typeof DriveMapSchema>
+export type GpoComputerSettings = z.infer<typeof GpoComputerSettingsSchema>
+export type GpoUserSettings = z.infer<typeof GpoUserSettingsSchema>
+export type GpLink = z.infer<typeof GpLinkSchema>
+export type GpoStatus = (typeof GPO_STATUSES)[number]
+export type Gpo = z.infer<typeof GpoSchema>
+export type AppliedGpo = z.infer<typeof AppliedGpoSchema>
+export type FilteredGpo = z.infer<typeof FilteredGpoSchema>
+export type ComputerPolicyResult = z.infer<typeof ComputerPolicyResultSchema>
+export type UserPolicyResult = z.infer<typeof UserPolicyResultSchema>
+export type HostPolicy = z.infer<typeof HostPolicySchema>
 export type HostDevice = ServerDevice | ClientDevice
 export type LinkEnd = z.infer<typeof LinkEndSchema>
 export type Link = z.infer<typeof LinkSchema>

@@ -119,7 +119,12 @@ export function setPower(state: LabState, id: string, powered: boolean): EngineR
         message: 'Le service Journal des événements a été démarré.'
       })
       // Nouveau démarrage : le Bureau simulé revient à l'écran de verrouillage
-      if (device.kind === 'server' || device.kind === 'client') device.host.bootedAt = draft.clock
+      if (device.kind === 'server' || device.kind === 'client') {
+        device.host.bootedAt = draft.clock
+        // Stratégies de groupe retraitées après le démarrage (arrière-plan, ouverture de session)
+        device.host.policy.user = null
+        device.host.policy.attempt = null
+      }
     }
     return undefined
   })

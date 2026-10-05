@@ -18,6 +18,7 @@ import {
 import type { HostDevice } from '@engine/index'
 import { launch, runCommand } from '../../../lib/desktop'
 import { hostNetwork } from '../../../lib/netstatus'
+import { runRemoved } from '../../../lib/policy'
 import { useDesktopStore } from '../../../store/desktop'
 import { useLabStore } from '../../../store/lab'
 import { DESKTOP_APPS, type DesktopApp } from '../apps'
@@ -139,7 +140,8 @@ export function StartMenu({ device, onClose, onPower }: StartMenuProps) {
     onClose()
     launch(device.id, appId)
   }
-  const available = DESKTOP_APPS.filter((a) => a.available(device))
+  // « Exécuter » retiré par stratégie de groupe
+  const available = DESKTOP_APPS.filter((a) => a.available(device) && !(a.id === 'run' && runRemoved(device)))
   const folders = [
     {
       id: 'admin',
@@ -324,7 +326,7 @@ export function WinXMenu({ device, onClose, onPower, onSearch }: StartMenuProps 
       <div className="my-1 border-t border-white/15" />
       {item('Panneau de configuration', open('control'), 'control')}
       {item('Rechercher', onSearch, 'search')}
-      {item('Exécuter', open('run'), 'run')}
+      {!runRemoved(device) && item('Exécuter', open('run'), 'run')}
       <div className="my-1 border-t border-white/15" />
       <div className="relative">
         {item('Arrêter ou se déconnecter  ›', () => setShutdown(!shutdown), 'shutdown')}

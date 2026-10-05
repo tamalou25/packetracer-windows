@@ -22,6 +22,8 @@ interface MmcProps {
   actions?: ReactNode
   children: ReactNode
   testId?: string
+  /** Largeur de l'arborescence (px), à élargir pour les arbres profonds. */
+  treeWidth?: number
 }
 
 function TreeItem({
@@ -80,7 +82,7 @@ function findLabel(nodes: MmcNode[], id: string): string | undefined {
   return undefined
 }
 
-export function Mmc({ nodes, selected, onSelect, actions, children, testId }: MmcProps) {
+export function Mmc({ nodes, selected, onSelect, actions, children, testId, treeWidth = 224 }: MmcProps) {
   const win = useAppWindow()
   const [menu, setMenu] = useState<'file' | 'action' | 'help' | null>(null)
   const [about, setAbout] = useState(false)
@@ -133,7 +135,10 @@ export function Mmc({ nodes, selected, onSelect, actions, children, testId }: Mm
         )}
       </div>
       <div className="flex min-h-0 flex-1">
-        <ul className="w-56 shrink-0 overflow-y-auto border-r border-slate-200 bg-white p-1">
+        <ul
+          className="shrink-0 overflow-y-auto border-r border-slate-200 bg-white p-1"
+          style={{ width: treeWidth }}
+        >
           {nodes.map((n) => (
             <TreeItem key={n.id} node={n} depth={0} selected={selected} onSelect={onSelect} />
           ))}

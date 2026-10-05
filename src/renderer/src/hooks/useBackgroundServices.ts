@@ -1,13 +1,14 @@
 /**
- * Client DHCP en tâche de fond (mode Temps réel) : après chaque modification du lab,
- * les cartes en DHCP sans bail tentent d'en obtenir un, comme sur un vrai poste.
+ * Services en tâche de fond (mode Temps réel), après chaque modification du lab, comme sur de
+ * vrais ordinateurs : le client DHCP demande un bail pour les cartes qui n'en ont pas, puis les
+ * membres du domaine appliquent leurs stratégies de groupe après un démarrage.
  */
 import { useEffect } from 'react'
-import { autoConfigureDhcp } from '@engine/index'
+import { autoConfigureDhcp, autoGroupPolicy } from '@engine/index'
 import { useLabStore } from '../store/lab'
 import { useUiStore } from '../store/ui'
 
-export function useAutoDhcp(): void {
+export function useBackgroundServices(): void {
   const mode = useUiStore((s) => s.mode)
   useEffect(() => {
     if (mode !== 'realtime') return
@@ -19,11 +20,12 @@ export function useAutoDhcp(): void {
       queueMicrotask(() => {
         scheduled = false
         const lab = useLabStore.getState().lab
-        const result = autoConfigureDhcp(lab)
-        if (result.state !== lab && useLabStore.getState().lab === lab) {
+        const dhcp = autoConfigureDhcp(lab)
+        const policy = autoGroupPolicy(dhcp.state)
+        if (policy.state !== lab && useLabStore.getState().lab === lab) {
           useLabStore
             .getState()
-            .run(() => ({ ok: true, state: result.state, value: undefined }), { undoable: false })
+            .run(() => ({ ok: true, state: policy.state, value: undefined }), { undoable: false })
         }
       })
     }

@@ -6,6 +6,7 @@ import type { Draft } from 'immer'
 import { raise } from '../../core/result'
 import { nextSeq } from '../../model/factory'
 import type { AdComputer, AdContainer, AdGroup, AdUser, Domain, LabState } from '../../model/schema'
+import { DEFAULT_DC_POLICY_ID, DEFAULT_DOMAIN_POLICY_ID, defaultDomainGpos } from '../gpo/defaults'
 
 export type AdObject =
   | { kind: 'container'; obj: AdContainer }
@@ -159,9 +160,26 @@ export function findDomain(state: LabState, name: string): Domain | undefined {
 export const PASSWORD_POLICY_ERROR =
   'Le mot de passe ne répond pas aux spécifications de longueur, de complexité ou d’historique du domaine.'
 
-/** Stratégie de mot de passe par défaut : 7 caractères, 3 catégories sur 4, sans le nom du compte. */
-export function passwordMeetsPolicy(password: string, sam = ''): boolean {
-  if (password.length < 7) return false
+/** Stratégie de mot de passe du domaine (issue des GPO liées à la racine du domaine). */
+export interface PasswordPolicy {
+  minLength: number
+  complexity: boolean
+}
+
+/** Valeurs de la « Default Domain Policy » : 7 caractères, complexité exigée. */
+export const DEFAULT_PASSWORD_POLICY: PasswordPolicy = { minLength: 7, complexity: true }
+
+/**
+ * Vérifie un mot de passe : longueur minimale et, si la complexité est exigée, trois catégories
+ * sur quatre sans contenir le nom du compte.
+ */
+export function passwordMeetsPolicy(
+  password: string,
+  sam = '',
+  policy: PasswordPolicy = DEFAULT_PASSWORD_POLICY
+): boolean {
+  if (password.length < policy.minLength) return false
+  if (!policy.complexity) return true
   const categories = [/[A-Z]/, /[a-z]/, /[0-9]/, /[^A-Za-z0-9]/].filter((re) => re.test(password)).length
   if (categories < 3) return false
   if (sam.length >= 3 && password.toLowerCase().includes(sam.toLowerCase())) return false
@@ -209,7 +227,9 @@ export function buildDomain(
     kind,
     description,
     protected: kind === 'ou',
-    builtin: true
+    builtin: true,
+    gpLinks: [],
+    blockInheritance: false
   })
   const builtin = container('Builtin', 'container', 'Conteneur des groupes intégrés')
   const computers = container('Computers', 'container', 'Conteneur par défaut des comptes d’ordinateurs')
@@ -219,6 +239,7 @@ export function buildDomain(
     'ou',
     'Unité d’organisation par défaut des contrôleurs de domaine'
   )
+  dcs.gpLinks = [{ gpoId: DEFAULT_DC_POLICY_ID, enabled: true, enforced: false }]
 
   const user = (
     sam: string,
@@ -372,7 +393,9 @@ export function buildDomain(
       usersGroup,
       guests
     ],
-    computers: [dcComputer]
+    computers: [dcComputer],
+    gpos: defaultDomainGpos(draft.clock),
+    gpLinks: [{ gpoId: DEFAULT_DOMAIN_POLICY_ID, enabled: true, enforced: false }]
   }
 }
 

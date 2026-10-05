@@ -4,10 +4,11 @@
  * Le système simulé garde son apparence claire, quel que soit le thème de l'application.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { Computer, Trash2, type LucideIcon } from 'lucide-react'
 import { logoff, restartComputer, setPower, type HostDevice } from '@engine/index'
 import { launch, setDesktopArea } from '../../lib/desktop'
 import { runAction } from '../../lib/run'
+import { desktopBackground } from '../../lib/wallpapers'
 import { activeWindow, useDesktopStore } from '../../store/desktop'
 import { useLabStore } from '../../store/lab'
 import { appInfo } from './apps'
@@ -25,6 +26,33 @@ import {
 } from './shell/Menus'
 import { Taskbar, type ShellMenu } from './shell/Taskbar'
 import { WinButton } from './shell/classic'
+
+/** Icône du Bureau (double-clic pour ouvrir). */
+function DesktopIcon({
+  icon: Icon,
+  label,
+  onOpen,
+  testId
+}: {
+  icon: LucideIcon
+  label: string
+  onOpen: () => void
+  testId: string
+}) {
+  return (
+    <button
+      type="button"
+      onDoubleClick={onOpen}
+      onKeyDown={(e) => e.key === 'Enter' && onOpen()}
+      className="flex w-20 flex-col items-center gap-1 rounded-sm p-1.5 text-[11px] text-white hover:bg-white/15 focus:bg-[#cce8ff]/30 focus:outline-none"
+      title={`${label} (double-clic)`}
+      data-testid={testId}
+    >
+      <Icon size={30} strokeWidth={1.3} className="text-slate-100 drop-shadow" />
+      <span className="drop-shadow">{label}</span>
+    </button>
+  )
+}
 
 const REASONS = [
   'Autre (planifié)',
@@ -82,6 +110,8 @@ export function DesktopShell({ device }: { device: HostDevice }) {
   const windows = desktop?.windows ?? []
   const active = activeWindow(desktop)
   const closeMenu = () => setMenu(null)
+  // Papier peint imposé par la stratégie de groupe de l'utilisateur
+  const background = desktopBackground(device.host.policy.user?.settings.wallpaper)
 
   const power = (action: PowerAction) => {
     closeMenu()
@@ -107,23 +137,26 @@ export function DesktopShell({ device }: { device: HostDevice }) {
     <div data-theme="light" className="flex h-full flex-col" data-testid="desktop">
       <div
         ref={areaRef}
-        className="relative min-h-0 flex-1 overflow-hidden bg-[radial-gradient(ellipse_at_70%_25%,#2f78c4_0%,#174a86_38%,#0c2a52_72%,#071a35_100%)]"
+        className="relative min-h-0 flex-1 overflow-hidden"
+        style={background.style}
+        data-wallpaper={background.id}
         onPointerDown={(e) => {
           if (e.target === e.currentTarget) closeMenu()
         }}
       >
         <div className="absolute top-2 left-2 flex flex-col gap-2">
-          <button
-            type="button"
-            onDoubleClick={() => launch(device.id, 'recycle')}
-            onKeyDown={(e) => e.key === 'Enter' && launch(device.id, 'recycle')}
-            className="flex w-20 flex-col items-center gap-1 rounded-sm p-1.5 text-[11px] text-white hover:bg-white/15 focus:bg-[#cce8ff]/30 focus:outline-none"
-            title="Corbeille (double-clic)"
-            data-testid="desktop-icon-recycle"
-          >
-            <Trash2 size={30} strokeWidth={1.3} className="text-slate-100 drop-shadow" />
-            <span className="drop-shadow">Corbeille</span>
-          </button>
+          <DesktopIcon
+            icon={Computer}
+            label="Ce PC"
+            onOpen={() => launch(device.id, 'thispc')}
+            testId="desktop-icon-thispc"
+          />
+          <DesktopIcon
+            icon={Trash2}
+            label="Corbeille"
+            onOpen={() => launch(device.id, 'recycle')}
+            testId="desktop-icon-recycle"
+          />
         </div>
 
         {windows.map((win) => {

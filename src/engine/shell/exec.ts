@@ -29,6 +29,21 @@ export function shellPrompt(session: ShellSession): string {
   return activeShell(session) === 'powershell' ? `PS ${session.cwd}> ` : `${session.cwd}>`
 }
 
+/** Message de l'invite de commandes désactivée par stratégie de groupe. */
+export const CMD_DISABLED_LINES = [
+  'L’invite de commandes a été désactivée par votre administrateur.',
+  '',
+  'Appuyez sur une touche pour continuer...'
+]
+
+/** L'invite de commandes est-elle interdite à l'utilisateur de la session (stratégie de groupe) ? */
+export function cmdDisabledByPolicy(state: LabState, deviceId: string): boolean {
+  const d = state.devices[deviceId]
+  return (
+    !!d && (d.kind === 'server' || d.kind === 'client') && d.host.policy.user?.settings.noCmd === 'Enabled'
+  )
+}
+
 /** Texte d'accueil d'une nouvelle console. */
 export function shellBanner(kind: ShellKind): string[] {
   return kind === 'powershell'
@@ -65,6 +80,8 @@ export function executeLine(
       } else {
         executePowerShell(ctx, line)
       }
+    } else if (cmdDisabledByPolicy(state, session.deviceId)) {
+      ctx.writeLines(CMD_DISABLED_LINES.slice(0, 1))
     } else {
       executeCmd(ctx, line, CATALOG.tools)
     }

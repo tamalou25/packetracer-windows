@@ -41,6 +41,9 @@ export function applyRestart(draft: Draft<LabState>, device: Draft<HostDevice>, 
   }
   device.host.pendingReboot = false
   device.host.bootedAt = draft.clock
+  // Stratégie utilisateur déchargée ; la stratégie d'ordinateur (conservée) sera retraitée
+  device.host.policy.user = null
+  device.host.policy.attempt = null
   // Les baux DHCP sont redemandés au démarrage
   for (const iface of device.interfaces) {
     if (iface.addressing === 'dhcp') iface.dhcpLease = null

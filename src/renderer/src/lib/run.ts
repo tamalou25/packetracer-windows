@@ -17,3 +17,17 @@ export function runAction<T>(
   if (options?.success) useUiStore.getState().notify('success', options.success)
   return result.value
 }
+
+/** Comme runAction, mais renvoie vrai en cas de succès (actions sans valeur de retour). */
+export function runActionOk<T>(
+  action: (lab: LabState) => EngineResult<T>,
+  options?: { undoable?: boolean; success?: string }
+): boolean {
+  const result = useLabStore.getState().run(action, options)
+  if (!result.ok) {
+    useUiStore.getState().notify('error', result.error.message)
+    return false
+  }
+  if (options?.success) useUiStore.getState().notify('success', options.success)
+  return true
+}

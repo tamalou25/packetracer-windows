@@ -1,6 +1,7 @@
 /**
  * Cmdlets Active Directory (module ActiveDirectory, ADDSDeployment) et jonction au domaine.
  */
+import { guidFromSeed } from '../../../core/guid'
 import type { AdComputer, AdContainer, AdGroup, AdUser, Domain } from '../../../model/schema'
 import {
   allObjects,
@@ -52,16 +53,7 @@ const adAvailable = (ctx: CmdContext) => hasFeature(ctx, 'RSAT-AD-PowerShell')
 const str = (v: PsValue | undefined): string => psToString(v)
 
 /** GUID déterministe dérivé de l'identifiant interne. */
-function guidOf(id: string): string {
-  let h = 2166136261
-  const hex: string[] = []
-  for (let round = 0; round < 4; round++) {
-    for (const c of `${id}#${round}`) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0
-    hex.push(h.toString(16).padStart(8, '0'))
-  }
-  const s = hex.join('')
-  return `${s.slice(0, 8)}-${s.slice(8, 12)}-${s.slice(12, 16)}-${s.slice(16, 20)}-${s.slice(20, 32)}`
-}
+const guidOf = (id: string): string => guidFromSeed(id)
 
 function sidOf(domain: Domain, id: string): string {
   const rid = 1000 + Number(id.replace(/\D/g, '') || 0)
@@ -139,7 +131,9 @@ function ouObject(domain: Domain, c: AdContainer): PsObject {
       City: null,
       Country: null,
       DistinguishedName: containerDn(domain, c.id),
-      LinkedGroupPolicyObjects: [],
+      LinkedGroupPolicyObjects: `{${c.gpLinks
+        .map((l) => `cn=${l.gpoId},cn=policies,cn=system,${domainDn(domain)}`)
+        .join(', ')}}`,
       ManagedBy: null,
       Name: c.name,
       ObjectClass: 'organizationalUnit',
