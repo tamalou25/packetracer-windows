@@ -52,6 +52,12 @@ export interface BackgroundTask {
   id: string
   /** Libellé français (journal des tâches de fond). */
   label: string
+  /**
+   * Parties de l'état dont dépend la tâche (comparées par référence) : si aucune n'a changé
+   * depuis son dernier passage, elle n'est pas relancée (pas de DORA retenté à chaque
+   * déplacement). Absent : la tâche passe à chaque fois.
+   */
+  deps?(state: LabState): readonly unknown[]
   run(state: LabState): { state: LabState; traces: PacketTrace[] }
 }
 

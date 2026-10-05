@@ -9,15 +9,16 @@
  */
 import { create } from 'zustand'
 import {
-  command as makeCommand,
   createLab,
   dispatch as dispatchCommand,
   emptyHistory,
   journalEntry,
   recordEntry,
+  runBackgroundTasks,
   redoStep,
   undoStep,
   type AnyCommand,
+  type BackgroundMemo,
   type Command,
   type CommandType,
   type CommandValue,
@@ -92,11 +93,15 @@ interface LabStore {
 }
 
 export const useLabStore = create<LabStore>()((set, get) => {
+  /** Dépendances des tâches de fond à leur dernier passage (tâches incrémentales du moteur). */
+  let backgroundMemo: BackgroundMemo = {}
+
   /** État après les tâches de fond des rôles (mode Temps réel uniquement). */
   const settle = (lab: LabState): LabState => {
     if (!get().realtime) return lab
-    const result = dispatchCommand(lab, makeCommand('background.tick'))
-    return result.ok ? result.state : lab
+    const result = runBackgroundTasks(lab, backgroundMemo)
+    backgroundMemo = result.memo
+    return result.state
   }
 
   /** Applique un pas d'historique (annuler ou rétablir) calculé par le moteur. */
@@ -176,6 +181,8 @@ export const useLabStore = create<LabStore>()((set, get) => {
     },
 
     load(lab, file, viewport = null, dirty = false) {
+      // Nouveau document : toutes les tâches de fond repassent
+      backgroundMemo = {}
       const settled = settle(lab)
       set((s) => ({
         lab: settled,

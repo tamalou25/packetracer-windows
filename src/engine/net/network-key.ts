@@ -57,3 +57,11 @@ export function memoByNetwork<T>(
     return value
   }
 }
+
+/**
+ * Dépendances réseau d'un équipement, communes aux tâches de fond : identité, alimentation,
+ * cartes et routes (références inchangées quand l'équipement est seulement déplacé ou renommé).
+ */
+export function networkDeps(device: Device): unknown[] {
+  return [device.id, device.powered, device.interfaces, device.kind === 'router' ? device.routes : null]
+}
