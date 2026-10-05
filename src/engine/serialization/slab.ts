@@ -3,6 +3,7 @@
  */
 import { z } from 'zod'
 import { LabStateSchema, type LabState } from '../model/schema'
+import { validateRoleStates } from '../roles/validation'
 import { CURRENT_SCHEMA_VERSION, migrateDocument } from './migrations'
 
 export const SLAB_EXTENSION = 'slab'
@@ -107,6 +108,9 @@ function parseSlabContent(content: string): ParseResult {
       message: `Fichier .slab invalide${where} : ${issue?.message ?? 'structure inattendue'}.`
     }
   }
+  // Données des rôles : schéma déclaré par chaque module (valeurs par défaut appliquées)
+  const roles = validateRoleStates(parsed.data.lab)
+  if (roles) return { ok: false, message: roles }
   const integrity = checkIntegrity(parsed.data.lab)
   if (integrity) return { ok: false, message: `Fichier .slab incohérent : ${integrity}` }
   return { ok: true, doc: parsed.data }

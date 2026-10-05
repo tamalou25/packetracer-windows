@@ -2,7 +2,8 @@
  * Cmdlets du module DhcpServer (disponible avec les outils RSAT-DHCP).
  */
 import { formatShortDate } from '../../core/clock'
-import type { DhcpServer, ServerDevice } from '../../model/schema'
+import type { ServerDevice } from '../../model/schema'
+import type { DhcpServer } from './schema'
 import {
   addExclusion,
   addReservation,
@@ -20,25 +21,27 @@ import type { CmdContext } from '../../shell/ps/interpreter'
 import type { CmdletDef } from '../../shell/ps/registry'
 import { flatten, psObject, psToString, type PsValue } from '../../shell/ps/values'
 import { hasFeature } from '../../shell/ps/cmdlets/helpers'
+import { dhcpServerOf } from './state'
 
 const available = (ctx: CmdContext) => hasFeature(ctx, 'RSAT-DHCP')
 
 /** Données DHCP du serveur courant (rôle installé). */
 function dhcpOf(ctx: CmdContext): { server: ServerDevice; dhcp: DhcpServer } {
   const d = ctx.device
-  if (d.kind !== 'server' || !d.host.features.includes('DHCP') || !d.services.dhcp)
+  const dhcp = dhcpServerOf(d)
+  if (d.kind !== 'server' || !d.host.features.includes('DHCP') || !dhcp)
     throw psError(
       `Échec de la connexion au serveur DHCP ${d.name}. Le service Serveur DHCP n’est pas installé ou n’est pas démarré.`,
       'ObjectNotFound',
       'WIN32 1753',
       d.name
     )
-  return { server: d, dhcp: d.services.dhcp }
+  return { server: d, dhcp }
 }
 
 function scopeIds(ctx: CmdContext): string[] {
   const d = ctx.state.devices[ctx.session.deviceId]
-  return d?.kind === 'server' ? (d.services.dhcp?.scopes.map((s) => s.scopeId) ?? []) : []
+  return d?.kind === 'server' ? (dhcpServerOf(d)?.scopes.map((s) => s.scopeId) ?? []) : []
 }
 
 const scopeParam = { name: 'ScopeId', type: 'string' as const, complete: scopeIds }
@@ -385,7 +388,7 @@ export const dhcpCmdlets: CmdletDef[] = [
       return Object.values(ctx.state.devices)
         .filter(
           (d): d is ServerDevice =>
-            d.kind === 'server' && d.host.domain === domain && !!d.services.dhcp?.authorized
+            d.kind === 'server' && d.host.domain === domain && !!dhcpServerOf(d)?.authorized
         )
         .map((d) =>
           psObject(

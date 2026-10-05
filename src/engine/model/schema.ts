@@ -238,91 +238,6 @@ export const HostSchema = z.object({
   eventLog: z.array(EventLogEntrySchema).default([])
 })
 
-/** Options DHCP (003 routeur, 006 serveurs DNS, 015 nom de domaine DNS). */
-export const DhcpOptionsSchema = z.object({
-  router: z.array(z.string()).default([]),
-  dnsServers: z.array(z.string()).default([]),
-  dnsDomain: z.string().nullable().default(null)
-})
-
-export const DhcpExclusionSchema = z.object({ start: z.string(), end: z.string() })
-
-export const DhcpReservationSchema = z.object({
-  ip: z.string(),
-  /** Adresse MAC normalisée (XX-XX-XX-XX-XX-XX). */
-  mac: z.string(),
-  name: z.string(),
-  description: z.string().default('')
-})
-
-export const DhcpLeaseSchema = z.object({
-  ip: z.string(),
-  mac: z.string(),
-  hostName: z.string(),
-  expiresAt: z.number(),
-  /** BadAddress : adresse refusée car déjà utilisée sur le réseau. */
-  state: z.enum(['Active', 'BadAddress']).default('Active')
-})
-
-export const DhcpScopeSchema = z.object({
-  /** Adresse du réseau (identifiant de l'étendue). */
-  scopeId: z.string(),
-  name: z.string(),
-  description: z.string().default(''),
-  start: z.string(),
-  end: z.string(),
-  prefixLength: z.number().int().min(1).max(30),
-  state: z.enum(['Active', 'Inactive']).default('Active'),
-  leaseDurationSec: z
-    .number()
-    .int()
-    .positive()
-    .default(8 * 24 * 3600),
-  exclusions: z.array(DhcpExclusionSchema).default([]),
-  reservations: z.array(DhcpReservationSchema).default([]),
-  leases: z.array(DhcpLeaseSchema).default([]),
-  options: DhcpOptionsSchema.default({ router: [], dnsServers: [], dnsDomain: null })
-})
-
-export const DhcpServerSchema = z.object({
-  /** Autorisé dans Active Directory (obligatoire pour un serveur membre d'un domaine). */
-  authorized: z.boolean().default(false),
-  /** Configuration post-installation terminée (groupes de sécurité créés, notification levée). */
-  configured: z.boolean().default(false),
-  scopes: z.array(DhcpScopeSchema).default([]),
-  serverOptions: DhcpOptionsSchema.default({ router: [], dnsServers: [], dnsDomain: null })
-})
-
-export const DNS_RECORD_TYPES = ['A', 'PTR', 'CNAME', 'NS', 'SOA', 'SRV'] as const
-
-export const DnsRecordSchema = z.object({
-  /** Nom relatif à la zone (« @ » pour la racine de la zone). */
-  name: z.string(),
-  type: z.enum(DNS_RECORD_TYPES),
-  /** Données : adresse IPv4 (A), nom complet (CNAME, PTR, NS), « priorité poids port cible » (SRV)… */
-  data: z.string(),
-  ttl: z.number().int().positive().default(3600),
-  /** Inscrit dynamiquement par un client (mise à jour dynamique). */
-  dynamic: z.boolean().default(false)
-})
-
-export const DnsZoneSchema = z.object({
-  /** Nom complet en minuscules (lab.local, 1.168.192.in-addr.arpa). */
-  name: z.string(),
-  reverse: z.boolean(),
-  /** Zone intégrée à Active Directory (stockée dans l'annuaire). */
-  adIntegrated: z.boolean().default(false),
-  dynamicUpdate: z.enum(['None', 'Secure', 'NonsecureAndSecure']).default('None'),
-  records: z.array(DnsRecordSchema).default([])
-})
-
-export const DnsServerSchema = z.object({
-  zones: z.array(DnsZoneSchema).default([]),
-  forwarders: z.array(z.string()).default([]),
-  /** Utiliser les indications de racine si aucun redirecteur ne répond. */
-  useRootHints: z.boolean().default(true)
-})
-
 // ---------------------------------------------------------------------------
 // Fichiers : volume C:, autorisations NTFS, partages SMB
 // ---------------------------------------------------------------------------
@@ -425,11 +340,12 @@ export const StorageSchema = z.object({
   shares: z.array(SmbShareSchema).default([])
 })
 
-/** Données des rôles serveur. */
-export const ServerServicesSchema = z.object({
-  dhcp: DhcpServerSchema.nullable().default(null),
-  dns: DnsServerSchema.nullable().default(null)
-})
+/**
+ * Données des rôles serveur, par identifiant de rôle (`roles.dhcp`, `roles.dns`…). Chaque module
+ * de rôle déclare le schéma de ses données (`RoleModule.state`) : elles sont validées à
+ * l'ouverture d'un fichier .slab (`serialization/slab.ts`) et lues par des accesseurs typés.
+ */
+export const RoleStatesSchema = z.record(z.string(), z.unknown())
 
 const deviceBase = {
   id: z.string(),
@@ -443,7 +359,7 @@ export const ServerDeviceSchema = z.object({
   ...deviceBase,
   kind: z.literal('server'),
   host: HostSchema,
-  services: ServerServicesSchema.default({ dhcp: null, dns: null }),
+  roles: RoleStatesSchema.default({}),
   /** Volume C: et dossiers partagés. */
   storage: StorageSchema.default(() => ({ rootAcl: defaultRootAcl(), nodes: defaultFsNodes(), shares: [] }))
 })
@@ -618,16 +534,6 @@ export type SwitchDevice = z.infer<typeof SwitchDeviceSchema>
 export type RouterDevice = z.infer<typeof RouterDeviceSchema>
 export type CloudDevice = z.infer<typeof CloudDeviceSchema>
 export type Device = z.infer<typeof DeviceSchema>
-export type DhcpOptions = z.infer<typeof DhcpOptionsSchema>
-export type DhcpScope = z.infer<typeof DhcpScopeSchema>
-export type DhcpServer = z.infer<typeof DhcpServerSchema>
-export type DhcpReservation = z.infer<typeof DhcpReservationSchema>
-export type DhcpLease = z.infer<typeof DhcpLeaseSchema>
-export type ServerServices = z.infer<typeof ServerServicesSchema>
-export type DnsRecord = z.infer<typeof DnsRecordSchema>
-export type DnsRecordType = DnsRecord['type']
-export type DnsZone = z.infer<typeof DnsZoneSchema>
-export type DnsServer = z.infer<typeof DnsServerSchema>
 export type AdContainer = z.infer<typeof AdContainerSchema>
 export type AdUser = z.infer<typeof AdUserSchema>
 export type AdGroup = z.infer<typeof AdGroupSchema>
@@ -658,4 +564,5 @@ export type Storage = z.infer<typeof StorageSchema>
 export type HostDevice = ServerDevice | ClientDevice
 export type LinkEnd = z.infer<typeof LinkEndSchema>
 export type Link = z.infer<typeof LinkSchema>
+export type RoleStates = z.infer<typeof RoleStatesSchema>
 export type LabState = z.infer<typeof LabStateSchema>

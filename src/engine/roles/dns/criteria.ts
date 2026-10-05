@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { byName, fqdn, sameName, serverByName } from '../../labs/lookup'
 import { defineCriterion } from '../types'
 import { firstAddress, resolveName } from './resolver'
+import { dnsServerOf } from './state'
 
 export const dnsCriteria = [
   defineCriterion(
@@ -17,7 +18,7 @@ export const dnsCriteria = [
       data: z.string().optional()
     }),
     (state, check) => {
-      const zone = serverByName(state, check.server)?.services.dns?.zones.find(
+      const zone = dnsServerOf(serverByName(state, check.server))?.zones.find(
         (z) => z.name === fqdn(check.zone)
       )
       return !!zone?.records.some(

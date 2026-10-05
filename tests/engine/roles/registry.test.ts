@@ -99,7 +99,7 @@ describe('registre des rôles', () => {
     const s = unwrap(installFeatures(state, ids.SRV1!, ['DHCP', 'DNS'])).state
     const srv = s.devices[ids.SRV1!] as ServerDevice
     for (const m of roleModules().filter((r) => r.state)) {
-      expect((srv.services as Record<string, unknown>)[m.state!.key]).toEqual(m.state!.create())
+      expect(srv.roles[m.state!.key]).toEqual(m.state!.create())
     }
   })
 

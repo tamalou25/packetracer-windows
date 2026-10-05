@@ -18,18 +18,20 @@ import {
   type LucideIcon
 } from 'lucide-react'
 import {
+  allFeatures,
+  command,
   DEVICE_KIND_INFO,
   DEVICE_KINDS,
+  dhcpServerOf,
+  dnsServerOf,
   endStatus,
-  allFeatures,
   isHostDevice,
   linkStatus,
   type Device,
   type HostDevice,
   type LabState,
   type Link,
-  type RouterDevice,
-  command
+  type RouterDevice
 } from '@engine/index'
 import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
@@ -288,7 +290,7 @@ function RolesSection({ device }: { device: HostDevice }) {
 function ServicesSection({ lab, device }: { lab: LabState; device: HostDevice }) {
   const rows: [string, ReactNode][] = []
   if (device.kind === 'server') {
-    const dhcp = device.services.dhcp
+    const dhcp = dhcpServerOf(device)
     if (dhcp) {
       const scopes = dhcp.scopes.length
       const leases = dhcp.scopes.reduce((n, s) => n + s.leases.length, 0)
@@ -304,7 +306,7 @@ function ServicesSection({ lab, device }: { lab: LabState; device: HostDevice })
         </>
       ])
     }
-    const dns = device.services.dns
+    const dns = dnsServerOf(device)
     if (dns) {
       const zones = dns.zones.length
       rows.push([

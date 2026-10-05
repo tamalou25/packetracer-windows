@@ -4,7 +4,8 @@
  */
 import { logEvent } from '../../core/eventlog'
 import { transact } from '../../core/result'
-import type { DhcpScope, HostDevice, LabState, ServerDevice } from '../../model/schema'
+import type { HostDevice, LabState, ServerDevice } from '../../model/schema'
+import type { DhcpScope } from './schema'
 import { effectiveIpv4 } from '../../net/addressing'
 import { formatIpv4, inNetwork, parseIpv4, prefixToMask } from '../../net/ipv4'
 import { carrierUp, l2Segment, reversePath, type PortRef, type SegmentMember } from '../../net/segment'
@@ -19,6 +20,7 @@ import {
 } from '../../sim/trace'
 import { registerHostDns } from '../adds/join'
 import { effectiveOptions, inScopeRange, isExcluded, formatLeaseDuration } from './server'
+import { dhcpServerOf } from './state'
 
 export type DhcpOutcome = 'bound' | 'renewed' | 'released' | 'failed' | 'not-dhcp' | 'no-carrier'
 
@@ -52,18 +54,17 @@ function hostFqdn(device: HostDevice): string {
 
 /** Le serveur DHCP est-il autorisé à distribuer des adresses ? */
 export function dhcpAuthorized(server: ServerDevice): boolean {
-  return !server.host.domain || !!server.services.dhcp?.authorized
+  return !server.host.domain || !!dhcpServerOf(server)?.authorized
 }
 
 /** Étendue active desservant le réseau sur lequel le serveur reçoit la requête. */
 function scopeFor(server: ServerDevice, port: PortRef): DhcpScope | null {
   const iface = server.interfaces.find((i) => i.id === port.ifaceId)
   const eff = iface ? effectiveIpv4(iface) : null
-  if (!eff || eff.source !== 'static' || !server.services.dhcp) return null
+  const dhcp = dhcpServerOf(server)
+  if (!eff || eff.source !== 'static' || !dhcp) return null
   return (
-    server.services.dhcp.scopes.find(
-      (s) => s.state === 'Active' && inNetwork(eff.address, s.scopeId, s.prefixLength)
-    ) ?? null
+    dhcp.scopes.find((s) => s.state === 'Active' && inNetwork(eff.address, s.scopeId, s.prefixLength)) ?? null
   )
 }
 
@@ -193,7 +194,7 @@ export function dhcpAcquire(
     (member) => {
       const dev = state.devices[member.port.deviceId]
       const name = dev?.name ?? '?'
-      if (!dev || dev.kind !== 'server' || !dev.host.features.includes('DHCP') || !dev.services.dhcp)
+      if (!dev || dev.kind !== 'server' || !dev.host.features.includes('DHCP') || !dhcpServerOf(dev))
         return { outcome: 'ignored', note: `${name} n’est pas un serveur DHCP : la diffusion est ignorée.` }
       const scope = scopeFor(dev, member.port)
       if (!dhcpAuthorized(dev)) {
@@ -282,7 +283,7 @@ export function dhcpAcquire(
   const serverIp = serverIface ? (effectiveIpv4(serverIface)?.address ?? '') : ''
   const serverMac = serverIface?.mac ?? ''
   const opts = effectiveOptions(
-    server.services.dhcp ?? {
+    dhcpServerOf(server) ?? {
       authorized: true,
       configured: true,
       scopes: [],
@@ -368,15 +369,9 @@ export function dhcpAcquire(
   const result = transact(state, (draft) => {
     const srv = draft.devices[server.id]
     const cli = draft.devices[clientId]
-    if (
-      !srv ||
-      srv.kind !== 'server' ||
-      !srv.services.dhcp ||
-      !cli ||
-      (cli.kind !== 'server' && cli.kind !== 'client')
-    )
-      return undefined
-    const sc = srv.services.dhcp.scopes.find((s) => s.scopeId === scope.scopeId)
+    const srvDhcp = dhcpServerOf(srv)
+    if (!srv || !srvDhcp || !cli || (cli.kind !== 'server' && cli.kind !== 'client')) return undefined
+    const sc = srvDhcp.scopes.find((s) => s.scopeId === scope.scopeId)
     if (!sc) return undefined
     const expiresAt = draft.clock + scope.leaseDurationSec * 1000
     for (const b of bad) {
@@ -429,7 +424,7 @@ export function dhcpRenew(state: LabState, clientId: string, ifaceId: string): D
   const server = state.devices[lease.serverDeviceId]
   const scope =
     server?.kind === 'server' && member
-      ? server.services.dhcp?.scopes.find((s) =>
+      ? dhcpServerOf(server)?.scopes.find((s) =>
           s.leases.some((l) => l.mac === iface.mac && l.ip === lease.address && l.state === 'Active')
         )
       : undefined
@@ -488,8 +483,8 @@ export function dhcpRenew(state: LabState, clientId: string, ifaceId: string): D
     const cli = draft.devices[clientId]
     const expiresAt = draft.clock + scope.leaseDurationSec * 1000
     if (srv?.kind === 'server') {
-      const l = srv.services.dhcp?.scopes
-        .find((s) => s.scopeId === scope.scopeId)
+      const l = dhcpServerOf(srv)
+        ?.scopes.find((s) => s.scopeId === scope.scopeId)
         ?.leases.find((x) => x.mac === iface.mac)
       if (l) l.expiresAt = expiresAt
     }
@@ -498,8 +493,8 @@ export function dhcpRenew(state: LabState, clientId: string, ifaceId: string): D
       target.dhcpLease.obtainedAt = draft.clock
       target.dhcpLease.expiresAt = expiresAt
       // Les options peuvent avoir changé côté serveur
-      const opts =
-        srv?.kind === 'server' && srv.services.dhcp ? effectiveOptions(srv.services.dhcp, scope) : null
+      const srvDhcp = dhcpServerOf(srv)
+      const opts = srvDhcp ? effectiveOptions(srvDhcp, scope) : null
       if (opts) {
         target.dhcpLease.gateway = opts.router[0] ?? null
         target.dhcpLease.dnsServers = [...opts.dnsServers]
@@ -553,8 +548,9 @@ export function dhcpRelease(state: LabState, clientId: string, ifaceId: string):
   }
   const result = transact(state, (draft) => {
     const srv = lease ? draft.devices[lease.serverDeviceId] : undefined
-    if (srv?.kind === 'server' && srv.services.dhcp) {
-      for (const sc of srv.services.dhcp.scopes)
+    const srvDhcp = dhcpServerOf(srv)
+    if (srvDhcp) {
+      for (const sc of srvDhcp.scopes)
         sc.leases = sc.leases.filter((l) => !(l.mac === iface.mac && l.state === 'Active'))
     }
     const target = draft.devices[clientId]?.interfaces.find((i) => i.id === ifaceId)

@@ -1,13 +1,12 @@
 /**
  * Module du rôle Serveur DHCP (et du client DHCP des ordinateurs).
  */
-import { DhcpServerSchema } from '../../model/schema'
 import { defineRole } from '../types'
 import { dhcpCmdlets } from './cmdlets'
 import { dhcpCommands } from './commands'
 import { autoConfigureDhcp } from './client'
 import { dhcpCriteria } from './criteria'
-import { createDhcpServer } from './server'
+import { DHCP_STATE } from './state'
 
 export const dhcpRole = defineRole({
   id: 'dhcp',
@@ -18,7 +17,7 @@ export const dhcpRole = defineRole({
     { name: 'DHCP', displayName: 'Serveur DHCP', role: true, managementTools: ['RSAT-DHCP'] },
     { name: 'RSAT-DHCP', displayName: 'Outils du serveur DHCP', role: false }
   ],
-  state: { key: 'dhcp', feature: 'DHCP', schema: DhcpServerSchema, create: createDhcpServer },
+  state: DHCP_STATE,
   commands: dhcpCommands,
   cmdlets: dhcpCmdlets,
   tools: [],

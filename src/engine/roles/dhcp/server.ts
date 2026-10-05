@@ -3,22 +3,16 @@
  */
 import type { Draft } from 'immer'
 import { raise, transact, type EngineResult } from '../../core/result'
-import type { DhcpOptions, DhcpScope, DhcpServer, LabState, ServerDevice } from '../../model/schema'
+import type { LabState, ServerDevice } from '../../model/schema'
 import { effectiveIpv4 } from '../../net/addressing'
 import { isInternetHost } from '../../net/internet'
 import { broadcastInt, formatIpv4, inNetwork, networkInt, parseIpv4, parseMaskOrPrefix } from '../../net/ipv4'
 import { requireDevice } from '../../topology/actions'
+import { ensureRoleState } from '../state'
+import type { DhcpOptions, DhcpScope, DhcpServer } from './schema'
+import { DHCP_STATE } from './state'
 
 export const DEFAULT_LEASE_SEC = 8 * 24 * 3600
-
-export function createDhcpServer(): DhcpServer {
-  return {
-    authorized: false,
-    configured: false,
-    scopes: [],
-    serverOptions: { router: [], dnsServers: [], dnsDomain: null }
-  }
-}
 
 /** Normalise une adresse MAC au format XX-XX-XX-XX-XX-XX (null si invalide). */
 export function normalizeMac(text: string): string | null {
@@ -52,8 +46,7 @@ export function requireDhcp(
   const device = requireDevice(draft, deviceId)
   if (device.kind !== 'server' || !device.host.features.includes('DHCP'))
     raise('DhcpNotInstalled', 'Le rôle Serveur DHCP n’est pas installé sur cet ordinateur.')
-  if (!device.services.dhcp) device.services.dhcp = createDhcpServer()
-  return { device, dhcp: device.services.dhcp }
+  return { device, dhcp: ensureRoleState(device, DHCP_STATE) }
 }
 
 export function findScope<T extends Pick<DhcpScope, 'scopeId'>>(scopes: T[], scopeId: string): T {

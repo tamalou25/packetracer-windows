@@ -8,6 +8,7 @@ import { raise, transact, type EngineResult } from '../core/result'
 import type { LabState, ServerDevice } from '../model/schema'
 import { requireDevice } from '../topology/actions'
 import { allFeatures, featureInfo, roleModules } from './registry'
+import { ensureRoleState } from './state'
 import type { FeatureInfo } from './types'
 
 export { allFeatures, featureInfo }
@@ -102,8 +103,7 @@ function onFeatureInstalled(_draft: Draft<LabState>, device: Draft<ServerDevice>
   for (const module of roleModules()) {
     const def = module.state
     if (!def || def.feature !== name) continue
-    const services = device.services as Record<string, unknown>
-    if (!services[def.key]) services[def.key] = def.create()
+    ensureRoleState(device, def)
   }
 }
 

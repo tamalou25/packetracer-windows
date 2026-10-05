@@ -3,6 +3,7 @@ import {
   addPrimaryZone,
   addRecord,
   addStaticRoute,
+  dnsServerOf,
   installFeatures,
   resolveName,
   setForwarders,
@@ -51,7 +52,7 @@ describe('DNS : zones et enregistrements', () => {
   it('crée SOA/NS, normalise les noms, détecte les conflits CNAME', () => {
     const { s, ids } = lab()
     const srv = s.devices[ids.SRV1!]
-    const zone = srv?.kind === 'server' ? srv.services.dns?.zones[0] : undefined
+    const zone = srv?.kind === 'server' ? dnsServerOf(srv)?.zones[0] : undefined
     expect(zone?.records.map((r) => r.type)).toEqual(['SOA', 'NS', 'A', 'A'])
     const cname = unwrap(
       addRecord(s, ids.SRV1!, 'lab.local', { name: 'www', type: 'CNAME', data: 'srv1.lab.local' })
@@ -79,7 +80,7 @@ describe('DNS : zones et enregistrements', () => {
     )
     expect(ok.value.warnings).toEqual([])
     const srv = ok.state.devices[ids.SRV1!]
-    const rev = srv?.kind === 'server' ? srv.services.dns?.zones.find((z) => z.reverse) : undefined
+    const rev = srv?.kind === 'server' ? dnsServerOf(srv)?.zones.find((z) => z.reverse) : undefined
     expect(rev?.records.find((r) => r.type === 'PTR')).toMatchObject({ name: '20', data: 'web.lab.local.' })
   })
 })

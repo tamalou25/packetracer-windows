@@ -4,6 +4,7 @@
 import { z } from 'zod'
 import { byName, hostByName, serverByName } from '../../labs/lookup'
 import { defineCriterion } from '../types'
+import { dhcpServerOf } from './state'
 
 export const dhcpCriteria = [
   defineCriterion(
@@ -17,7 +18,7 @@ export const dhcpCriteria = [
       dnsServer: z.string().optional()
     }),
     (state, check) => {
-      const scopes = serverByName(state, check.server)?.services.dhcp?.scopes ?? []
+      const scopes = dhcpServerOf(serverByName(state, check.server))?.scopes ?? []
       return scopes.some(
         (s) =>
           s.start === check.start &&

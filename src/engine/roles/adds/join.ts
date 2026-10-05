@@ -23,6 +23,7 @@ import {
 import { domainPasswordPolicy } from '../gpo/scope'
 import { computerPolicyStale, processGroupPolicy } from '../gpo/processing'
 import { exchange, locateDc } from './locator'
+import { dnsServerOf } from '../dns/state'
 
 export interface DirectoryOperation {
   state: LabState
@@ -396,17 +397,18 @@ export function registerHostDns(draft: Draft<LabState>, device: Draft<HostDevice
   const clientDns = dnsServersOf(device)
   for (const dcId of domain.controllers) {
     const dc = draft.devices[dcId]
-    if (!dc || dc.kind !== 'server' || !dc.services.dns) continue
+    const dcDns = dnsServerOf(dc)
+    if (!dc || !dcDns) continue
     const dcIps = dc.interfaces.map((i) => effectiveIpv4(i)?.address).filter((a): a is string => !!a)
     const usesDc = dc.id === device.id || clientDns.some((s) => dcIps.includes(s))
     if (!usesDc) continue
-    const zone = dc.services.dns.zones.find((z) => z.name === domain.name)
+    const zone = dcDns.zones.find((z) => z.name === domain.name)
     if (!zone || zone.dynamicUpdate === 'None') continue
     const name = device.name.toLowerCase()
     zone.records = zone.records.filter((r) => !(r.name === name && r.type === 'A' && r.dynamic))
     if (!zone.records.some((r) => r.name === name && r.type === 'A'))
       zone.records.push({ name, type: 'A', data: ip, ttl: 1200, dynamic: true })
-    const reverse = dc.services.dns.zones.find(
+    const reverse = dcDns.zones.find(
       (z) => z.reverse && ptrQueryName(ip).endsWith(`.${z.name}`) && z.dynamicUpdate !== 'None'
     )
     if (reverse) {

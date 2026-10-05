@@ -3,7 +3,7 @@
  */
 import { useState } from 'react'
 import { ArrowRightLeft, BookOpen, FolderTree, Server } from 'lucide-react'
-import { isDomainController, type DnsZone, type ServerDevice, command } from '@engine/index'
+import { command, dnsServerOf, isDomainController, type DnsZone, type ServerDevice } from '@engine/index'
 import { runCommand } from '../../lib/run'
 import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
@@ -14,7 +14,7 @@ import { Mmc, MmcAction, MmcTable, type MmcNode } from '../mmc/Mmc'
 type Dialog = 'zone' | 'A' | 'CNAME' | 'PTR' | null
 
 export function DnsApp({ device }: { device: ServerDevice }) {
-  const dns = device.services.dns
+  const dns = dnsServerOf(device)
   const lab = useLabStore((s) => s.lab)
   const [selected, setSelected] = useState('server')
   const [dialog, setDialog] = useState<Dialog>(null)

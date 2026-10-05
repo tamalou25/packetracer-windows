@@ -7,9 +7,11 @@ import type { LabState } from '../../model/schema'
 import { effectiveIpv4 } from '../../net/addressing'
 import { isLoopback } from '../../net/ipv4'
 import { requireDevice } from '../../topology/actions'
-import { createDnsServer, validDnsName } from '../dns/server'
+import { validDnsName } from '../dns/server'
 import { applyRestart } from '../../services/system'
 import { buildDomain, passwordMeetsPolicy } from './directory'
+import { DNS_STATE } from '../dns/state'
+import { ensureRoleState } from '../state'
 
 export interface ForestInput {
   domainName: string
@@ -104,8 +106,7 @@ export function installForest(
     if (input.installDns ?? true) {
       for (const f of ['DNS', 'RSAT-DNS-Server'])
         if (!device.host.features.includes(f)) device.host.features.push(f)
-      if (!device.services.dns) device.services.dns = createDnsServer()
-      const dns = device.services.dns
+      const dns = ensureRoleState(device, DNS_STATE)
       const ip = staticIface
         ? (effectiveIpv4(staticIface)?.address ?? '127.0.0.1')
         : (device.interfaces.map((i) => effectiveIpv4(i)?.address).find((a) => a) ?? '127.0.0.1')

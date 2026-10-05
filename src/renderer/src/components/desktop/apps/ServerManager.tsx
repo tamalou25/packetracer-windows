@@ -18,7 +18,14 @@ import {
   Waypoints,
   type LucideIcon
 } from 'lucide-react'
-import { effectiveIpv4, featureInfo, nodePath, type EventLogEntry, type ServerDevice } from '@engine/index'
+import {
+  dhcpServerOf,
+  effectiveIpv4,
+  featureInfo,
+  nodePath,
+  type EventLogEntry,
+  type ServerDevice
+} from '@engine/index'
 import { launch } from '../../../lib/desktop'
 import { formatSimTime } from '../../../lib/format'
 import { useLabStore } from '../../../store/lab'
@@ -100,7 +107,7 @@ function notificationsOf(device: ServerDevice, dc: boolean): Notification[] {
         testId: 'promote-dc'
       }
     })
-  if (device.services.dhcp && !device.services.dhcp.configured)
+  if (dhcpServerOf(device)?.configured === false)
     list.push({
       id: 'dhcp',
       title: 'Configuration post-déploiement',

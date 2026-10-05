@@ -7,6 +7,7 @@ import {
   dhcpAcquire,
   dhcpRelease,
   dhcpRenew,
+  dhcpServerOf,
   effectiveIpv4,
   installFeatures,
   setDhcpOptions,
@@ -74,7 +75,7 @@ describe('DHCP : DORA', () => {
       .map((e) => e.layers.at(-1)?.fields[0]?.[1])
     expect(new Set(types)).toEqual(new Set(['DHCPDISCOVER', 'DHCPOFFER', 'DHCPREQUEST', 'DHCPACK']))
     const srv = op.state.devices[ids.SRV1!]
-    expect(srv?.kind === 'server' && srv.services.dhcp?.scopes[0]?.leases[0]?.hostName).toBe('PC1')
+    expect(srv?.kind === 'server' && dhcpServerOf(srv)?.scopes[0]?.leases[0]?.hostName).toBe('PC1')
   })
 
   it('respecte exclusions et réservations', () => {
@@ -123,7 +124,7 @@ describe('DHCP : DORA', () => {
     const srv = op.state.devices[ids.SRV1!]
     expect(
       srv?.kind === 'server' &&
-        srv.services.dhcp?.scopes[0]?.leases.some((l) => l.state === 'BadAddress' && l.ip === '192.168.1.100')
+        dhcpServerOf(srv)?.scopes[0]?.leases.some((l) => l.state === 'BadAddress' && l.ip === '192.168.1.100')
     ).toBe(true)
   })
 
@@ -144,7 +145,7 @@ describe('DHCP : DORA', () => {
     s = dhcpRelease(renew.state, ids.PC1!, iface).state
     expect(effectiveIpv4(s.devices[ids.PC1!]!.interfaces[0]!)).toBeNull()
     const srv = s.devices[ids.SRV1!]
-    expect(srv?.kind === 'server' && srv.services.dhcp?.scopes[0]?.leases).toHaveLength(0)
+    expect(srv?.kind === 'server' && dhcpServerOf(srv)?.scopes[0]?.leases).toHaveLength(0)
     // Une carte libérée n'est pas reconfigurée automatiquement
     expect(leaseOf(autoConfigureDhcp(s).state, ids.PC1!)).toBeNull()
     s = dhcpRenew(s, ids.PC1!, iface).state

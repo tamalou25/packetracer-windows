@@ -1,7 +1,8 @@
 /**
  * Cmdlets DNS : module DnsServer (outils RSAT-DNS-Server) et Resolve-DnsName (DnsClient).
  */
-import type { DnsRecordType, DnsServer, ServerDevice } from '../../model/schema'
+import type { ServerDevice } from '../../model/schema'
+import type { DnsRecordType, DnsServer } from './schema'
 import { addPrimaryZone, addRecord, normalizeName, removeRecord, removeZone, setForwarders } from './server'
 import { resolveName, reverseLookup } from './resolver'
 import { psError } from '../../shell/ps/errors'
@@ -9,25 +10,27 @@ import type { CmdContext } from '../../shell/ps/interpreter'
 import type { CmdletDef } from '../../shell/ps/registry'
 import { flatten, psObject, psToString, type PsValue } from '../../shell/ps/values'
 import { hasFeature } from '../../shell/ps/cmdlets/helpers'
+import { dnsServerOf } from './state'
 
 const available = (ctx: CmdContext) => hasFeature(ctx, 'RSAT-DNS-Server')
 const str = (v: PsValue | undefined): string => psToString(v)
 
 function dnsOf(ctx: CmdContext): { server: ServerDevice; dns: DnsServer } {
   const d = ctx.device
-  if (d.kind !== 'server' || !d.host.features.includes('DNS') || !d.services.dns)
+  const dns = dnsServerOf(d)
+  if (d.kind !== 'server' || !d.host.features.includes('DNS') || !dns)
     throw psError(
       `Échec de l’énumération des zones sur le serveur ${d.name} : le service Serveur DNS n’est pas installé.`,
       'ObjectNotFound',
       'WIN32 1722',
       d.name
     )
-  return { server: d, dns: d.services.dns }
+  return { server: d, dns }
 }
 
 function zoneNames(ctx: CmdContext): string[] {
   const d = ctx.state.devices[ctx.session.deviceId]
-  return d?.kind === 'server' ? (d.services.dns?.zones.map((z) => z.name) ?? []) : []
+  return d?.kind === 'server' ? (dnsServerOf(d)?.zones.map((z) => z.name) ?? []) : []
 }
 
 const zoneParam = { name: 'ZoneName', type: 'string' as const, mandatory: true, complete: zoneNames }

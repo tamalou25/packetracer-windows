@@ -3,7 +3,8 @@
  * alias CNAME, redirecteurs, indications de racine) et résolveurs publics d'Internet.
  * Les requêtes et réponses sont acheminées comme de vrais paquets (traçables).
  */
-import type { Device, DnsRecord, DnsRecordType, LabState, ServerDevice } from '../../model/schema'
+import type { Device, LabState, ServerDevice } from '../../model/schema'
+import type { DnsRecord, DnsRecordType } from './schema'
 import { effectiveIpv4 } from '../../net/addressing'
 import { PUBLIC_DNS, PUBLIC_RESOLVERS, ROOT_HINT_IP } from '../../net/internet'
 import { isLoopback } from '../../net/ipv4'
@@ -11,6 +12,7 @@ import { initialTtl } from '../../net/routing'
 import { createContext, sendIp, sourceAddressFor, type SimContext } from '../../sim/forward'
 import { createRecorder, type PacketTrace, type PduLayer } from '../../sim/trace'
 import { findZoneFor, normalizeName, ptrQueryName, relativeName } from './server'
+import { dnsServerOf } from './state'
 
 export interface DnsAnswerRecord {
   name: string
@@ -69,7 +71,7 @@ function isDnsServer(device: Device | undefined): device is ServerDevice {
     device.kind === 'server' &&
     device.powered &&
     device.host.features.includes('DNS') &&
-    !!device.services.dns
+    !!dnsServerOf(device)
   )
 }
 
@@ -110,7 +112,7 @@ function serverLookup(
   qtype: DnsRecordType,
   depth: number
 ): DnsResult {
-  const dns = server.services.dns
+  const dns = dnsServerOf(server)
   const name = normalizeName(qname)
   if (!dns || depth > MAX_DEPTH) return { kind: 'servfail', qname: name }
   const zone = findZoneFor(dns, name)
@@ -143,7 +145,7 @@ function recurse(
   qtype: DnsRecordType,
   depth: number
 ): DnsResult {
-  const dns = server.services.dns
+  const dns = dnsServerOf(server)
   if (!dns) return { kind: 'servfail', qname }
   for (const forwarder of dns.forwarders) {
     const r = queryServer(ctx, server.id, forwarder, qname, qtype, depth + 1)

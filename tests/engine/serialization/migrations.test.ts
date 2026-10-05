@@ -156,6 +156,61 @@ describe('migration 2 → 3 (identifiant du lab pédagogique)', () => {
   })
 })
 
+describe('migration 3 → 4 (données des rôles génériques)', () => {
+  type RawDevice = Record<string, unknown> & { name: string; kind: string }
+  const devicesOf = (doc: Record<string, unknown>) =>
+    Object.values((doc['lab'] as { devices: Record<string, RawDevice> }).devices)
+
+  it('déplace services.dhcp / services.dns vers roles et retire services', () => {
+    const migrated = migrations[3]!(JSON.parse(readFixture(3)) as Record<string, unknown>)
+    expect(migrated['schemaVersion']).toBe(4)
+    const srv = devicesOf(migrated).find((d) => d.name === 'SRV1')!
+    expect(srv['services']).toBeUndefined()
+    expect(Object.keys(srv['roles'] as object).sort()).toEqual(['dhcp', 'dns'])
+    expect((srv['roles'] as { dhcp: { authorized: boolean } }).dhcp.authorized).toBe(true)
+    // Les autres équipements ne portent pas de données de rôles
+    expect(devicesOf(migrated).filter((d) => 'roles' in d)).toHaveLength(1)
+  })
+
+  it('un rôle jamais installé (null) ne crée pas d’entrée ; des données déjà migrées sont conservées', () => {
+    const doc = JSON.parse(readFixture(3)) as Record<string, unknown>
+    const srv = devicesOf(doc).find((d) => d.name === 'SRV1')!
+    srv['services'] = { dhcp: null, dns: { zones: [] } }
+    srv['roles'] = { dns: { zones: [], forwarders: ['1.1.1.1'] } }
+    const migrated = devicesOf(migrations[3]!(doc)).find((d) => d.name === 'SRV1')!
+    expect(migrated['roles']).toEqual({ dns: { zones: [], forwarders: ['1.1.1.1'] } })
+  })
+})
+
+describe('validation des données de rôles', () => {
+  const withRoles = (roles: unknown) => {
+    const doc = JSON.parse(readFixture(4)) as { lab: { devices: Record<string, RawDevice> } }
+    const srv = Object.values(doc.lab.devices).find((d) => d.name === 'SRV1')!
+    srv['roles'] = roles
+    return JSON.stringify(doc)
+  }
+  type RawDevice = Record<string, unknown> & { name: string }
+
+  it('applique les valeurs par défaut du schéma déclaré par le module', () => {
+    const parsed = parseSlab(withRoles({ dhcp: {} }))
+    expect(parsed.ok).toBe(true)
+    const srv = parsed.ok ? Object.values(parsed.doc.lab.devices).find((d) => d.name === 'SRV1') : undefined
+    expect(srv?.kind === 'server' && srv.roles['dhcp']).toEqual({
+      authorized: false,
+      configured: false,
+      scopes: [],
+      serverOptions: { router: [], dnsServers: [], dnsDomain: null }
+    })
+  })
+
+  it('refuse des données invalides ou un rôle inconnu, avec le champ en cause', () => {
+    const invalid = parseSlab(withRoles({ dhcp: { scopes: 'x' } }))
+    expect(invalid.ok === false && invalid.message).toMatch(/champ lab\.devices\.[^.]+\.roles\.dhcp\.scopes/)
+    const unknown = parseSlab(withRoles({ wsus: {} }))
+    expect(unknown.ok === false && unknown.message).toContain('rôle inconnu « wsus »')
+  })
+})
+
 describe('migrateDocument', () => {
   it('refuse un numéro de version absent ou invalide', () => {
     for (const schemaVersion of [undefined, 0, 1.5, '2'])

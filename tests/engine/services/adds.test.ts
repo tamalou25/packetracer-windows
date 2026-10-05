@@ -3,6 +3,7 @@ import {
   addScope,
   autoConfigureDhcp,
   changePasswordAndLogon,
+  dnsServerOf,
   installFeatures,
   joinDomain,
   logon,
@@ -65,12 +66,12 @@ describe('AD DS : promotion', () => {
     const srv = s.devices[ids.SRV1!]
     expect(srv?.kind === 'server' && srv.host.session).toEqual({ user: 'Administrateur', domain: 'LAB' })
     const zone =
-      srv?.kind === 'server' ? srv.services.dns?.zones.find((z) => z.name === 'lab.local') : undefined
+      srv?.kind === 'server' ? dnsServerOf(srv)?.zones.find((z) => z.name === 'lab.local') : undefined
     expect(zone?.adIntegrated).toBe(true)
     expect(zone?.records.some((r) => r.type === 'SRV' && r.name === '_ldap._tcp.dc._msdcs')).toBe(true)
     // DNS du DC sur lui-même, ancien DNS en redirecteur
     expect(srv?.interfaces[0]?.dnsServers).toEqual(['127.0.0.1'])
-    expect(srv?.kind === 'server' && srv.services.dns?.forwarders).toEqual(['8.8.8.8'])
+    expect(srv?.kind === 'server' && dnsServerOf(srv)?.forwarders).toEqual(['8.8.8.8'])
     expect(ps(s, ids.SRV1!, 'whoami').text).toBe('lab\\administrateur')
   })
 
@@ -207,7 +208,7 @@ describe('AD DS : jonction et ouverture de session', () => {
     expect(after.domains['lab.local']?.computers.some((c) => c.name === 'PC1')).toBe(true)
     const srv = after.devices[f.ids.SRV1!]
     const zone =
-      srv?.kind === 'server' ? srv.services.dns?.zones.find((z) => z.name === 'lab.local') : undefined
+      srv?.kind === 'server' ? dnsServerOf(srv)?.zones.find((z) => z.name === 'lab.local') : undefined
     expect(zone?.records.find((rec) => rec.name === 'pc1' && rec.type === 'A')?.data).toBe('192.168.1.10')
   })
 

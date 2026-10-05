@@ -3,13 +3,12 @@
  */
 import type { Draft } from 'immer'
 import { raise, transact, type EngineResult } from '../../core/result'
-import type { DnsRecordType, DnsServer, DnsZone, LabState, ServerDevice } from '../../model/schema'
+import type { LabState, ServerDevice } from '../../model/schema'
 import { isIpv4, parseIpv4 } from '../../net/ipv4'
 import { requireDevice } from '../../topology/actions'
-
-export function createDnsServer(): DnsServer {
-  return { zones: [], forwarders: [], useRootHints: true }
-}
+import { ensureRoleState } from '../state'
+import type { DnsRecordType, DnsServer, DnsZone } from './schema'
+import { DNS_STATE } from './state'
 
 /** Normalise un nom DNS (minuscules, sans point final). */
 export function normalizeName(name: string): string {
@@ -68,8 +67,7 @@ export function requireDns(
   const device = requireDevice(draft, deviceId)
   if (device.kind !== 'server' || !device.host.features.includes('DNS'))
     raise('DnsNotInstalled', 'Le rôle Serveur DNS n’est pas installé sur cet ordinateur.')
-  if (!device.services.dns) device.services.dns = createDnsServer()
-  return { device, dns: device.services.dns }
+  return { device, dns: ensureRoleState(device, DNS_STATE) }
 }
 
 function requireZone(dns: Draft<DnsServer>, zoneName: string): Draft<DnsZone> {

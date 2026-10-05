@@ -129,7 +129,7 @@ export function buildDevice(
         ...base,
         kind,
         host: createHost('server'),
-        services: { dhcp: null, dns: null },
+        roles: {},
         storage: { rootAcl: defaultRootAcl(), nodes: defaultFsNodes(), shares: [] }
       }
     case 'client':

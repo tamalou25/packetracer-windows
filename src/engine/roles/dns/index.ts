@@ -1,12 +1,11 @@
 /**
  * Module du rôle Serveur DNS (et du résolveur DNS des ordinateurs).
  */
-import { DnsServerSchema } from '../../model/schema'
 import { defineRole } from '../types'
 import { dnsCmdlets } from './cmdlets'
 import { dnsCommands } from './commands'
 import { dnsCriteria } from './criteria'
-import { createDnsServer } from './server'
+import { DNS_STATE } from './state'
 import { nslookupTool } from './tools'
 
 export const dnsRole = defineRole({
@@ -18,7 +17,7 @@ export const dnsRole = defineRole({
     { name: 'DNS', displayName: 'Serveur DNS', role: true, managementTools: ['RSAT-DNS-Server'] },
     { name: 'RSAT-DNS-Server', displayName: 'Outils du serveur DNS', role: false }
   ],
-  state: { key: 'dns', feature: 'DNS', schema: DnsServerSchema, create: createDnsServer },
+  state: DNS_STATE,
   commands: dnsCommands,
   cmdlets: dnsCmdlets,
   tools: [nslookupTool],
