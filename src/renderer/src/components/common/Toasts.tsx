@@ -21,25 +21,25 @@ export function Toasts() {
               : t.kind === 'warning'
                 ? TriangleAlert
                 : Info
-        const color = {
-          error: 'border-red-200 bg-red-50 text-red-800',
-          success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-          warning: 'border-amber-200 bg-amber-50 text-amber-900',
-          info: 'border-slate-200 bg-white text-slate-700'
+        const accent = {
+          error: 'text-danger',
+          success: 'text-ok',
+          warning: 'text-warn',
+          info: 'text-info'
         }[t.kind]
         return (
           <div
             key={t.id}
             role={t.kind === 'error' ? 'alert' : 'status'}
             data-testid={`toast-${t.kind}`}
-            className={`pointer-events-auto flex items-start gap-2 rounded-lg border px-3 py-2 shadow-lg ${color}`}
+            className="pointer-events-auto flex items-start gap-2 rounded-md border border-line bg-overlay px-3 py-2 text-fg shadow-md"
           >
-            <Icon size={16} className="mt-0.5 shrink-0" />
-            <p className="flex-1 text-sm">{t.message}</p>
+            <Icon size={16} className={`mt-0.5 shrink-0 ${accent}`} />
+            <p className="flex-1 text-[13px]">{t.message}</p>
             <button
               type="button"
               onClick={() => dismiss(t.id)}
-              className="opacity-60 hover:opacity-100"
+              className="text-fg-subtle hover:text-fg"
               title="Fermer"
             >
               <X size={14} />

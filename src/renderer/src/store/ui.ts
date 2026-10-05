@@ -4,7 +4,7 @@
  */
 import { create } from 'zustand'
 import type { Device, DeviceKind, Link } from '@engine/index'
-import type { SimMode } from '@shared/ipc'
+import type { SimMode, Theme } from '@shared/ipc'
 
 /** Outil actif sur le canvas. */
 export type Tool = 'select' | 'cable' | 'delete' | 'pdu'
@@ -56,7 +56,18 @@ export interface CableStart {
   ifaceId: string
 }
 
+/** Thème appliqué au document (le main en est la source : préférence enregistrée). */
+export function initialTheme(): Theme {
+  return window.serverlab?.initialTheme === 'light' ? 'light' : 'dark'
+}
+
+/** Pose l'attribut lu par les tokens CSS (voir styles.css). */
+export function applyThemeToDocument(theme: Theme): void {
+  document.documentElement.dataset['theme'] = theme
+}
+
 interface UiState {
+  theme: Theme
   mode: SimMode
   showPortLabels: boolean
   showProperties: boolean
@@ -77,6 +88,7 @@ interface UiState {
   pasteCount: number
   appVersion: string
 
+  setTheme: (theme: Theme) => void
   setMode: (mode: SimMode) => void
   togglePortLabels: () => void
   toggleProperties: () => void
@@ -107,6 +119,7 @@ let toastSeq = 0
 let pduSeq = 0
 
 export const useUiStore = create<UiState>()((set, get) => ({
+  theme: initialTheme(),
   mode: 'realtime',
   showPortLabels: false,
   showProperties: true,
@@ -125,6 +138,10 @@ export const useUiStore = create<UiState>()((set, get) => ({
   pasteCount: 0,
   appVersion: '0.0.0',
 
+  setTheme: (theme) => {
+    applyThemeToDocument(theme)
+    set({ theme })
+  },
   setMode: (mode) => set({ mode, rightTab: mode === 'simulation' ? 'simulation' : 'properties' }),
   togglePortLabels: () => set((s) => ({ showPortLabels: !s.showPortLabels })),
   toggleProperties: () => set((s) => ({ showProperties: !s.showProperties })),

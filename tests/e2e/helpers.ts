@@ -16,8 +16,9 @@ export interface LaunchedApp {
   userData: string
 }
 
-export async function launchApp(): Promise<LaunchedApp> {
-  const userData = mkdtempSync(join(tmpdir(), 'serverlab-e2e-'))
+export async function launchApp(options: { userData?: string } = {}): Promise<LaunchedApp> {
+  // Profil réutilisable pour vérifier la persistance des préférences entre deux lancements
+  const userData = options.userData ?? mkdtempSync(join(tmpdir(), 'serverlab-e2e-'))
   const app = await electron.launch({
     args: [resolve(__dirname, '../../out/main/index.js'), '--no-sandbox'],
     env: { ...process.env, SERVERLAB_USER_DATA: userData, NODE_ENV: 'production' }

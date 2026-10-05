@@ -22,7 +22,7 @@ export function CablePreview({ cursor }: { cursor: { x: number; y: number } | nu
           y1={y1}
           x2={cursor.x}
           y2={cursor.y}
-          className="stroke-amber-500"
+          className="stroke-warn"
           strokeWidth={2}
           strokeDasharray="6 4"
         />

@@ -22,6 +22,7 @@ export type MenuCommand =
   | 'view:fit'
   | 'view:togglePortLabels'
   | 'view:toggleProperties'
+  | 'view:theme'
   | 'sim:realtime'
   | 'sim:simulation'
   | 'sim:step'
@@ -35,6 +36,14 @@ export interface MenuCommandMessage {
   /** Argument optionnel (ex. chemin d'un fichier récent). */
   arg?: string
 }
+
+/** Thème de l'interface (sombre par défaut). */
+export type Theme = 'dark' | 'light'
+
+export const THEMES: readonly Theme[] = ['dark', 'light']
+
+/** Argument de ligne de commande transmis au preload pour appliquer le thème dès le chargement. */
+export const THEME_ARG_PREFIX = '--serverlab-theme='
 
 /** Mode de simulation, comme dans les simulateurs réseau classiques. */
 export type SimMode = 'realtime' | 'simulation'
@@ -81,6 +90,7 @@ export const IPC = {
   appInfo: 'app:info',
   menuCommand: 'menu:command',
   menuState: 'menu:state',
+  themeSet: 'theme:set',
   fileOpen: 'file:open',
   fileOpenRecent: 'file:openRecent',
   fileSave: 'file:save',
@@ -106,6 +116,10 @@ export const MAX_SLAB_BYTES = 20 * 1024 * 1024
 /** API exposée au renderer via contextBridge (window.serverlab). */
 export interface ServerLabApi {
   appInfo(): Promise<AppInfo>
+  /** Thème enregistré, connu dès le chargement (évite un flash de couleurs). */
+  readonly initialTheme: Theme
+  /** Demande un changement de thème : le main l'enregistre puis renvoie la commande `view:theme`. */
+  setTheme(theme: Theme): void
   setMenuState(state: MenuState): void
   onMenuCommand(cb: (msg: MenuCommandMessage) => void): () => void
 

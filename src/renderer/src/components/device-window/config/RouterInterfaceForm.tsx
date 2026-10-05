@@ -49,21 +49,21 @@ export function RouterInterfaceForm({ device, iface }: { device: Device; iface: 
           Interface activée
         </label>
         <div className="grid grid-cols-[150px_1fr] items-center gap-2">
-          <span className="text-xs text-slate-600">Adresse IPv4</span>
+          <span className="text-xs text-fg-muted">Adresse IPv4</span>
           <input
             className={inputClass}
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             data-testid="if-address"
           />
-          <span className="text-xs text-slate-600">Masque de sous-réseau</span>
+          <span className="text-xs text-fg-muted">Masque de sous-réseau</span>
           <input
             className={inputClass}
             value={mask}
             onChange={(e) => setMask(e.target.value)}
             data-testid="if-mask"
           />
-          <span className="text-xs text-slate-600">Adresse MAC</span>
+          <span className="text-xs text-fg-muted">Adresse MAC</span>
           <span className="selectable font-mono text-xs">{iface.mac}</span>
         </div>
         <div className="flex gap-2">

@@ -80,6 +80,9 @@ function handleMenuCommand(msg: MenuCommandMessage): void {
     case 'view:toggleProperties':
       ui.toggleProperties()
       break
+    case 'view:theme':
+      if (msg.arg === 'dark' || msg.arg === 'light') ui.setTheme(msg.arg)
+      break
     case 'sim:realtime':
       ui.setMode('realtime')
       break
@@ -125,7 +128,7 @@ export function App() {
           </main>
           {showProperties && <RightPanel />}
         </div>
-        <footer className="flex items-center justify-between gap-4 border-t border-slate-200 bg-slate-50 px-4 py-2">
+        <footer className="flex items-center justify-between gap-4 border-t border-line bg-panel px-4 py-2">
           <Palette />
           <ModeSwitch />
         </footer>

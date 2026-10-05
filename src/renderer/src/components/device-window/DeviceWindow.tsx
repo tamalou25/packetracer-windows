@@ -46,7 +46,7 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
 
   return (
     <div
-      className="pointer-events-auto absolute flex h-[620px] w-[880px] flex-col overflow-hidden rounded-lg border border-slate-300 bg-white shadow-2xl"
+      className="pointer-events-auto absolute flex h-[620px] w-[880px] flex-col overflow-hidden rounded-md border border-line-strong bg-panel text-fg shadow-lg"
       style={{ left: win.x, top: win.y, zIndex: 100 + win.z }}
       onPointerDownCapture={() => focusWindow(win.deviceId)}
       role="dialog"
@@ -54,19 +54,19 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
       data-testid={`device-window-${device.name}`}
     >
       <div
-        className="flex cursor-move items-center gap-2 border-b border-slate-200 bg-slate-800 px-3 py-1.5 text-white"
+        className="flex cursor-move items-center gap-2 border-b border-line bg-panel px-3 py-1.5 text-fg"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
       >
-        <span className={`flex h-6 w-6 items-center justify-center rounded ${DEVICE_COLORS[device.kind]}`}>
+        <span className={`flex h-6 w-6 items-center justify-center rounded-md ${DEVICE_COLORS[device.kind]}`}>
           <Icon size={14} />
         </span>
         <span className="text-sm font-semibold">{device.name}</span>
-        <span className="text-xs text-slate-300">— {DEVICE_KIND_INFO[device.kind].label}</span>
+        <span className="text-xs text-fg-muted">— {DEVICE_KIND_INFO[device.kind].label}</span>
         <button
           type="button"
-          className="ml-auto rounded p-1 text-slate-300 hover:bg-red-600 hover:text-white"
+          className="ml-auto rounded p-1 text-fg-muted hover:bg-danger hover:text-white"
           onClick={() => closeWindow(win.deviceId)}
           title="Fermer"
           data-testid="close-device-window"
@@ -74,7 +74,7 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
           <X size={16} />
         </button>
       </div>
-      <div className="flex border-b border-slate-200 bg-slate-50 px-2" role="tablist">
+      <div className="flex border-b border-line bg-panel px-2" role="tablist">
         {tabs.map(({ id, label, icon: TabIcon }) => (
           <button
             key={id}
@@ -84,16 +84,14 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
             data-testid={`tab-${id}`}
             onClick={() => setWindowTab(win.deviceId, id)}
             className={`-mb-px flex items-center gap-1.5 border-b-2 px-4 py-2 text-xs font-medium ${
-              tab === id
-                ? 'border-sky-600 text-sky-700'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
+              tab === id ? 'border-accent text-fg' : 'border-transparent text-fg-subtle hover:text-fg-muted'
             }`}
           >
             <TabIcon size={14} /> {label}
           </button>
         ))}
       </div>
-      <div className="min-h-0 flex-1 overflow-hidden">
+      <div className="min-h-0 flex-1 overflow-hidden bg-surface">
         {tab === 'config' && <ConfigTab device={device} />}
         {tab === 'desktop' &&
           isHostDevice(device) &&
@@ -107,7 +105,7 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
 }
 
 function Placeholder({ text }: { text: string }) {
-  return <div className="flex h-full items-center justify-center p-8 text-center text-slate-400">{text}</div>
+  return <div className="flex h-full items-center justify-center p-8 text-center text-fg-subtle">{text}</div>
 }
 
 /** Calque contenant toutes les fenêtres d'équipements ouvertes. */

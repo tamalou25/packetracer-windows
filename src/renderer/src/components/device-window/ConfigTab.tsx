@@ -30,7 +30,7 @@ export function ConfigTab({ device }: { device: Device }) {
         type="button"
         data-testid={testId}
         onClick={() => setPage(target)}
-        className={`w-full rounded px-2 py-1.5 text-left ${active ? 'bg-sky-100 font-semibold text-sky-800' : 'text-slate-600 hover:bg-slate-100'}`}
+        className={`w-full rounded-md px-2 py-1.5 text-left ${active ? 'bg-accent-soft font-semibold text-accent-text' : 'text-fg-muted hover:bg-surface-2 hover:text-fg'}`}
       >
         {label}
       </button>
@@ -39,15 +39,15 @@ export function ConfigTab({ device }: { device: Device }) {
 
   return (
     <div className="flex h-full">
-      <nav className="flex w-44 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-slate-200 bg-slate-50 p-2 text-xs">
-        <div className="px-2 pt-1 pb-0.5 text-[10px] font-semibold tracking-wide text-slate-400 uppercase">
+      <nav className="flex w-44 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-line bg-panel p-2 text-xs">
+        <div className="px-2 pt-1 pb-0.5 text-[10px] font-semibold tracking-wider text-fg-subtle uppercase">
           Global
         </div>
         {navItem('Paramètres généraux', { kind: 'general' })}
         {device.kind === 'router' && navItem('Routage statique', { kind: 'routes' }, 'nav-routes')}
         {isHostDevice(device) && navItem('Journal d’événements', { kind: 'events' }, 'nav-events')}
         {l3.length > 0 && (
-          <div className="px-2 pt-2 pb-0.5 text-[10px] font-semibold tracking-wide text-slate-400 uppercase">
+          <div className="px-2 pt-2 pb-0.5 text-[10px] font-semibold tracking-wider text-fg-subtle uppercase">
             Interfaces
           </div>
         )}
@@ -74,7 +74,7 @@ export function ConfigTab({ device }: { device: Device }) {
                   {device.interfaces.map((port) => (
                     <label
                       key={port.id}
-                      className="flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs"
+                      className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs"
                     >
                       <input
                         type="checkbox"

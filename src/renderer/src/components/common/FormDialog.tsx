@@ -51,9 +51,9 @@ export function FormDialog({
     if (onSubmit(values)) onClose()
   }
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-900/30">
+    <div className="absolute inset-0 z-30 flex items-center justify-center bg-scrim">
       <div
-        className="w-[440px] rounded-lg bg-white p-5 shadow-xl"
+        className="w-[440px] rounded-md border border-line bg-overlay p-5 text-fg shadow-lg"
         data-testid={testId}
         onKeyDown={(e) => {
           if (e.key === 'Enter') submit()
@@ -61,7 +61,7 @@ export function FormDialog({
         }}
       >
         <h3 className="mb-1 text-base font-semibold">{title}</h3>
-        {description && <p className="mb-3 text-xs text-slate-500">{description}</p>}
+        {description && <p className="mb-3 text-xs text-fg-muted">{description}</p>}
         <div className="flex flex-col gap-2">
           {fields.map((f) =>
             f.type === 'checkbox' ? (
@@ -75,7 +75,7 @@ export function FormDialog({
                 {f.label}
               </label>
             ) : f.type === 'select' ? (
-              <label key={f.key} className="flex flex-col gap-1 text-xs text-slate-600">
+              <label key={f.key} className="flex flex-col gap-1 text-xs text-fg-muted">
                 {f.label}
                 <select
                   className={inputClass}
@@ -91,7 +91,7 @@ export function FormDialog({
                 </select>
               </label>
             ) : (
-              <label key={f.key} className="flex flex-col gap-1 text-xs text-slate-600">
+              <label key={f.key} className="flex flex-col gap-1 text-xs text-fg-muted">
                 {f.label}
                 <input
                   className={inputClass}

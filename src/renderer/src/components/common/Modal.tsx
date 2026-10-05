@@ -25,13 +25,13 @@ export function Modal() {
   const isConfirm = !!modal.onConfirm
   return (
     <div
-      className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-900/40"
+      className="fixed inset-0 z-[400] flex items-center justify-center bg-scrim"
       role="dialog"
       aria-modal="true"
     >
-      <div className="w-[440px] rounded-xl bg-white p-5 shadow-2xl" data-testid="modal">
-        <h2 className="mb-2 text-base font-semibold text-slate-800">{modal.title}</h2>
-        <p className="selectable mb-5 text-sm whitespace-pre-line text-slate-600">{modal.message}</p>
+      <div className="w-[440px] rounded-md border border-line bg-overlay p-5 shadow-lg" data-testid="modal">
+        <h2 className="mb-2 text-base font-semibold text-fg">{modal.title}</h2>
+        <p className="selectable mb-5 text-[13px] whitespace-pre-line text-fg-muted">{modal.message}</p>
         <div className="flex justify-end gap-2">
           {isConfirm && (
             <Button

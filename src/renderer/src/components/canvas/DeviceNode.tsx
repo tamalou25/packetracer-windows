@@ -21,14 +21,14 @@ function DeviceNodeComponent({ data, selected }: NodeProps<DeviceFlowNode>) {
   return (
     <div className="flex w-[88px] flex-col items-center gap-1" data-testid={`device-${device.name}`}>
       <div
-        className={`relative flex h-14 w-14 items-center justify-center rounded-xl shadow-md transition ${
+        className={`relative flex h-14 w-14 items-center justify-center rounded-md shadow-sm transition ${
           DEVICE_COLORS[device.kind]
-        } ${selected ? 'ring-4 ring-sky-400 ring-offset-2' : ''} ${device.powered ? '' : 'opacity-40 grayscale'}`}
+        } ${selected ? 'ring-2 ring-accent ring-offset-2 ring-offset-canvas' : ''} ${device.powered ? '' : 'opacity-40 grayscale'}`}
       >
         <Icon size={30} strokeWidth={1.6} />
         {!device.powered && (
           <span
-            className="absolute -right-1.5 -bottom-1.5 rounded-full bg-red-600 p-0.5 text-white"
+            className="absolute -right-1.5 -bottom-1.5 rounded-full bg-danger p-0.5 text-white"
             title="Éteint"
           >
             <PowerOff size={12} />
@@ -37,7 +37,7 @@ function DeviceNodeComponent({ data, selected }: NodeProps<DeviceFlowNode>) {
       </div>
       <span
         className={`max-w-full truncate rounded px-1.5 text-xs font-semibold ${
-          selected ? 'bg-sky-600 text-white' : 'bg-white/90 text-slate-700'
+          selected ? 'bg-accent text-on-accent' : 'bg-canvas/80 text-fg'
         }`}
       >
         {device.name}

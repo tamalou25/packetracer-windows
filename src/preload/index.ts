@@ -3,7 +3,14 @@
  * N'expose qu'une API minimale et typée ; aucun accès Node ou disque générique.
  */
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import { IPC, type MenuCommandMessage, type OpenedFile, type ServerLabApi } from '../shared/ipc'
+import {
+  IPC,
+  THEME_ARG_PREFIX,
+  type MenuCommandMessage,
+  type OpenedFile,
+  type ServerLabApi,
+  type Theme
+} from '../shared/ipc'
 
 /** Abonne un callback à un canal et renvoie une fonction de désabonnement. */
 function subscribe<T>(channel: string, cb: (payload: T) => void): () => void {
@@ -14,8 +21,16 @@ function subscribe<T>(channel: string, cb: (payload: T) => void): () => void {
   }
 }
 
+/** Thème transmis par le main en argument du process renderer (sombre par défaut). */
+function readInitialTheme(): Theme {
+  const arg = process.argv.find((a) => a.startsWith(THEME_ARG_PREFIX))
+  return arg?.slice(THEME_ARG_PREFIX.length) === 'light' ? 'light' : 'dark'
+}
+
 const api: ServerLabApi = {
   appInfo: () => ipcRenderer.invoke(IPC.appInfo),
+  initialTheme: readInitialTheme(),
+  setTheme: (theme) => ipcRenderer.send(IPC.themeSet, theme),
   setMenuState: (state) => ipcRenderer.send(IPC.menuState, state),
   onMenuCommand: (cb) => subscribe<MenuCommandMessage>(IPC.menuCommand, cb),
 

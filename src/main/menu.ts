@@ -3,12 +3,14 @@
  * Les actions métier sont déléguées au renderer via le canal IPC `menu:command`.
  */
 import { app, dialog, Menu, type BrowserWindow, type MenuItemConstructorOptions } from 'electron'
-import { IPC, type MenuCommand, type MenuState, type RecentFile } from '../shared/ipc'
+import { IPC, type MenuCommand, type MenuState, type RecentFile, type Theme } from '../shared/ipc'
 
 export interface MenuContext {
   window: BrowserWindow
   state: MenuState
   recent: RecentFile[]
+  theme: Theme
+  onTheme: (theme: Theme) => void
   onCheckUpdates?: () => void
 }
 
@@ -88,6 +90,19 @@ export function buildMenu(ctx: MenuContext): Menu {
           type: 'checkbox',
           checked: state.showProperties,
           click: cmd('view:toggleProperties')
+        },
+        { type: 'separator' },
+        {
+          label: 'Thème sombre',
+          type: 'radio',
+          checked: ctx.theme === 'dark',
+          click: () => ctx.onTheme('dark')
+        },
+        {
+          label: 'Thème clair',
+          type: 'radio',
+          checked: ctx.theme === 'light',
+          click: () => ctx.onTheme('light')
         },
         { type: 'separator' },
         { label: 'Plein écran', role: 'togglefullscreen' },

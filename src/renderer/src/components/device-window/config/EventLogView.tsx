@@ -8,9 +8,9 @@ import { formatSimTime } from '../../../lib/format'
 import { Section } from '../../common/ui'
 
 const LEVELS = {
-  information: { label: 'Information', icon: Info, cls: 'text-sky-600' },
-  warning: { label: 'Avertissement', icon: TriangleAlert, cls: 'text-amber-600' },
-  error: { label: 'Erreur', icon: CircleAlert, cls: 'text-red-600' }
+  information: { label: 'Information', icon: Info, cls: 'text-info' },
+  warning: { label: 'Avertissement', icon: TriangleAlert, cls: 'text-warn' },
+  error: { label: 'Erreur', icon: CircleAlert, cls: 'text-danger' }
 } as const
 
 export function EventLogView({ device }: { device: HostDevice }) {
@@ -19,9 +19,9 @@ export function EventLogView({ device }: { device: HostDevice }) {
   const current = entries.find((e) => e.id === selected)
   return (
     <Section title={`Observateur d’événements — ${entries.length} événement(s)`}>
-      <div className="max-h-64 overflow-y-auto rounded border border-slate-200">
+      <div className="max-h-64 overflow-y-auto rounded border border-line">
         <table className="w-full text-xs">
-          <thead className="sticky top-0 bg-slate-50 text-left text-slate-500">
+          <thead className="sticky top-0 bg-surface-2 text-left text-fg-muted">
             <tr>
               <th className="px-2 py-1 font-medium">Niveau</th>
               <th className="px-2 py-1 font-medium">Date et heure</th>
@@ -33,7 +33,7 @@ export function EventLogView({ device }: { device: HostDevice }) {
           <tbody>
             {entries.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-2 py-3 text-slate-400">
+                <td colSpan={5} className="px-2 py-3 text-fg-subtle">
                   Aucun événement.
                 </td>
               </tr>
@@ -45,7 +45,7 @@ export function EventLogView({ device }: { device: HostDevice }) {
                 <tr
                   key={e.id}
                   onClick={() => setSelected(e.id)}
-                  className={`cursor-pointer border-t border-slate-100 ${e.id === selected ? 'bg-sky-50' : 'hover:bg-slate-50'}`}
+                  className={`cursor-pointer border-t border-line ${e.id === selected ? 'bg-accent-soft' : 'hover:bg-surface-2'}`}
                 >
                   <td className="px-2 py-1">
                     <span className={`flex items-center gap-1 ${level.cls}`}>
@@ -63,7 +63,7 @@ export function EventLogView({ device }: { device: HostDevice }) {
         </table>
       </div>
       {current && (
-        <p className="selectable mt-2 rounded bg-slate-50 p-2 text-xs text-slate-700">{current.message}</p>
+        <p className="selectable mt-2 rounded bg-surface-2 p-2 text-xs text-fg">{current.message}</p>
       )}
     </Section>
   )

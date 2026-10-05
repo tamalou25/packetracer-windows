@@ -21,7 +21,7 @@ export function SimulationPanel() {
 
   if (mode !== 'simulation') {
     return (
-      <div className="p-6 text-center text-sm text-slate-500">
+      <div className="p-6 text-center text-sm text-fg-muted">
         Passez en <b>mode Simulation</b> (Ctrl+2) pour suivre les paquets pas à pas.
       </div>
     )
@@ -29,11 +29,11 @@ export function SimulationPanel() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="simulation-panel">
-      <div className="border-b border-slate-200 px-4 py-3">
-        <div className="mb-2 text-xs text-slate-500">
+      <div className="border-b border-line px-4 py-3">
+        <div className="mb-2 text-xs text-fg-muted">
           {op ? (
             <>
-              <span className="font-semibold text-slate-700">{op.trace.title}</span> — pas{' '}
+              <span className="font-semibold text-fg">{op.trace.title}</span> — pas{' '}
               {Math.min(stepCursor, totalSteps)} / {totalSteps}
               {queue.length > 1 && <span> (+{queue.length - 1} en attente)</span>}
             </>
@@ -68,7 +68,7 @@ export function SimulationPanel() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1 border-b border-slate-200 px-4 py-2">
+      <div className="flex flex-wrap gap-1 border-b border-line px-4 py-2">
         {PROTOCOLS.map((p) => (
           <button
             key={p}
@@ -76,8 +76,8 @@ export function SimulationPanel() {
             onClick={() => sim().toggleFilter(p)}
             className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${
               filters[p]
-                ? 'border-slate-300 bg-white text-slate-700'
-                : 'border-transparent bg-slate-100 text-slate-400 line-through'
+                ? 'border-line-strong bg-surface text-fg'
+                : 'border-transparent bg-surface-2 text-fg-subtle line-through'
             }`}
             title={filters[p] ? `Masquer ${p}` : `Afficher ${p}`}
           >
@@ -88,7 +88,7 @@ export function SimulationPanel() {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <table className="w-full text-[11px]" data-testid="sim-events">
-          <thead className="sticky top-0 bg-slate-50 text-left text-slate-500">
+          <thead className="sticky top-0 bg-surface-2 text-left text-fg-muted">
             <tr>
               <th className="px-2 py-1 font-medium">#</th>
               <th className="px-1 py-1 font-medium">De</th>
@@ -102,9 +102,9 @@ export function SimulationPanel() {
               <tr
                 key={e.key}
                 onClick={() => sim().select(e.key)}
-                className={`cursor-pointer border-t border-slate-100 ${e.key === selectedKey ? 'bg-sky-50' : 'hover:bg-slate-50'}`}
+                className={`cursor-pointer border-t border-line ${e.key === selectedKey ? 'bg-accent-soft' : 'hover:bg-surface-2'}`}
               >
-                <td className="px-2 py-1 text-slate-400">{e.index}</td>
+                <td className="px-2 py-1 text-fg-subtle">{e.index}</td>
                 <td className="px-1 py-1">{name(e.fromDeviceId)}</td>
                 <td className="px-1 py-1 font-medium">{name(e.toDeviceId)}</td>
                 <td className="px-1 py-1">
@@ -113,7 +113,7 @@ export function SimulationPanel() {
                     {e.protocol}
                   </span>
                 </td>
-                <td className="px-1 py-1 text-slate-500">{OUTCOME_LABELS[e.outcome]}</td>
+                <td className="px-1 py-1 text-fg-muted">{OUTCOME_LABELS[e.outcome]}</td>
               </tr>
             ))}
           </tbody>
@@ -122,21 +122,21 @@ export function SimulationPanel() {
 
       {selected && (
         <div
-          className="max-h-[45%] overflow-y-auto border-t border-slate-200 bg-slate-50 px-4 py-3 text-xs"
+          className="max-h-[45%] overflow-y-auto border-t border-line bg-surface-2 px-4 py-3 text-xs"
           data-testid="pdu-details"
         >
-          <div className="mb-1 font-semibold text-slate-800">{selected.summary}</div>
-          <p className="mb-2 text-slate-600">{selected.note}</p>
+          <div className="mb-1 font-semibold text-fg">{selected.summary}</div>
+          <p className="mb-2 text-fg-muted">{selected.note}</p>
           {selected.layers.map((layer) => (
-            <div key={layer.name} className="mb-2 rounded border border-slate-200 bg-white">
-              <div className="border-b border-slate-100 px-2 py-1 font-semibold text-slate-600">
+            <div key={layer.name} className="mb-2 rounded-md border border-line bg-surface">
+              <div className="border-b border-line px-2 py-1 font-semibold text-fg-muted">
                 Couche {layer.layer} — {layer.name}
               </div>
               <dl className="selectable grid grid-cols-[auto_1fr] gap-x-3 px-2 py-1 font-mono text-[11px]">
                 {layer.fields.map(([k, v]) => (
                   <div key={k} className="contents">
-                    <dt className="text-slate-500">{k}</dt>
-                    <dd className="text-slate-800">{v}</dd>
+                    <dt className="text-fg-muted">{k}</dt>
+                    <dd className="text-fg">{v}</dd>
                   </div>
                 ))}
               </dl>

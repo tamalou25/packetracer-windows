@@ -64,6 +64,10 @@ npm run dist         # installeur local via electron-builder → dist/
 - Sorties des consoles simulées en français (comme un serveur installé en FR).
 - Aucune image/logo/nom Microsoft ou Cisco. Icônes : `lucide-react` uniquement. Ne jamais utiliser
   « Packet Tracer » ni « Windows » dans le nom ou le logo de l'application.
+- Interface : couleurs via les **design tokens** de `src/renderer/src/styles.css` (`bg-panel`, `bg-surface`,
+  `text-fg-muted`, `border-line`, `bg-accent`, `text-ok`…), jamais de couleur Tailwind brute dans l'application.
+  Thème sombre par défaut + thème clair (Affichage > Thème). Le Bureau simulé reste en `data-theme="light"`.
+  Polices : Inter (UI, 13 px) et JetBrains Mono (IP, MAC, consoles), embarquées.
 - Commits : Conventional Commits (`feat(engine): …`, `fix(renderer): …`, `test: …`, `ci: …`, `docs: …`).
 - Un commit par étape, tests verts avant d'enchaîner.
 

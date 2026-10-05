@@ -22,19 +22,19 @@ export function HelpPanel() {
   const close = () => useUiStore.getState().setHelpPanel(null)
   if (!panel) return null
   return (
-    <div className="fixed inset-0 z-[350] flex items-center justify-center bg-slate-900/40" onClick={close}>
+    <div className="fixed inset-0 z-[350] flex items-center justify-center bg-scrim" onClick={close}>
       <div
-        className="max-h-[80vh] w-[560px] overflow-y-auto rounded-xl bg-white p-6 shadow-2xl"
+        className="max-h-[80vh] w-[560px] overflow-y-auto rounded-md border border-line bg-overlay p-6 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-800">
+          <h2 className="text-lg font-semibold text-fg">
             {panel === 'guide' ? 'Guide de démarrage' : 'Raccourcis clavier'}
           </h2>
           <button
             type="button"
             onClick={close}
-            className="rounded p-1 text-slate-500 hover:bg-slate-100"
+            className="rounded p-1 text-fg-muted hover:bg-surface-2 hover:text-fg"
             title="Fermer"
           >
             <X size={18} />
@@ -44,24 +44,24 @@ export function HelpPanel() {
           <table className="w-full text-sm">
             <tbody>
               {SHORTCUTS.map(([keys, label]) => (
-                <tr key={keys} className="border-b border-slate-100">
-                  <td className="py-1.5 pr-4 font-mono text-xs text-slate-600">{keys}</td>
-                  <td className="py-1.5 text-slate-700">{label}</td>
+                <tr key={keys} className="border-b border-line">
+                  <td className="py-1.5 pr-4 font-mono text-xs text-fg-muted">{keys}</td>
+                  <td className="py-1.5 text-fg">{label}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : (
-          <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm text-slate-700">
+          <ol className="flex list-decimal flex-col gap-2 pl-5 text-[13px] text-fg">
             <li>Glissez des équipements depuis la palette (en bas) vers le canvas.</li>
             <li>
               Choisissez l’outil « Câble », cliquez sur un équipement, choisissez un port, puis faites de même
               sur le second.
             </li>
             <li>
-              Les voyants indiquent l’état du lien : <b className="text-green-600">vert</b> actif,{' '}
-              <b className="text-amber-600">orange</b> adressage incomplet,{' '}
-              <b className="text-red-600">rouge</b> inactif.
+              Les voyants indiquent l’état du lien : <b className="text-ok">vert</b> actif,{' '}
+              <b className="text-warn">orange</b> adressage incomplet, <b className="text-danger">rouge</b>{' '}
+              inactif.
             </li>
             <li>
               Double-cliquez sur un équipement pour ouvrir sa fenêtre : l’onglet Config permet de régler

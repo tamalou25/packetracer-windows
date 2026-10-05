@@ -60,6 +60,8 @@ export default defineConfig({
   },
   renderer: {
     resolve: { alias },
-    plugins: [react(), tailwindcss(), cspPlugin()]
+    plugins: [react(), tailwindcss(), cspPlugin()],
+    // Aucune ressource inlinée en data: (polices comprises) : la CSP n'autorise que 'self'
+    build: { assetsInlineLimit: 0 }
   }
 })

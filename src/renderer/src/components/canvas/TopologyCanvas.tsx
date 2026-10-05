@@ -41,12 +41,13 @@ import { PortPicker, type PortPickerState } from './PortPicker'
 const nodeTypes: NodeTypes = { device: DeviceNode }
 const edgeTypes: EdgeTypes = { cable: CableEdge }
 
+/** Couleurs de la minimap : tokens de catégorie (suivent le thème). */
 const MINIMAP_COLORS: Record<DeviceKind, string> = {
-  server: '#4f46e5',
-  client: '#0284c7',
-  switch: '#059669',
-  router: '#d97706',
-  cloud: '#64748b'
+  server: 'var(--sl-kind-server)',
+  client: 'var(--sl-kind-client)',
+  switch: 'var(--sl-kind-switch)',
+  router: 'var(--sl-kind-router)',
+  cloud: 'var(--sl-kind-cloud)'
 }
 
 export function TopologyCanvas() {
@@ -60,6 +61,7 @@ export function TopologyCanvas() {
   const armed = useUiStore((s) => s.armed)
   const cableStart = useUiStore((s) => s.cableStart)
   const pduSource = useUiStore((s) => s.pduSource)
+  const theme = useUiStore((s) => s.theme)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const [picker, setPicker] = useState<PortPickerState | null>(null)
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null)
@@ -307,9 +309,10 @@ export function TopologyCanvas() {
         snapToGrid
         snapGrid={[10, 10]}
         proOptions={{ hideAttribution: true }}
+        colorMode={theme}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1.2} color="#cbd5e1" />
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1.2} color="var(--sl-canvas-grid)" />
         <Controls showInteractive={false} position="bottom-left" />
         <MiniMap
           position="bottom-right"
@@ -317,7 +320,7 @@ export function TopologyCanvas() {
           zoomable
           nodeColor={(n) => {
             const d = useLabStore.getState().lab.devices[n.id]
-            return d ? MINIMAP_COLORS[d.kind] : '#94a3b8'
+            return d ? MINIMAP_COLORS[d.kind] : 'var(--sl-fg-subtle)'
           }}
         />
         <CablePreview cursor={cableStart || pduSource ? cursor : null} />
@@ -328,7 +331,7 @@ export function TopologyCanvas() {
       {picker && <PortPicker picker={picker} onPick={onPickPort} onClose={() => setPicker(null)} />}
       {isEmpty && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <p className="rounded-lg bg-white/80 px-4 py-2 text-slate-500 shadow-sm">
+          <p className="rounded-md border border-line bg-panel/90 px-4 py-2 text-fg-muted shadow-sm">
             Glissez un équipement depuis la palette (ou cliquez dessus puis sur le canvas) pour commencer.
           </p>
         </div>

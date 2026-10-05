@@ -32,7 +32,7 @@ export function PropertiesPanel() {
   else if (link) content = <LinkProperties link={link} />
   else
     content = (
-      <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-slate-400">
+      <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-fg-subtle">
         <MousePointerClick size={28} strokeWidth={1.5} />
         <p>Sélectionnez un équipement ou un câble pour afficher ses propriétés.</p>
       </div>
@@ -50,15 +50,15 @@ function DeviceProperties({ device }: { device: Device }) {
   const ui = useUiStore.getState
   return (
     <>
-      <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
+      <div className="flex items-center gap-3 border-b border-line px-4 py-3">
         <span
-          className={`flex h-10 w-10 items-center justify-center rounded-lg ${DEVICE_COLORS[device.kind]}`}
+          className={`flex h-10 w-10 items-center justify-center rounded-md ${DEVICE_COLORS[device.kind]}`}
         >
           <Icon size={22} strokeWidth={1.6} />
         </span>
         <div className="min-w-0">
-          <div className="truncate text-base font-semibold text-slate-800">{device.name}</div>
-          <div className="text-xs text-slate-500">{DEVICE_KIND_INFO[device.kind].label}</div>
+          <div className="truncate text-base font-semibold text-fg">{device.name}</div>
+          <div className="text-xs text-fg-muted">{DEVICE_KIND_INFO[device.kind].label}</div>
         </div>
       </div>
       <Section title="Général">
@@ -84,8 +84,7 @@ function DeviceProperties({ device }: { device: Device }) {
               <Power size={14} /> {device.powered ? 'Éteindre' : 'Allumer'}
             </Button>
             <Button
-              variant="ghost"
-              className="text-red-600"
+              variant="ghostDanger"
               onClick={() => {
                 runAction((lab) => removeDevices(lab, [device.id]))
                 ui().closeWindow(device.id)
@@ -123,7 +122,7 @@ function MultiProperties({ devices }: { devices: Device[] }) {
       <ul className="mb-3 flex flex-col gap-1 text-sm">
         {devices.map((d) => (
           <li key={d.id}>
-            {d.name} <span className="text-xs text-slate-400">— {DEVICE_KIND_INFO[d.kind].label}</span>
+            {d.name} <span className="text-xs text-fg-subtle">— {DEVICE_KIND_INFO[d.kind].label}</span>
           </li>
         ))}
       </ul>
@@ -163,8 +162,8 @@ function LinkProperties({ link }: { link: Link }) {
           <li key={i} className="flex items-center gap-2 text-sm">
             <StatusDot status={e.status} />
             <span className="font-semibold">{e.device?.name}</span>
-            <span className="text-slate-500">{e.iface?.name}</span>
-            <span className="ml-auto text-xs text-slate-400">{labels[e.status]}</span>
+            <span className="text-fg-muted">{e.iface?.name}</span>
+            <span className="ml-auto text-xs text-fg-subtle">{labels[e.status]}</span>
           </li>
         ))}
       </ul>

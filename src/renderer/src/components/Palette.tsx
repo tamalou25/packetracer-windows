@@ -31,16 +31,16 @@ export function Palette() {
               e.dataTransfer.effectAllowed = 'copy'
             }}
             onClick={() => setArmed(active ? null : kind)}
-            className={`flex w-24 flex-col items-center gap-1 rounded-lg border px-2 py-2 transition ${
+            className={`flex w-24 flex-col items-center gap-1 rounded-md border px-2 py-2 transition-colors ${
               active
-                ? 'border-sky-500 bg-sky-50 ring-2 ring-sky-300'
-                : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                ? 'border-accent bg-accent-soft'
+                : 'border-line bg-surface hover:border-line-strong hover:bg-surface-2'
             }`}
           >
             <span className={`flex h-9 w-9 items-center justify-center rounded-md ${DEVICE_COLORS[kind]}`}>
               <Icon size={20} strokeWidth={1.75} />
             </span>
-            <span className="text-xs font-medium text-slate-700">{info.label}</span>
+            <span className="text-xs font-medium text-fg">{info.label}</span>
           </button>
         )
       })}

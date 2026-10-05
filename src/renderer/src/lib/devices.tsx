@@ -12,11 +12,11 @@ export const DEVICE_ICONS: Record<DeviceKind, LucideIcon> = {
   cloud: Cloud
 }
 
-/** Classes Tailwind de la pastille de chaque type d'équipement. */
+/** Classes de la pastille de chaque type d'équipement (tokens de catégorie, voir styles.css). */
 export const DEVICE_COLORS: Record<DeviceKind, string> = {
-  server: 'bg-indigo-600 text-white',
-  client: 'bg-sky-600 text-white',
-  switch: 'bg-emerald-600 text-white',
-  router: 'bg-amber-600 text-white',
-  cloud: 'bg-slate-500 text-white'
+  server: 'bg-kind-server text-white',
+  client: 'bg-kind-client text-white',
+  switch: 'bg-kind-switch text-white',
+  router: 'bg-kind-router text-white',
+  cloud: 'bg-kind-cloud text-white'
 }

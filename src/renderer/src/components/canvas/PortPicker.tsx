@@ -44,12 +44,12 @@ export function PortPicker({ picker, onPick, onClose }: PortPickerProps) {
   return (
     <div
       ref={ref}
-      className="absolute z-50 max-h-80 w-56 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl"
+      className="absolute z-50 max-h-80 w-56 overflow-y-auto rounded-md border border-line bg-overlay py-1 shadow-lg"
       style={{ left: picker.x, top: picker.y }}
       role="menu"
       data-testid="port-picker"
     >
-      <div className="flex items-center gap-1.5 border-b border-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500">
+      <div className="flex items-center gap-1.5 border-b border-line px-3 py-1.5 text-xs font-semibold text-fg-muted">
         <Cable size={13} /> {device.name} — choisir un port
       </div>
       {device.interfaces.map((iface) => {
@@ -67,10 +67,10 @@ export function PortPicker({ picker, onPick, onClose }: PortPickerProps) {
             disabled={!!link}
             onClick={() => onPick(iface.id)}
             data-testid={`port-${iface.name}`}
-            className="flex w-full items-center justify-between px-3 py-1.5 text-left text-sm hover:bg-sky-50 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent"
+            className="flex w-full items-center justify-between px-3 py-1.5 text-left text-[13px] text-fg hover:bg-accent-soft disabled:cursor-not-allowed disabled:text-fg-subtle disabled:hover:bg-transparent"
           >
-            <span className="font-medium">{iface.name}</span>
-            <span className="text-xs">{link ? `→ ${peer?.name ?? '?'}` : 'libre'}</span>
+            <span className="font-mono text-xs font-medium">{iface.name}</span>
+            <span className="text-xs text-fg-muted">{link ? `→ ${peer?.name ?? '?'}` : 'libre'}</span>
           </button>
         )
       })}

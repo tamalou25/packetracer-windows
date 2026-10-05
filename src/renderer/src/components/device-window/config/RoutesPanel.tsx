@@ -37,7 +37,7 @@ export function RoutesPanel({ device }: { device: RouterDevice }) {
     <>
       <Section title="Routes statiques">
         <table className="mb-3 w-full max-w-xl text-xs">
-          <thead className="text-left text-slate-500">
+          <thead className="text-left text-fg-muted">
             <tr>
               <th className="py-1">Réseau</th>
               <th className="py-1">Masque</th>
@@ -48,20 +48,20 @@ export function RoutesPanel({ device }: { device: RouterDevice }) {
           <tbody className="font-mono">
             {device.routes.length === 0 && (
               <tr>
-                <td colSpan={4} className="py-2 font-sans text-slate-400">
+                <td colSpan={4} className="py-2 font-sans text-fg-subtle">
                   Aucune route statique.
                 </td>
               </tr>
             )}
             {device.routes.map((r, i) => (
-              <tr key={`${r.network}/${r.prefixLength}-${r.nextHop}`} className="border-t border-slate-100">
+              <tr key={`${r.network}/${r.prefixLength}-${r.nextHop}`} className="border-t border-line">
                 <td className="py-1">{r.network}</td>
                 <td className="py-1">{prefixToMask(r.prefixLength)}</td>
                 <td className="py-1">{r.nextHop}</td>
                 <td className="py-1 text-right">
                   <button
                     type="button"
-                    className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                    className="rounded p-1 text-fg-subtle hover:bg-danger-soft hover:text-danger"
                     title="Supprimer la route"
                     onClick={() => runAction((l) => removeStaticRoute(l, device.id, i))}
                   >
@@ -95,10 +95,10 @@ export function RoutesPanel({ device }: { device: RouterDevice }) {
             Ajouter
           </Button>
         </div>
-        <p className="mt-2 text-xs text-slate-500">Route par défaut : réseau 0.0.0.0, masque 0.0.0.0.</p>
+        <p className="mt-2 text-xs text-fg-muted">Route par défaut : réseau 0.0.0.0, masque 0.0.0.0.</p>
       </Section>
       <Section title="Table de routage">
-        <pre className="selectable rounded bg-slate-900 p-3 font-mono text-[11px] leading-5 text-slate-100">
+        <pre className="selectable rounded border border-line bg-app p-3 font-mono text-[11px] leading-5 text-fg">
           {table.length === 0
             ? 'Aucune route (aucune interface configurée).'
             : table

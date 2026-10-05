@@ -14,9 +14,9 @@ export type CableFlowEdge = Edge<CableEdgeData, 'cable'>
 const LED_DISTANCE = 44
 
 const LED_CLASS: Record<LedStatus, string> = {
-  up: 'fill-green-500',
-  degraded: 'fill-amber-500',
-  down: 'fill-red-500'
+  up: 'fill-ok',
+  degraded: 'fill-warn',
+  down: 'fill-danger'
 }
 
 const LED_LABEL: Record<LedStatus, string> = {
@@ -64,14 +64,14 @@ function CableEdgeComponent({ id, source, target, data, selected }: EdgeProps<Ca
         id={id}
         path={path}
         interactionWidth={16}
-        className={selected ? '!stroke-sky-500 !stroke-[3px]' : '!stroke-slate-700 !stroke-2'}
+        className={selected ? '!stroke-accent !stroke-[2.5px]' : '!stroke-fg-subtle !stroke-2'}
       />
       {visible && (
         <g data-testid={`cable-${portA}-${portB}`}>
-          <circle cx={ledA.x} cy={ledA.y} r={5} className={`${LED_CLASS[statusA]} stroke-white stroke-2`}>
+          <circle cx={ledA.x} cy={ledA.y} r={5} className={`${LED_CLASS[statusA]} stroke-canvas stroke-2`}>
             <title>{`${portA} : ${LED_LABEL[statusA]}`}</title>
           </circle>
-          <circle cx={ledB.x} cy={ledB.y} r={5} className={`${LED_CLASS[statusB]} stroke-white stroke-2`}>
+          <circle cx={ledB.x} cy={ledB.y} r={5} className={`${LED_CLASS[statusB]} stroke-canvas stroke-2`}>
             <title>{`${portB} : ${LED_LABEL[statusB]}`}</title>
           </circle>
         </g>
@@ -90,7 +90,7 @@ function CableEdgeComponent({ id, source, target, data, selected }: EdgeProps<Ca
 function PortLabel({ x, y, text }: { x: number; y: number; text: string }) {
   return (
     <div
-      className="nodrag nopan pointer-events-none absolute rounded bg-white/90 px-1 text-[10px] font-medium text-slate-600 shadow-sm"
+      className="nodrag nopan pointer-events-none absolute rounded border border-line bg-panel/90 px-1 font-mono text-[10px] text-fg-muted shadow-xs"
       style={{ transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }}
     >
       {text}

@@ -2,12 +2,20 @@
  * Point d'entrée du process principal Electron.
  * Crée la fenêtre sécurisée, le menu natif et enregistre les handlers IPC.
  */
-import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme } from 'electron'
 import { join } from 'node:path'
-import { IPC, type AppInfo, type MenuState, type SaveChangesChoice } from '../shared/ipc'
+import {
+  IPC,
+  THEME_ARG_PREFIX,
+  type AppInfo,
+  type MenuState,
+  type SaveChangesChoice,
+  type Theme
+} from '../shared/ipc'
 import { FileService, findSlabArg } from './files'
 import { buildMenu } from './menu'
 import { applyGlobalSecurity } from './security'
+import { isTheme, loadSettings, saveSettings, THEME_BACKGROUND, type Settings } from './settings'
 import { isDocState, isMenuState } from './validate'
 
 // Permet aux tests E2E d'isoler les données utilisateur (récents, autosave) dans un dossier temporaire
@@ -23,6 +31,8 @@ if (!app.requestSingleInstanceLock()) {
 let mainWindow: BrowserWindow | null = null
 let menuState: MenuState = { mode: 'realtime', showPortLabels: false, showProperties: true }
 let docState = { name: 'Sans titre', dirty: false }
+/** Préférences chargées au démarrage (après le choix éventuel du dossier userData). */
+let settings: Settings = { theme: 'dark' }
 /** Vrai quand la fermeture a été confirmée (évite de redemander). */
 let closeConfirmed = false
 
@@ -31,7 +41,30 @@ const files = new FileService(() => refreshMenu())
 /** Reconstruit le menu natif à partir de l'état courant. */
 function refreshMenu(): void {
   if (!mainWindow) return
-  Menu.setApplicationMenu(buildMenu({ window: mainWindow, state: menuState, recent: files.recentFiles() }))
+  Menu.setApplicationMenu(
+    buildMenu({
+      window: mainWindow,
+      state: menuState,
+      recent: files.recentFiles(),
+      theme: settings.theme,
+      onTheme: applyTheme
+    })
+  )
+}
+
+/**
+ * Applique et enregistre le thème : barre de titre et dialogues natifs (nativeTheme),
+ * fond de la fenêtre, menu, puis le renderer via la commande `view:theme`.
+ */
+function applyTheme(theme: Theme): void {
+  settings = { ...settings, theme }
+  saveSettings(settings)
+  nativeTheme.themeSource = theme
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.setBackgroundColor(THEME_BACKGROUND[theme])
+    mainWindow.webContents.send(IPC.menuCommand, { command: 'view:theme', arg: theme })
+  }
+  refreshMenu()
 }
 
 async function askSaveChanges(win: BrowserWindow, name: string): Promise<SaveChangesChoice> {
@@ -56,9 +89,11 @@ function createWindow(): BrowserWindow {
     minHeight: 640,
     show: false,
     title: 'ServerLab',
-    backgroundColor: '#f1f5f9',
+    backgroundColor: THEME_BACKGROUND[settings.theme],
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
+      // Thème connu dès le chargement du preload (pas de flash de couleurs)
+      additionalArguments: [`${THEME_ARG_PREFIX}${settings.theme}`],
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -117,6 +152,10 @@ function registerIpc(): void {
     refreshMenu()
   })
 
+  ipcMain.on(IPC.themeSet, (_event, theme: unknown) => {
+    if (isTheme(theme)) applyTheme(theme)
+  })
+
   ipcMain.on(IPC.docState, (_event, state: unknown) => {
     if (isDocState(state)) docState = state
   })
@@ -163,6 +202,8 @@ app.setName('ServerLab')
 
 app.whenReady().then(async () => {
   applyGlobalSecurity()
+  settings = loadSettings()
+  nativeTheme.themeSource = settings.theme
   await files.init()
   registerIpc()
 

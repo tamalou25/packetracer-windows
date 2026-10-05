@@ -102,7 +102,7 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
             />
             Carte activée
           </label>
-          <fieldset className="flex flex-col gap-2 rounded-md border border-slate-200 p-3">
+          <fieldset className="flex flex-col gap-2 rounded-md border border-line p-3">
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="radio"
@@ -122,7 +122,7 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
               Utiliser l’adresse IP suivante :
             </label>
             <div className="grid grid-cols-[150px_1fr] items-center gap-2 pl-6">
-              <span className="text-xs text-slate-600">Adresse IP</span>
+              <span className="text-xs text-fg-muted">Adresse IP</span>
               <input
                 className={inputClass}
                 disabled={!staticIp}
@@ -131,7 +131,7 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
                 placeholder="192.168.1.10"
                 data-testid="ip-address"
               />
-              <span className="text-xs text-slate-600">Masque de sous-réseau</span>
+              <span className="text-xs text-fg-muted">Masque de sous-réseau</span>
               <input
                 className={inputClass}
                 disabled={!staticIp}
@@ -140,7 +140,7 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
                 placeholder={suggestedMask || '255.255.255.0'}
                 data-testid="ip-mask"
               />
-              <span className="text-xs text-slate-600">Passerelle par défaut</span>
+              <span className="text-xs text-fg-muted">Passerelle par défaut</span>
               <input
                 className={inputClass}
                 disabled={!staticIp}
@@ -150,7 +150,7 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
               />
             </div>
           </fieldset>
-          <fieldset className="flex flex-col gap-2 rounded-md border border-slate-200 p-3">
+          <fieldset className="flex flex-col gap-2 rounded-md border border-line p-3">
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="radio"
@@ -165,7 +165,7 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
               Utiliser l’adresse de serveur DNS suivante :
             </label>
             <div className="grid grid-cols-[150px_1fr] items-center gap-2 pl-6">
-              <span className="text-xs text-slate-600">Serveur DNS préféré</span>
+              <span className="text-xs text-fg-muted">Serveur DNS préféré</span>
               <input
                 className={inputClass}
                 disabled={!dnsStatic}
@@ -173,7 +173,7 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
                 onChange={(e) => set('dns1', e.target.value)}
                 data-testid="ip-dns1"
               />
-              <span className="text-xs text-slate-600">Serveur DNS auxiliaire</span>
+              <span className="text-xs text-fg-muted">Serveur DNS auxiliaire</span>
               <input
                 className={inputClass}
                 disabled={!dnsStatic}
@@ -206,19 +206,19 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
         }
       >
         <dl className="selectable grid max-w-lg grid-cols-[180px_1fr] gap-y-1 text-xs">
-          <dt className="text-slate-500">Adresse physique</dt>
+          <dt className="text-fg-muted">Adresse physique</dt>
           <dd className="font-mono">{iface.mac}</dd>
-          <dt className="text-slate-500">Adresse IPv4</dt>
+          <dt className="text-fg-muted">Adresse IPv4</dt>
           <dd className="font-mono" data-testid="ip-effective">
             {eff
               ? `${eff.address}${eff.source === 'apipa' ? ' (APIPA — aucun serveur DHCP)' : eff.source === 'dhcp' ? ' (DHCP)' : ''}`
               : '—'}
           </dd>
-          <dt className="text-slate-500">Masque de sous-réseau</dt>
+          <dt className="text-fg-muted">Masque de sous-réseau</dt>
           <dd className="font-mono">{eff ? prefixToMask(eff.prefixLength) : '—'}</dd>
-          <dt className="text-slate-500">Passerelle par défaut</dt>
+          <dt className="text-fg-muted">Passerelle par défaut</dt>
           <dd className="font-mono">{eff?.gateway ?? '—'}</dd>
-          <dt className="text-slate-500">Serveurs DNS</dt>
+          <dt className="text-fg-muted">Serveurs DNS</dt>
           <dd className="font-mono">{eff && eff.dnsServers.length > 0 ? eff.dnsServers.join(', ') : '—'}</dd>
         </dl>
       </Section>

@@ -57,10 +57,16 @@ export function DesktopTab({ device }: { device: HostDevice }) {
   const apps = DESKTOP_APPS.filter((a) => a.available(device))
   const current = active ? appInfo(active) : undefined
   const session = device.host.session
-  if (!session) return <LogonScreen device={device} />
+  // Le système simulé garde son apparence claire, quel que soit le thème de l'application
+  if (!session)
+    return (
+      <div data-theme="light" className="h-full">
+        <LogonScreen device={device} />
+      </div>
+    )
 
   return (
-    <div className="flex h-full flex-col">
+    <div data-theme="light" className="flex h-full flex-col">
       <div className="relative min-h-0 flex-1 bg-gradient-to-br from-sky-800 via-indigo-800 to-slate-900">
         <div className="grid h-full w-fit grid-flow-col grid-rows-[repeat(auto-fill,88px)] content-start gap-1 overflow-hidden p-3">
           {apps.map((a) => (
