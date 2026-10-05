@@ -27,6 +27,7 @@ export function effectiveIpv4(iface: NetInterface): EffectiveIpv4 | null {
       source: 'static'
     }
   }
+  if (iface.dhcpReleased) return null
   const lease = iface.dhcpLease
   if (lease) {
     return {

@@ -41,7 +41,9 @@ export const NetInterfaceSchema = z.object({
   /** DNS : saisis manuellement ou obtenus par DHCP. */
   dnsMode: z.enum(['static', 'dhcp']).default('static'),
   dnsServers: z.array(z.string()).default([]),
-  dhcpLease: DhcpClientLeaseSchema.nullable().default(null)
+  dhcpLease: DhcpClientLeaseSchema.nullable().default(null),
+  /** Bail libéré manuellement (ipconfig /release) : plus d'adresse jusqu'au prochain renouvellement. */
+  dhcpReleased: z.boolean().default(false)
 })
 
 /** Entrée du journal d'événements (Observateur d'événements simplifié). */
@@ -62,6 +64,12 @@ export const StaticRouteSchema = z.object({
   nextHop: z.string()
 })
 
+/** Utilisateur connecté (session interactive). `domain` null = compte local. */
+export const HostSessionSchema = z.object({
+  user: z.string(),
+  domain: z.string().nullable().default(null)
+})
+
 /** Partie « système d'exploitation » commune aux serveurs et postes clients. */
 export const HostSchema = z.object({
   workgroup: z.string().default('WORKGROUP'),
@@ -70,6 +78,10 @@ export const HostSchema = z.object({
   /** Rôles et fonctionnalités installés (noms techniques : DHCP, DNS, AD-Domain-Services…). */
   features: z.array(z.string()).default([]),
   pendingReboot: z.boolean().default(false),
+  /** Nouveau nom appliqué au prochain redémarrage (Rename-Computer). */
+  pendingName: z.string().nullable().default(null),
+  /** Session ouverte (null = écran de connexion). */
+  session: HostSessionSchema.nullable().default(null),
   eventLog: z.array(EventLogEntrySchema).default([])
 })
 
@@ -126,6 +138,7 @@ export type NetInterface = z.infer<typeof NetInterfaceSchema>
 export type EventLogEntry = z.infer<typeof EventLogEntrySchema>
 export type StaticRoute = z.infer<typeof StaticRouteSchema>
 export type Host = z.infer<typeof HostSchema>
+export type HostSession = z.infer<typeof HostSessionSchema>
 export type ServerDevice = z.infer<typeof ServerDeviceSchema>
 export type ClientDevice = z.infer<typeof ClientDeviceSchema>
 export type SwitchDevice = z.infer<typeof SwitchDeviceSchema>

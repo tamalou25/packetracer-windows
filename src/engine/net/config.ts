@@ -67,6 +67,7 @@ export function setInterfaceIpv4(
       iface.prefixLength = null
       iface.gateway = null
       iface.dhcpLease = null
+      iface.dhcpReleased = false
     } else {
       const address = clean(input.address)
       const mask = clean(input.mask)
@@ -118,6 +119,7 @@ export function setInterfaceIpv4(
       iface.prefixLength = prefix
       iface.gateway = gateway
       iface.dhcpLease = null
+      iface.dhcpReleased = false
     }
 
     if (isHost) {
@@ -209,6 +211,22 @@ export function removeStaticRoute(state: LabState, deviceId: string, index: numb
     if (device.kind !== 'router') raise('NotSupported', 'Seuls les routeurs ont des routes statiques.')
     if (index < 0 || index >= device.routes.length) raise('RouteNotFound', 'Route introuvable.')
     device.routes.splice(index, 1)
+    return undefined
+  })
+}
+
+/** Supprime l'adresse IPv4 statique d'une carte (Remove-NetIPAddress, « Effacer l'adresse »). */
+export function clearInterfaceAddress(state: LabState, deviceId: string, ifaceId: string): EngineResult {
+  return transact(state, (draft) => {
+    const device = requireDevice(draft, deviceId)
+    const iface = device.interfaces.find((i) => i.id === ifaceId)
+    if (!iface) raise('InterfaceNotFound', 'Carte réseau introuvable.')
+    iface.addressing = 'static'
+    iface.address = null
+    iface.prefixLength = null
+    iface.gateway = null
+    iface.dhcpLease = null
+    iface.dhcpReleased = false
     return undefined
   })
 }

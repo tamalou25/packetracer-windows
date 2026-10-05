@@ -8,6 +8,9 @@ import { useLabStore } from '../../store/lab'
 import { useUiStore, type DeviceTab, type DeviceWindowState } from '../../store/ui'
 import { DEVICE_COLORS, DEVICE_ICONS } from '../../lib/devices'
 import { ConfigTab } from './ConfigTab'
+import { ConsoleTab } from '../console/ConsoleTab'
+import { DesktopTab } from '../desktop/DesktopTab'
+import { isHostDevice } from '@engine/index'
 
 const TABS: { id: DeviceTab; label: string; icon: LucideIcon }[] = [
   { id: 'config', label: 'Config', icon: Settings },
@@ -43,7 +46,7 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
 
   return (
     <div
-      className="pointer-events-auto absolute flex h-[560px] w-[760px] flex-col overflow-hidden rounded-lg border border-slate-300 bg-white shadow-2xl"
+      className="pointer-events-auto absolute flex h-[620px] w-[880px] flex-col overflow-hidden rounded-lg border border-slate-300 bg-white shadow-2xl"
       style={{ left: win.x, top: win.y, zIndex: 100 + win.z }}
       onPointerDownCapture={() => focusWindow(win.deviceId)}
       role="dialog"
@@ -92,12 +95,12 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">
         {tab === 'config' && <ConfigTab device={device} />}
-        {tab === 'desktop' && (
-          <Placeholder text="Le Bureau (applications et consoles d’administration) arrive à la phase 4." />
-        )}
-        {tab === 'console' && (
-          <Placeholder text="Les consoles PowerShell et Invite de commandes arrivent à la phase 4." />
-        )}
+        {tab === 'desktop' &&
+          isHostDevice(device) &&
+          (device.powered ? <DesktopTab device={device} /> : <Placeholder text="L’ordinateur est éteint." />)}
+        {tab === 'console' &&
+          isHostDevice(device) &&
+          (device.powered ? <ConsoleTab device={device} /> : <Placeholder text="L’ordinateur est éteint." />)}
       </div>
     </div>
   )

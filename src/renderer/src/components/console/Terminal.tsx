@@ -1,0 +1,174 @@
+/**
+ * Terminal simulé : sortie défilante + ligne de saisie avec historique (↑↓) et complétion (Tab).
+ */
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { complete, type ShellKind } from '@engine/index'
+import { terminalKey, useConsoleStore } from '../../store/console'
+import { useLabStore } from '../../store/lab'
+import { cancelConsoleInput, ensureTerminal, promptOf, submitConsoleInput } from '../../lib/console'
+
+interface TerminalProps {
+  deviceId: string
+  kind: ShellKind
+  /** Donne le focus à l'ouverture. */
+  autoFocus?: boolean
+}
+
+const THEMES: Record<
+  ShellKind,
+  { root: string; text: string; error: string; warning: string; verbose: string }
+> = {
+  powershell: {
+    root: 'bg-[#012456]',
+    text: 'text-slate-100',
+    error: 'text-red-300',
+    warning: 'text-yellow-300',
+    verbose: 'text-cyan-300'
+  },
+  cmd: {
+    root: 'bg-black',
+    text: 'text-neutral-300',
+    error: 'text-red-400',
+    warning: 'text-yellow-300',
+    verbose: 'text-cyan-300'
+  }
+}
+
+/** État de la complétion Tab en cours (pour parcourir les propositions). */
+interface CompletionCycle {
+  base: string
+  start: number
+  end: number
+  candidates: string[]
+  index: number
+}
+
+export function Terminal({ deviceId, kind, autoFocus }: TerminalProps) {
+  const key = terminalKey(deviceId, kind)
+  const term = useConsoleStore((s) => s.terminals[key])
+  const [input, setInput] = useState('')
+  const [historyIndex, setHistoryIndex] = useState<number | null>(null)
+  const cycle = useRef<CompletionCycle | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Création de la console hors du rendu (mise à jour du store)
+  useEffect(() => {
+    ensureTerminal(deviceId, kind)
+  }, [deviceId, kind])
+
+  useEffect(() => {
+    if (autoFocus) inputRef.current?.focus()
+  }, [autoFocus, term?.busy])
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
+  }, [term?.lines.length, term?.pending])
+
+  if (!term) return null
+  const theme = THEMES[term.session ? (term.session.stack[term.session.stack.length - 1] ?? kind) : kind]
+  const promptText = term.pending ? term.pending.prompt.message : promptOf(term.session)
+  const secure = term.pending?.prompt.secure ?? false
+
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Tab') cycle.current = null
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      const value = input
+      setInput('')
+      setHistoryIndex(null)
+      submitConsoleInput(key, value)
+    } else if (e.key === 'Tab') {
+      e.preventDefault()
+      if (term.pending || !term.session) return
+      let c = cycle.current
+      if (!c) {
+        const cursor = e.currentTarget.selectionStart ?? input.length
+        const result = complete(useLabStore.getState().lab, term.session, input, cursor)
+        if (result.candidates.length === 0) return
+        c = {
+          base: input,
+          start: result.start,
+          end: result.end,
+          candidates: result.candidates,
+          index: e.shiftKey ? result.candidates.length - 1 : 0
+        }
+      } else {
+        c = { ...c, index: (c.index + (e.shiftKey ? -1 : 1) + c.candidates.length) % c.candidates.length }
+      }
+      cycle.current = c
+      const candidate = c.candidates[c.index] ?? ''
+      const next = c.base.slice(0, c.start) + candidate + c.base.slice(c.end)
+      setInput(next)
+      requestAnimationFrame(() => {
+        const pos = c.start + candidate.length
+        inputRef.current?.setSelectionRange(pos, pos)
+      })
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      if (term.pending) return
+      e.preventDefault()
+      const h = term.history
+      if (h.length === 0) return
+      let idx = historyIndex ?? h.length
+      idx = e.key === 'ArrowUp' ? Math.max(0, idx - 1) : Math.min(h.length, idx + 1)
+      setHistoryIndex(idx)
+      setInput(idx === h.length ? '' : (h[idx] ?? ''))
+    } else if (e.key === 'c' && e.ctrlKey) {
+      e.preventDefault()
+      cancelConsoleInput(key, secure ? '' : input)
+      setInput('')
+    } else if (e.key === 'Escape') {
+      setInput('')
+    }
+  }
+
+  return (
+    <div
+      ref={scrollRef}
+      className={`selectable h-full overflow-y-auto p-2 font-mono text-[13px] leading-[1.35] ${theme.root} ${theme.text}`}
+      onMouseUp={() => {
+        // Clic dans la console : focus sur la saisie (sauf sélection de texte en cours)
+        if (!window.getSelection()?.toString()) inputRef.current?.focus()
+      }}
+      data-testid={`terminal-${kind}`}
+    >
+      {term.lines.map((l) => (
+        <div
+          key={l.id}
+          className={`min-h-[1.35em] break-all whitespace-pre-wrap ${
+            l.kind === 'error'
+              ? theme.error
+              : l.kind === 'warning'
+                ? theme.warning
+                : l.kind === 'verbose'
+                  ? theme.verbose
+                  : ''
+          }`}
+        >
+          {l.text}
+        </div>
+      ))}
+      {term.busy ? (
+        <div className="text-cyan-300">… simulation en cours (panneau Simulation : Avancer / Lecture)</div>
+      ) : (
+        <div className="flex">
+          <span className="whitespace-pre">{promptText}</span>
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value)
+              cycle.current = null
+            }}
+            onKeyDown={onKeyDown}
+            type={secure ? 'password' : 'text'}
+            spellCheck={false}
+            autoComplete="off"
+            className="min-w-0 flex-1 border-0 bg-transparent p-0 font-mono text-[13px] text-inherit caret-current outline-none"
+            data-testid="terminal-input"
+          />
+        </div>
+      )}
+    </div>
+  )
+}

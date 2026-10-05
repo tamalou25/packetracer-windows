@@ -30,8 +30,22 @@ export function macFromSeq(seq: number): string {
   return `02-53-4C-${hex.slice(0, 2)}-${hex.slice(2, 4)}-${hex.slice(4, 6)}`
 }
 
-export function createHost(): Host {
-  return { workgroup: 'WORKGROUP', domain: null, features: [], pendingReboot: false, eventLog: [] }
+/** Compte local par défaut (session ouverte automatiquement). */
+export const DEFAULT_LOCAL_USER = { server: 'Administrateur', client: 'Utilisateur' } as const
+
+/** Fonctionnalités présentes dès l'installation d'un serveur. */
+export const DEFAULT_SERVER_FEATURES = ['FS-FileServer', 'PowerShell']
+
+export function createHost(kind: 'server' | 'client'): Host {
+  return {
+    workgroup: 'WORKGROUP',
+    domain: null,
+    features: kind === 'server' ? [...DEFAULT_SERVER_FEATURES] : ['PowerShell'],
+    pendingReboot: false,
+    pendingName: null,
+    session: { user: DEFAULT_LOCAL_USER[kind], domain: null },
+    eventLog: []
+  }
 }
 
 /** Crée une carte réseau avec un identifiant et une MAC uniques. */
@@ -52,7 +66,8 @@ export function createInterface(draft: Draft<LabState>, name: string, kind: Devi
     gateway: null,
     dnsMode: isHost ? 'dhcp' : 'static',
     dnsServers: [],
-    dhcpLease: null
+    dhcpLease: null,
+    dhcpReleased: false
   }
 }
 
@@ -94,9 +109,9 @@ export function buildDevice(
   const base = { id, name: deviceName, position: { ...position }, powered: true, interfaces }
   switch (kind) {
     case 'server':
-      return { ...base, kind, host: createHost() }
+      return { ...base, kind, host: createHost('server') }
     case 'client':
-      return { ...base, kind, host: createHost() }
+      return { ...base, kind, host: createHost('client') }
     case 'switch':
       return { ...base, kind }
     case 'router':

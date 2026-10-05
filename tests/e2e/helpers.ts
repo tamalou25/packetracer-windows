@@ -99,3 +99,18 @@ export async function configureHostIp(
   await expect(win.getByTestId('ip-effective')).toHaveText(ip)
   await win.getByTestId('close-device-window').click()
 }
+
+/** Ouvre l'onglet Console d'un équipement et choisit l'interpréteur. */
+export async function openConsole(page: Page, device: string, shell: 'cmd' | 'powershell'): Promise<void> {
+  const win = page.getByTestId(`device-window-${device}`)
+  if ((await win.count()) === 0) await page.getByTestId(`device-${device}`).dblclick()
+  await win.getByTestId('tab-console').click()
+  await win.getByTestId(`console-${shell}`).click()
+}
+
+/** Tape une commande dans la console visible et valide. */
+export async function typeCommand(page: Page, device: string, command: string): Promise<void> {
+  const input = page.getByTestId(`device-window-${device}`).getByTestId('terminal-input')
+  await input.fill(command)
+  await input.press('Enter')
+}

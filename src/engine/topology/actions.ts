@@ -225,7 +225,8 @@ export function duplicateDevices(
           id: fresh.id,
           mac: fresh.mac,
           dnsServers: [...iface.dnsServers],
-          dhcpLease: null
+          dhcpLease: null,
+          dhcpReleased: false
         }
       })
       if (copy.kind === 'router' && original.kind === 'router')
