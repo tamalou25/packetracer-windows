@@ -2,7 +2,7 @@
  * Complétion Tab : noms de commandes, paramètres et valeurs connues.
  */
 import type { LabState } from '../model/schema'
-import { CATALOG } from './catalog'
+import { shellCatalog } from './catalog'
 import { CMD_BUILTINS } from './cmd/interpreter'
 import { activeShell } from './exec'
 import { CmdContext, findCmdlet, findTool } from './ps/interpreter'
@@ -40,17 +40,19 @@ export function complete(state: LabState, session: ShellSession, line: string, c
   while (segStart > 0 && !['|', ';', '(', '{'].includes(line[segStart - 1] as string)) segStart--
   const segment = line.slice(segStart, start).trim()
   const words = segment.length > 0 ? segment.split(/\s+/) : []
-  const ctx = new CmdContext(state, session, [], CATALOG, line)
+  const ctx = new CmdContext(state, session, [], shellCatalog(), line)
 
   if (activeShell(session) === 'cmd') {
     if (words.length === 0) {
       const names = [
-        ...CATALOG.tools.filter((t) => t.available?.(ctx) ?? true).map((t) => t.name),
+        ...shellCatalog()
+          .tools.filter((t) => t.available?.(ctx) ?? true)
+          .map((t) => t.name),
         ...CMD_BUILTINS
       ]
       return { ...empty, candidates: byPrefix(names, token) }
     }
-    const tool = findTool(CATALOG, words[0] as string)
+    const tool = findTool(shellCatalog(), words[0] as string)
     if (tool && (token.startsWith('/') || token.startsWith('-')))
       return { ...empty, candidates: byPrefix(tool.switches ?? [], token) }
     return empty
@@ -58,14 +60,18 @@ export function complete(state: LabState, session: ShellSession, line: string, c
 
   if (words.length === 0) {
     const names = [
-      ...CATALOG.cmdlets.filter((c) => c.available?.(ctx) ?? true).map((c) => c.name),
-      ...CATALOG.tools.filter((t) => t.available?.(ctx) ?? true).map((t) => t.name)
+      ...shellCatalog()
+        .cmdlets.filter((c) => c.available?.(ctx) ?? true)
+        .map((c) => c.name),
+      ...shellCatalog()
+        .tools.filter((t) => t.available?.(ctx) ?? true)
+        .map((t) => t.name)
     ]
     return { ...empty, candidates: byPrefix(names, token) }
   }
-  const def = findCmdlet(CATALOG, words[0] as string)
+  const def = findCmdlet(shellCatalog(), words[0] as string)
   if (!def) {
-    const tool = findTool(CATALOG, words[0] as string)
+    const tool = findTool(shellCatalog(), words[0] as string)
     if (tool && (token.startsWith('/') || token.startsWith('-')))
       return { ...empty, candidates: byPrefix(tool.switches ?? [], token) }
     return empty

@@ -1,41 +1,23 @@
 /**
- * Catalogue des commandes des consoles simulées.
- * Pour ajouter une cmdlet : la déclarer dans ps/cmdlets/<domaine>.ts puis l'ajouter ici.
+ * Catalogue des commandes des consoles simulées : commandes du système de base, puis cmdlets
+ * et outils déclarés par chaque module de rôle (`roles/<rôle>/index.ts`).
  */
+import { roleModules } from '../roles/registry'
 import type { CommandCatalog } from './ps/interpreter'
-import { adCmdlets } from '../roles/adds/cmdlets'
 import { coreCmdlets } from './ps/cmdlets/core'
-import { dhcpCmdlets } from '../roles/dhcp/cmdlets'
-import { dnsCmdlets } from '../roles/dns/cmdlets'
-import { fileCmdlets } from '../roles/files/cmdlets'
-import { gpoCmdlets } from '../roles/gpo/cmdlets'
 import { netCmdlets } from './ps/cmdlets/net'
 import { systemCmdlets } from './ps/cmdlets/system'
-import { nslookupTool } from '../roles/dns/tools'
-import { fileTools } from '../roles/files/tools'
-import { gpresultTool, gpupdateTool } from '../roles/gpo/tools'
 import { hostnameTool, ipconfigTool, pingTool, tracertTool, whoamiTool } from './tools/net'
 
-export const CATALOG: CommandCatalog = {
-  cmdlets: [
-    ...coreCmdlets,
-    ...netCmdlets,
-    ...systemCmdlets,
-    ...dhcpCmdlets,
-    ...dnsCmdlets,
-    ...adCmdlets,
-    ...gpoCmdlets,
-    ...fileCmdlets
-  ],
-  tools: [
-    ipconfigTool,
-    pingTool,
-    tracertTool,
-    nslookupTool,
-    hostnameTool,
-    whoamiTool,
-    gpupdateTool,
-    gpresultTool,
-    ...fileTools
-  ]
+let catalog: CommandCatalog | null = null
+
+/** Catalogue complet (construit à la première utilisation, registre des rôles chargé). */
+export function shellCatalog(): CommandCatalog {
+  if (catalog) return catalog
+  const roles = roleModules()
+  catalog = {
+    cmdlets: [...coreCmdlets, ...netCmdlets, ...systemCmdlets, ...roles.flatMap((m) => m.cmdlets)],
+    tools: [ipconfigTool, pingTool, tracertTool, hostnameTool, whoamiTool, ...roles.flatMap((m) => m.tools)]
+  }
+  return catalog
 }

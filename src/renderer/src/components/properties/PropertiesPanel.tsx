@@ -21,7 +21,7 @@ import {
   DEVICE_KIND_INFO,
   DEVICE_KINDS,
   endStatus,
-  FEATURES,
+  allFeatures,
   isHostDevice,
   linkStatus,
   type Device,
@@ -263,7 +263,7 @@ function isEnd(link: Link, deviceId: string, ifaceId: string): boolean {
 }
 
 function RolesSection({ device }: { device: HostDevice }) {
-  const roles = FEATURES.filter((f) => f.role && device.host.features.includes(f.name))
+  const roles = allFeatures().filter((f) => f.role && device.host.features.includes(f.name))
   return (
     <PanelSection id="roles" title="Rôles installés" count={roles.length}>
       {roles.length === 0 ? (

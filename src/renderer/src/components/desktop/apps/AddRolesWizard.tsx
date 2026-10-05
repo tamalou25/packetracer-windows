@@ -9,7 +9,7 @@ import { CircleCheck, TriangleAlert } from 'lucide-react'
 import {
   effectiveIpv4,
   featureInfo,
-  FEATURES,
+  allFeatures,
   type FeatureInfo,
   type ServerDevice,
   command
@@ -68,8 +68,8 @@ export function AddRolesWizard({ device, mode = 'install' }: { device: ServerDev
   const [progress, setProgress] = useState(0)
   const [result, setResult] = useState<FeatureInfo[]>([])
 
-  const roles = FEATURES.filter((f) => f.role && !f.parent)
-  const features = FEATURES.filter((f) => !f.role)
+  const roles = allFeatures().filter((f) => f.role && !f.parent)
+  const features = allFeatures().filter((f) => !f.role)
   const added = mode === 'install' ? selected.filter((n) => !installed.includes(n)) : []
   const removed = mode === 'remove' ? installed.filter((n) => !selected.includes(n)) : []
   const rolePages = added.filter((n) => ROLE_INFO[n])
@@ -178,7 +178,7 @@ export function AddRolesWizard({ device, mode = 'install' }: { device: ServerDev
     )
   }
 
-  const childrenOf = (name: string) => FEATURES.filter((f) => f.parent === name)
+  const childrenOf = (name: string) => allFeatures().filter((f) => f.parent === name)
 
   let content
   if (step === 'before')

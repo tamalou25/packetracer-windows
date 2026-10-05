@@ -1,7 +1,7 @@
 /**
  * Cmdlets système : rôles et fonctionnalités, redémarrage, renommage.
  */
-import { FEATURES, featureInfo, installFeatures, uninstallFeatures } from '../../../roles/features'
+import { allFeatures, featureInfo, installFeatures, uninstallFeatures } from '../../../roles/features'
 import { renameComputer, restartComputer } from '../../../services/system'
 import { setPower } from '../../../topology/actions'
 import { psError } from '../errors'
@@ -10,7 +10,7 @@ import type { CmdletDef } from '../registry'
 import { flatten, psObject, psToString } from '../values'
 import { onServer } from './helpers'
 
-const featureNames = () => FEATURES.map((f) => f.name)
+const featureNames = () => allFeatures().map((f) => f.name)
 
 function featureResult(success: boolean, names: string[], restart = false) {
   return psObject(
@@ -43,7 +43,7 @@ export const systemCmdlets: CmdletDef[] = [
         ? flatten([args['Name']]).map((p) => new RegExp(`^${psToString(p).replace(/\*/g, '.*')}$`, 'i'))
         : null
       const installed = ctx.host.host.features
-      const rows = FEATURES.filter((f) => !patterns || patterns.some((p) => p.test(f.name)))
+      const rows = allFeatures().filter((f) => !patterns || patterns.some((p) => p.test(f.name)))
       if (rows.length === 0) return []
       const width = Math.max(...rows.map((f) => f.displayName.length + (f.parent ? 4 : 0))) + 6
       const lines = [
