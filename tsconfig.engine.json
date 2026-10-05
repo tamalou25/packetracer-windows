@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    // Moteur pur : ni DOM, ni Node → garantit l'absence de dépendance à l'environnement
+    "lib": ["ES2023"],
+    "types": [],
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.engine.tsbuildinfo"
+  },
+  "include": ["src/engine/**/*"]
+}

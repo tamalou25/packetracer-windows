@@ -1,0 +1,241 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
+
+/*
+ * Design tokens de ServerLab.
+ * Les valeurs vivent dans des variables CSS (--sl-*) redéfinies par thème ; Tailwind expose
+ * des utilitaires sémantiques (bg-panel, text-fg-muted, border-line, bg-accent…) qui les lisent.
+ * Un thème peut être appliqué à n'importe quel sous-arbre avec l'attribut data-theme
+ * (ex. le Bureau simulé reste toujours en thème clair).
+ */
+@theme inline {
+  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', 'Noto Sans', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace;
+
+  /* Fonds, du plus profond au plus élevé */
+  --color-canvas: var(--sl-canvas);
+  --color-canvas-grid: var(--sl-canvas-grid);
+  --color-app: var(--sl-app);
+  --color-panel: var(--sl-panel);
+  --color-surface: var(--sl-surface);
+  --color-surface-2: var(--sl-surface-2);
+  --color-surface-3: var(--sl-surface-3);
+  --color-overlay: var(--sl-overlay);
+  --color-scrim: var(--sl-scrim);
+
+  /* Bordures */
+  --color-line: var(--sl-line);
+  --color-line-strong: var(--sl-line-strong);
+
+  /* Texte */
+  --color-fg: var(--sl-fg);
+  --color-fg-muted: var(--sl-fg-muted);
+  --color-fg-subtle: var(--sl-fg-subtle);
+
+  /* Accent (sélection, action principale, focus) */
+  --color-accent: var(--sl-accent);
+  --color-accent-hover: var(--sl-accent-hover);
+  --color-accent-soft: var(--sl-accent-soft);
+  --color-accent-text: var(--sl-accent-text);
+  --color-on-accent: var(--sl-on-accent);
+
+  /* États */
+  --color-ok: var(--sl-ok);
+  --color-ok-soft: var(--sl-ok-soft);
+  --color-warn: var(--sl-warn);
+  --color-warn-soft: var(--sl-warn-soft);
+  --color-danger: var(--sl-danger);
+  --color-danger-soft: var(--sl-danger-soft);
+  --color-info: var(--sl-info);
+  --color-info-soft: var(--sl-info-soft);
+
+  /* Catégories d'équipements */
+  --color-kind-server: var(--sl-kind-server);
+  --color-kind-client: var(--sl-kind-client);
+  --color-kind-switch: var(--sl-kind-switch);
+  --color-kind-router: var(--sl-kind-router);
+  --color-kind-cloud: var(--sl-kind-cloud);
+
+  /* Ombres très légères */
+  --shadow-xs: var(--sl-shadow-xs);
+  --shadow-sm: var(--sl-shadow-sm);
+  --shadow-md: var(--sl-shadow-md);
+  --shadow-lg: var(--sl-shadow-lg);
+  --shadow-xl: var(--sl-shadow-lg);
+  --shadow-2xl: var(--sl-shadow-lg);
+}
+
+/* Thème sombre (par défaut) */
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+  --sl-canvas: #111318;
+  --sl-canvas-grid: #262a31;
+  --sl-app: #0d0f13;
+  --sl-panel: #171a1f;
+  --sl-surface: #1d2026;
+  --sl-surface-2: #252930;
+  --sl-surface-3: #2e333b;
+  --sl-overlay: #1f2228;
+  --sl-scrim: rgb(5 7 10 / 0.6);
+  --sl-line: #2a2e36;
+  --sl-line-strong: #3a3f49;
+  --sl-fg: #dfe3ea;
+  --sl-fg-muted: #9ca4b0;
+  --sl-fg-subtle: #6c7480;
+  --sl-accent: #3d84f7;
+  --sl-accent-hover: #5a97f9;
+  --sl-accent-soft: rgb(61 132 247 / 0.16);
+  --sl-accent-text: #7fb0ff;
+  --sl-on-accent: #ffffff;
+  --sl-ok: #3fb950;
+  --sl-ok-soft: rgb(63 185 80 / 0.14);
+  --sl-warn: #e3a52f;
+  --sl-warn-soft: rgb(227 165 47 / 0.14);
+  --sl-danger: #f2555a;
+  --sl-danger-soft: rgb(242 85 90 / 0.14);
+  --sl-info: #58a6ff;
+  --sl-info-soft: rgb(88 166 255 / 0.14);
+  --sl-kind-server: #9b87f5;
+  --sl-kind-client: #4fa3f7;
+  --sl-kind-switch: #3cc48f;
+  --sl-kind-router: #f0a443;
+  --sl-kind-cloud: #9aa6b8;
+  --sl-shadow-xs: 0 1px 1px rgb(0 0 0 / 0.25);
+  --sl-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+  --sl-shadow-md: 0 4px 12px rgb(0 0 0 / 0.28);
+  --sl-shadow-lg: 0 12px 32px rgb(0 0 0 / 0.38);
+}
+
+/* Thème clair */
+[data-theme='light'] {
+  color-scheme: light;
+  --sl-canvas: #f5f6f8;
+  --sl-canvas-grid: #d6dae0;
+  --sl-app: #eceef2;
+  --sl-panel: #ffffff;
+  --sl-surface: #ffffff;
+  --sl-surface-2: #f2f4f7;
+  --sl-surface-3: #e7eaef;
+  --sl-overlay: #ffffff;
+  --sl-scrim: rgb(15 23 42 / 0.32);
+  --sl-line: #e1e4e9;
+  --sl-line-strong: #cbd0d8;
+  --sl-fg: #1d2329;
+  --sl-fg-muted: #57606b;
+  --sl-fg-subtle: #8b939e;
+  --sl-accent: #2563eb;
+  --sl-accent-hover: #1d4fd0;
+  --sl-accent-soft: rgb(37 99 235 / 0.1);
+  --sl-accent-text: #1d4fd0;
+  --sl-on-accent: #ffffff;
+  --sl-ok: #1a7f37;
+  --sl-ok-soft: rgb(26 127 55 / 0.1);
+  --sl-warn: #9a6400;
+  --sl-warn-soft: rgb(212 140 0 / 0.12);
+  --sl-danger: #cf222e;
+  --sl-danger-soft: rgb(207 34 46 / 0.08);
+  --sl-info: #0969da;
+  --sl-info-soft: rgb(9 105 218 / 0.08);
+  --sl-kind-server: #7458e0;
+  --sl-kind-client: #2f7fd6;
+  --sl-kind-switch: #1c9a69;
+  --sl-kind-router: #d57d1f;
+  --sl-kind-cloud: #6b7a90;
+  --sl-shadow-xs: 0 1px 1px rgb(16 24 40 / 0.04);
+  --sl-shadow-sm: 0 1px 2px rgb(16 24 40 / 0.06);
+  --sl-shadow-md: 0 4px 12px rgb(16 24 40 / 0.08);
+  --sl-shadow-lg: 0 12px 32px rgb(16 24 40 / 0.14);
+}
+
+/*
+ * Styles de base dans la couche « base » : les utilitaires Tailwind (couche « utilities »)
+ * gardent la priorité (ex. outline-none sur la saisie de la console).
+ */
+@layer base {
+  /* Chaque portée de thème repart de la couleur de texte de son thème (sinon héritage du rgb calculé) */
+  [data-theme] {
+    color: var(--sl-fg);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  body {
+    @apply bg-app font-sans text-[13px] text-fg antialiased select-none;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  /* Les champs de saisie restent sélectionnables */
+  input,
+  textarea,
+  select,
+  .selectable {
+    @apply select-text;
+  }
+
+  /* Focus clavier visible et discret */
+  :focus-visible {
+    outline: 2px solid var(--sl-accent);
+    outline-offset: 1px;
+  }
+}
+
+/* Barre de défilement discrète, teintée par le thème */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background-clip: padding-box;
+  background-color: var(--sl-line-strong);
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+/* React Flow : couleurs alignées sur les tokens */
+.react-flow {
+  --xy-background-color: var(--sl-canvas);
+  --xy-edge-stroke: var(--sl-fg-subtle);
+  --xy-minimap-background-color: color-mix(in oklab, var(--sl-panel) 78%, transparent);
+  --xy-minimap-mask-background-color: rgb(0 0 0 / 0.25);
+  --xy-minimap-mask-stroke-color: var(--sl-line-strong);
+  --xy-controls-button-background-color: var(--sl-surface);
+  --xy-controls-button-background-color-hover: var(--sl-surface-2);
+  --xy-controls-button-color: var(--sl-fg-muted);
+  --xy-controls-button-color-hover: var(--sl-fg);
+  --xy-controls-button-border-color: var(--sl-line);
+  --xy-controls-box-shadow: var(--sl-shadow-sm);
+  --xy-selection-background-color: var(--sl-accent-soft);
+  --xy-selection-border: 1px solid var(--sl-accent);
+}
+[data-theme='light'] .react-flow {
+  --xy-minimap-mask-background-color: rgb(15 23 42 / 0.08);
+}
+.react-flow__minimap {
+  border: 1px solid var(--sl-line);
+  border-radius: 6px;
+  overflow: hidden;
+  backdrop-filter: blur(6px);
+  box-shadow: var(--sl-shadow-sm);
+}
+.react-flow__controls {
+  border: 1px solid var(--sl-line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.react-flow__controls-button {
+  border-bottom: 1px solid var(--sl-line);
+}
+.react-flow__controls-button svg {
+  fill: currentColor;
+}

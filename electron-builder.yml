@@ -1,0 +1,71 @@
+# Empaquetage electron-builder : installeur Windows (NSIS) et AppImage Linux.
+# La publication (release.yml) envoie les fichiers dans une release GitHub ; latest.yml et
+# latest-linux.yml servent aux mises à jour automatiques (electron-updater, src/main/updater.ts).
+appId: fr.serverlab.app
+productName: ServerLab
+copyright: Copyright © 2026 tamalou25
+
+directories:
+  output: dist
+  buildResources: build
+
+# Seul le build electron-vite est embarqué (package.json et les dépendances de production
+# sont ajoutés automatiquement) ; les sources, tests et labs JSON restent hors du paquet.
+files:
+  - out/**/*
+
+# Aucun module natif : inutile de recompiler les dépendances
+npmRebuild: false
+# Langues de Chromium conservées (le reste allège le paquet)
+electronLanguages:
+  - fr
+  - en-US
+
+# Double-clic sur un fichier .slab → ouverture dans ServerLab (src/main/files.ts : findSlabArg)
+fileAssociations:
+  - ext: slab
+    name: ServerLab.Lab
+    description: Lab ServerLab
+    mimeType: application/x-serverlab
+    role: Editor
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: build/icon.png
+  artifactName: ${productName}-Setup-${version}.${ext}
+
+nsis:
+  # Assistant classique : choix « pour moi / pour tous », choix du dossier, raccourcis
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: ServerLab
+  uninstallDisplayName: ServerLab
+  installerLanguages:
+    - fr_FR
+  language: '1036'
+  # Les labs et préférences de l'utilisateur sont conservés à la désinstallation
+  deleteAppDataOnUninstall: false
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+  icon: build/icon.png
+  category: Education
+  # Nom du .desktop = desktopName (package.json) : la fenêtre est rattachée au bon lanceur
+  syncDesktopName: true
+  synopsis: Simulateur d'administration de serveurs pour le BTS SIO SISR
+  description: Simulateur pédagogique d'administration de serveurs (AD DS, DNS, DHCP, GPO, partages). Tout est simulé.
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+publish:
+  provider: github
+  owner: tamalou25
+  repo: packetracer-windows
+  # Brouillon créé par release.yml puis publié une fois les deux installeurs envoyés
+  releaseType: draft

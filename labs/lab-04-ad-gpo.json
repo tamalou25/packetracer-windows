@@ -1,0 +1,78 @@
+{
+  "formatVersion": 1,
+  "id": "lab-04-ad-gpo",
+  "title": "Annuaire Active Directory et stratégie de groupe",
+  "difficulty": "Intermédiaire",
+  "duration": "35 min",
+  "summary": "Créer OU, utilisateur et groupe, joindre un poste au domaine et appliquer une GPO.",
+  "statement": "# Contexte\n\nLe domaine `lab.local` (nom NetBIOS `LAB`) est en place sur **SRV1**. Le service comptabilité arrive : il faut organiser l’annuaire, intégrer le poste **PC1** et empêcher les comptables de modifier la configuration de leur poste.\n\nCompte d’administration du domaine : `LAB\\Administrateur`, mot de passe `P@ssw0rd`.\n\n## Travail demandé\n\n1. Créez l’unité d’organisation `Compta` à la racine du domaine.\n2. Dans `Compta`, créez l’utilisateur **Jean Dupont** (`jdupont`, mot de passe `Azerty123!`, compte activé) et le groupe global `GG_Compta` dont il est membre.\n3. Joignez PC1 au domaine `lab.local`, puis redémarrez-le.\n4. Créez la GPO `GPO-Compta`, liée à l’OU `Compta`, qui **interdit l’accès au Panneau de configuration**.\n5. Ouvrez une session sur PC1 avec `LAB\\jdupont` et vérifiez la restriction, puis cliquez sur **Vérifier**.\n\n> Astuce : `gpresult /r` sur le poste indique les GPO appliquées et celles qui ont été filtrées.",
+  "start": {
+    "devices": [
+      { "kind": "server", "name": "SRV1", "x": 330, "y": 100, "ip": "192.168.10.1/24", "dns": ["127.0.0.1"] },
+      { "kind": "switch", "name": "SW1", "x": 330, "y": 300 },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 330,
+        "y": 470,
+        "ip": "192.168.10.10/24",
+        "dns": ["192.168.10.1"]
+      }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/2"]
+    ],
+    "domain": { "name": "lab.local", "netbios": "LAB", "dc": "SRV1" }
+  },
+  "criteria": [
+    {
+      "id": "ou",
+      "label": "L’unité d’organisation Compta existe",
+      "hint": "Les unités d’organisation se créent dans « Utilisateurs et ordinateurs Active Directory » ou avec New-ADOrganizationalUnit.",
+      "check": { "type": "adObject", "kind": "ou", "name": "Compta" }
+    },
+    {
+      "id": "user",
+      "label": "L’utilisateur jdupont est dans l’OU Compta et son compte est activé",
+      "hint": "Vérifiez l’emplacement du compte et son état : un mot de passe trop simple laisse le compte désactivé.",
+      "check": { "type": "adObject", "kind": "user", "name": "jdupont", "parent": "Compta", "enabled": true }
+    },
+    {
+      "id": "group",
+      "label": "jdupont est membre du groupe GG_Compta (OU Compta)",
+      "hint": "Le groupe doit exister dans l’OU Compta ; ajoutez ensuite l’utilisateur à ses membres.",
+      "check": { "type": "adObject", "kind": "user", "name": "jdupont", "memberOf": "GG_Compta" }
+    },
+    {
+      "id": "join",
+      "label": "PC1 est membre du domaine lab.local",
+      "hint": "La jonction ne prend effet qu’après le redémarrage ; le DNS du poste doit permettre de trouver le contrôleur de domaine.",
+      "check": { "type": "domainJoined", "device": "PC1", "domain": "lab.local" }
+    },
+    {
+      "id": "link",
+      "label": "La GPO GPO-Compta est liée à l’OU Compta",
+      "hint": "Une GPO créée mais non liée ne s’applique à personne : vérifiez ses liaisons dans la console de gestion des stratégies.",
+      "check": { "type": "gpoLinked", "gpo": "GPO-Compta", "target": "Compta" }
+    },
+    {
+      "id": "setting",
+      "label": "GPO-Compta interdit l’accès au Panneau de configuration",
+      "hint": "Le paramètre se trouve dans la configuration utilisateur, parmi les modèles d’administration.",
+      "check": { "type": "gpoSetting", "gpo": "GPO-Compta", "setting": "noControlPanel", "value": "Activé" }
+    },
+    {
+      "id": "applied",
+      "label": "La GPO est appliquée à LAB\\jdupont sur PC1",
+      "hint": "Les paramètres utilisateur s’appliquent à l’ouverture de session (ou avec gpupdate /force) : qui est connecté sur le poste ?",
+      "check": {
+        "type": "gpoApplied",
+        "device": "PC1",
+        "gpo": "GPO-Compta",
+        "part": "user",
+        "account": "LAB\\jdupont"
+      }
+    }
+  ]
+}
