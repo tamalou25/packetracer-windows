@@ -3,17 +3,11 @@
  * l'état de départ avec les actions du moteur (déterministe : même lab = même état).
  */
 import { z } from 'zod'
-import { unwrap } from '../core/result'
+import { command, type Command, type CommandType, type CommandValue } from '../commands/catalog'
+import { dispatch } from '../commands/dispatch'
 import { createLab } from '../model/factory'
 import { DEVICE_KINDS } from '../model/kinds'
 import type { LabState } from '../model/schema'
-import { setInterfaceIpv4 } from '../net/config'
-import { addGroup, addGroupMembers, addOrganizationalUnit, addUser } from '../services/adds/objects'
-import { installForest } from '../services/adds/forest'
-import { joinDomain } from '../services/adds/join'
-import { installFeatures } from '../services/features'
-import { restartComputer } from '../services/system'
-import { addDevice, connect } from '../topology/actions'
 import { CriterionSchema, evaluateCriteria, type CriterionResult } from './criteria'
 
 export const LAB_FORMAT_VERSION = 1
@@ -111,6 +105,13 @@ function cidr(text: string): { address: string; mask: string } {
 /** Construit l'état de départ d'un lab (lève une erreur si le lab est incohérent). */
 export function buildLabStart(start: LabStart): LabState {
   let state = createLab()
+  /** Applique une commande (mêmes commandes que l'interface et les consoles) ou lève une erreur. */
+  const apply = <K extends CommandType>(cmd: Command<K>): CommandValue<K> => {
+    const r = dispatch(state, cmd)
+    if (!r.ok) throw new Error(`[${r.error.code}] ${r.error.message}`)
+    state = r.state
+    return r.value
+  }
   const ids = new Map<string, string>()
   const idOf = (name: string): string => {
     const id = ids.get(name.toLowerCase())
@@ -118,9 +119,10 @@ export function buildLabStart(start: LabStart): LabState {
     return id
   }
   for (const d of start.devices) {
-    const r = unwrap(addDevice(state, { kind: d.kind, position: { x: d.x, y: d.y }, name: d.name }))
-    state = r.state
-    ids.set(d.name.toLowerCase(), r.value)
+    ids.set(
+      d.name.toLowerCase(),
+      apply(command('topology.addDevice', { kind: d.kind, position: { x: d.x, y: d.y }, name: d.name }))
+    )
   }
   const ifaceOf = (deviceId: string, name?: string) => {
     const device = state.devices[deviceId]
@@ -136,58 +138,58 @@ export function buildLabStart(start: LabStart): LabState {
     const [db = '', pb] = b.split(':')
     const left = { deviceId: idOf(da), ifaceId: ifaceOf(idOf(da), pa) }
     const right = { deviceId: idOf(db), ifaceId: ifaceOf(idOf(db), pb) }
-    state = unwrap(connect(state, left, right)).state
+    apply(command('topology.connect', left, right))
   }
   for (const d of start.devices) {
     const id = idOf(d.name)
     for (const [port, address] of Object.entries(d.interfaces ?? {}))
-      state = unwrap(
-        setInterfaceIpv4(state, id, ifaceOf(id, port), {
+      apply(
+        command('net.setInterfaceIpv4', id, ifaceOf(id, port), {
           addressing: 'static',
           ...cidr(address),
           gateway: null,
           dnsServers: []
         })
-      ).state
+      )
     if (d.ip)
-      state = unwrap(
-        setInterfaceIpv4(state, id, ifaceOf(id), {
+      apply(
+        command('net.setInterfaceIpv4', id, ifaceOf(id), {
           addressing: 'static',
           ...cidr(d.ip),
           gateway: d.gateway ?? null,
           dnsServers: d.dns ?? []
         })
-      ).state
+      )
     else if (d.dhcp)
-      state = unwrap(
-        setInterfaceIpv4(state, id, ifaceOf(id), {
+      apply(
+        command('net.setInterfaceIpv4', id, ifaceOf(id), {
           addressing: 'dhcp',
           address: '',
           mask: '',
           gateway: null,
           dnsServers: []
         })
-      ).state
+      )
     if (d.features?.length)
-      state = unwrap(installFeatures(state, id, d.features, { includeManagementTools: true })).state
+      apply(command('system.installFeatures', id, d.features, { includeManagementTools: true }))
   }
   const domain = start.domain
   if (domain) {
     const dc = idOf(domain.dc)
-    state = unwrap(installFeatures(state, dc, ['AD-Domain-Services'], { includeManagementTools: true })).state
-    state = unwrap(
-      installForest(state, dc, {
+    apply(command('system.installFeatures', dc, ['AD-Domain-Services'], { includeManagementTools: true }))
+    apply(
+      command('adds.installForest', dc, {
         domainName: domain.name,
         ...(domain.netbios ? { netbios: domain.netbios } : {}),
         safeModePassword: 'P@ssw0rd!'
       })
-    ).state
+    )
     const dn = (ou?: string) =>
       [ou ? `OU=${ou}` : '', ...domain.name.split('.').map((p) => `DC=${p}`)].filter((x) => x).join(',')
-    for (const ou of domain.ous) state = unwrap(addOrganizationalUnit(state, domain.name, { name: ou })).state
+    for (const ou of domain.ous) apply(command('adds.addOrganizationalUnit', domain.name, { name: ou }))
     for (const u of domain.users)
-      state = unwrap(
-        addUser(state, domain.name, {
+      apply(
+        command('adds.addUser', domain.name, {
           name: u.name,
           sam: u.sam,
           ...(u.ou ? { path: dn(u.ou) } : {}),
@@ -195,25 +197,31 @@ export function buildLabStart(start: LabStart): LabState {
           password: u.password,
           enabled: u.enabled
         })
-      ).state
+      )
     for (const g of domain.groups) {
-      state = unwrap(
-        addGroup(state, domain.name, { name: g.name, scope: g.scope, ...(g.ou ? { path: dn(g.ou) } : {}) })
-      ).state
-      if (g.members.length > 0) state = unwrap(addGroupMembers(state, domain.name, g.name, g.members)).state
+      apply(
+        command('adds.addGroup', domain.name, {
+          name: g.name,
+          scope: g.scope,
+          ...(g.ou ? { path: dn(g.ou) } : {})
+        })
+      )
+      if (g.members.length > 0) apply(command('adds.addGroupMembers', domain.name, g.name, g.members))
     }
     const netbios = state.domains[domain.name]?.netbios ?? ''
     const dcHost = state.devices[dc]
     const adminPassword = dcHost && dcHost.kind === 'server' ? dcHost.host.localAdminPassword : 'P@ssw0rd'
     for (const name of domain.join) {
       const id = idOf(name)
-      const op = joinDomain(state, id, {
-        domain: domain.name,
-        user: `${netbios}\\Administrateur`,
-        password: adminPassword
-      })
-      if (!op.ok) throw new Error(`Jonction de ${name} impossible : ${op.message}`)
-      state = unwrap(restartComputer(op.state, id)).state
+      const joined = apply(
+        command('adds.joinDomain', id, {
+          domain: domain.name,
+          user: `${netbios}\\Administrateur`,
+          password: adminPassword
+        })
+      )
+      if (!joined.success) throw new Error(`Jonction de ${name} impossible : ${joined.message}`)
+      apply(command('system.restartComputer', id))
     }
   }
   return state

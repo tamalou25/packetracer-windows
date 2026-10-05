@@ -52,7 +52,9 @@ npm run dist         # installeur local via electron-builder → dist/
 ## Règles d'architecture (non négociables)
 
 1. **Source de vérité unique** : tout l'état simulé vit dans `LabState` (moteur).
-   L'UI et les consoles appellent **les mêmes actions** du moteur. Jamais de logique métier dans un composant React.
+   L'UI, les consoles et les labs modifient l'état **uniquement par des commandes nommées**
+   (`dispatch`, `src/engine/commands/`) qui appellent les actions du moteur. Jamais de logique métier
+   dans un composant React.
 2. **Moteur pur** : `src/engine` n'importe ni React, ni Electron, ni `node:*`, ni le DOM.
    Fonctions pures `(state, params) => EngineResult` (immer). Pas de `Math.random()` ni `Date.now()` :
    identifiants et MAC dérivés de `state.seq`, temps = `state.clock` (déterministe → testable).
@@ -100,6 +102,18 @@ La roadmap est dans `ROADMAP.md` ; ses milestones, labels et issues sont décrit
 - **Validation** : tout fichier importé passe par un schéma zod.
 
 ## Recettes
+
+### Ajouter une commande (modification déclenchée par l'interface)
+
+1. Écrire ou réutiliser l'action pure `(state, ...args) => EngineResult` dans `src/engine/services/…`.
+2. La déclarer dans `src/engine/commands/catalog.ts` : `'domaine.verbe': def(action, (state, ...args) => 'Libellé FR')`
+   (libellé lisible, évalué sur l'état d'avant ; arguments sérialisables). Une action dont le
+   résultat n'est pas un `EngineResult` passe par un adaptateur (voir `directory`, `drive`).
+3. Côté interface : `runCommand(command('domaine.verbe', ...args))` ; plusieurs commandes liées →
+   `batch(libellé, [...])` ; opération rejouée en mode Simulation → `prepare` puis `commit`.
+4. Test Vitest dans `tests/engine/commands/` si la commande a une logique propre (adaptateur, composée).
+
+L'annuler/rétablir et le journal viennent des patches immer calculés par `dispatch` : aucun inverse à écrire.
 
 ### Ajouter une cmdlet PowerShell
 
