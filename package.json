@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.engine.json && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run",
     "test:watch": "vitest",
+    "fixture:slab": "vitest run tests/engine/serialization/fixture-write.test.ts --mode fixture",
     "test:e2e": "electron-vite build && playwright test",
     "icon": "node scripts/build-icon.mjs",
     "dist": "electron-vite build && electron-builder",
