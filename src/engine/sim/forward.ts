@@ -61,7 +61,7 @@ interface FrameSpec {
  * Enregistre une trame unicast le long d'un chemin (à travers les switchs).
  * Renvoie l'index du dernier événement (arrivée sur la destination).
  */
-function recordUnicast(
+export function recordUnicast(
   ctx: SimContext,
   path: SegmentMember['path'],
   frame: FrameSpec,

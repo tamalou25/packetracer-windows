@@ -14,6 +14,7 @@ import { Palette } from './components/Palette'
 import { RightPanel } from './components/RightPanel'
 import { useDocumentLifecycle } from './hooks/useDocumentLifecycle'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
+import { useAutoDhcp } from './hooks/useAutoDhcp'
 import { useMenuBridge } from './hooks/useMenuBridge'
 import { useSimulationPlayback } from './hooks/useSimulationPlayback'
 import { newDocument, openDocument, openRecentDocument, saveDocument } from './lib/document'
@@ -111,6 +112,7 @@ export function App() {
   useKeyboardShortcuts()
   useDocumentLifecycle()
   useSimulationPlayback()
+  useAutoDhcp()
 
   return (
     <ReactFlowProvider>

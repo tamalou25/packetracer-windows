@@ -8,6 +8,7 @@ import {
   ScrollText,
   SquareTerminal,
   TerminalSquare,
+  Waypoints,
   type LucideIcon
 } from 'lucide-react'
 import type { HostDevice } from '@engine/index'
@@ -45,7 +46,7 @@ export const DESKTOP_APPS: DesktopAppInfo[] = [
     label: 'PowerShell',
     icon: SquareTerminal,
     color: 'bg-[#012456]',
-    available: (d) => has(d, 'PowerShell') || true
+    available: () => true
   },
   {
     id: 'network',
@@ -55,6 +56,14 @@ export const DESKTOP_APPS: DesktopAppInfo[] = [
     available: () => true
   },
   { id: 'system', label: 'Système', icon: Monitor, color: 'bg-indigo-700', available: () => true },
+  {
+    id: 'dhcp',
+    label: 'DHCP',
+    icon: Waypoints,
+    color: 'bg-teal-700',
+    tool: true,
+    available: (d) => has(d, 'RSAT-DHCP')
+  },
   {
     id: 'events',
     label: 'Observateur d’événements',

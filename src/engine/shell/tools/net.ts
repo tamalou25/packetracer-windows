@@ -8,6 +8,7 @@ import { ipConflicts } from '../../net/conflicts'
 import { prefixToMask } from '../../net/ipv4'
 import { carrierUp } from '../../net/segment'
 import type { NetInterface } from '../../model/schema'
+import { dhcpRelease, dhcpRenew } from '../../services/dhcp-client'
 import type { ExecContext } from '../context'
 import type { ToolDef } from './types'
 
@@ -150,15 +151,18 @@ export const ipconfigTool: ToolDef = {
           continue
         }
         if (opt === '/release') {
-          ctx.write(
-            `Une erreur s’est produite lors de la libération de l’interface ${iface.name} : aucun bail DHCP à libérer.`,
-            'error'
-          )
+          const op = dhcpRelease(ctx.state, device.id, iface.id)
+          ctx.state = op.state
+          ctx.addTrace(op.trace)
         } else {
-          ctx.write(
-            `Une erreur s’est produite lors du renouvellement de l’interface ${iface.name} : impossible de contacter votre serveur DHCP. Le délai d’attente de la demande a expiré.`,
-            'error'
-          )
+          const op = dhcpRenew(ctx.state, device.id, iface.id)
+          ctx.state = op.state
+          ctx.addTrace(op.trace)
+          if (op.outcome === 'failed')
+            ctx.write(
+              `Une erreur s’est produite lors du renouvellement de l’interface ${iface.name} : ${op.message.charAt(0).toLowerCase()}${op.message.slice(1)}`,
+              'error'
+            )
         }
       }
       // Affiche la configuration résultante

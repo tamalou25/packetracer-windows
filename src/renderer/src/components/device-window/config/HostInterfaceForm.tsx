@@ -3,6 +3,8 @@
  */
 import { useEffect, useState } from 'react'
 import {
+  dhcpRelease,
+  dhcpRenew,
   effectiveIpv4,
   prefixToMask,
   setInterfaceEnabled,
@@ -11,6 +13,8 @@ import {
   type NetInterface
 } from '@engine/index'
 import { runAction } from '../../../lib/run'
+import { runNetworkOperation } from '../../../lib/network'
+import { useLabStore } from '../../../store/lab'
 import { useUiStore } from '../../../store/ui'
 import { Button, Section, inputClass } from '../../common/ui'
 
@@ -52,6 +56,19 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
   const staticIp = form.addressing === 'static'
   const dnsStatic = staticIp || form.dnsMode === 'static'
   const suggestedMask = classfulMask(form.address)
+
+  /** Opération DHCP (renouveler/libérer) : rejouée en mode Simulation. */
+  const dhcpOperation = (kind: 'renew' | 'release') => {
+    const lab = useLabStore.getState().lab
+    const op = kind === 'renew' ? dhcpRenew(lab, device.id, iface.id) : dhcpRelease(lab, device.id, iface.id)
+    runNetworkOperation(op.trace, () => {
+      useLabStore.getState().run(() => ({ ok: true, state: op.state, value: undefined }))
+      const ui = useUiStore.getState()
+      if (op.outcome === 'failed') ui.notify('error', `${iface.name} : ${op.message}`)
+      else if (op.outcome === 'released') ui.notify('info', `Bail de ${iface.name} libéré.`)
+      else if (op.address) ui.notify('success', `${iface.name} : bail obtenu (${op.address}).`)
+    })
+  }
 
   const apply = () => {
     const result = runAction((lab) =>
@@ -173,7 +190,21 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
           </div>
         </div>
       </Section>
-      <Section title="État de la connexion">
+      <Section
+        title="État de la connexion"
+        actions={
+          iface.addressing === 'dhcp' ? (
+            <div className="flex gap-1">
+              <Button variant="ghost" onClick={() => dhcpOperation('renew')} data-testid="dhcp-renew">
+                Renouveler le bail
+              </Button>
+              <Button variant="ghost" onClick={() => dhcpOperation('release')}>
+                Libérer
+              </Button>
+            </div>
+          ) : null
+        }
+      >
         <dl className="selectable grid max-w-lg grid-cols-[180px_1fr] gap-y-1 text-xs">
           <dt className="text-slate-500">Adresse physique</dt>
           <dd className="font-mono">{iface.mac}</dd>

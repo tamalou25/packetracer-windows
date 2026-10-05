@@ -6,6 +6,7 @@ import { logEvent } from '../core/eventlog'
 import { raise, transact, type EngineResult } from '../core/result'
 import type { LabState, ServerDevice } from '../model/schema'
 import { requireDevice } from '../topology/actions'
+import { createDhcpServer } from './dhcp'
 
 export interface FeatureInfo {
   name: string
@@ -142,12 +143,9 @@ export function uninstallFeatures(
   })
 }
 
-/**
- * Point d'extension : initialise les données d'un rôle à son installation.
- * Complété par les services (DHCP, DNS…) au fil des phases.
- */
-function onFeatureInstalled(_draft: Draft<LabState>, _device: Draft<ServerDevice>, _name: string): void {
-  // Les données propres aux rôles sont initialisées par leurs modules respectifs.
+/** Initialise les données d'un rôle à son installation. */
+function onFeatureInstalled(_draft: Draft<LabState>, device: Draft<ServerDevice>, name: string): void {
+  if (name === 'DHCP' && !device.services.dhcp) device.services.dhcp = createDhcpServer()
 }
 
 function onFeatureRemoved(_draft: Draft<LabState>, _device: Draft<ServerDevice>, _name: string): void {

@@ -85,6 +85,64 @@ export const HostSchema = z.object({
   eventLog: z.array(EventLogEntrySchema).default([])
 })
 
+/** Options DHCP (003 routeur, 006 serveurs DNS, 015 nom de domaine DNS). */
+export const DhcpOptionsSchema = z.object({
+  router: z.array(z.string()).default([]),
+  dnsServers: z.array(z.string()).default([]),
+  dnsDomain: z.string().nullable().default(null)
+})
+
+export const DhcpExclusionSchema = z.object({ start: z.string(), end: z.string() })
+
+export const DhcpReservationSchema = z.object({
+  ip: z.string(),
+  /** Adresse MAC normalisée (XX-XX-XX-XX-XX-XX). */
+  mac: z.string(),
+  name: z.string(),
+  description: z.string().default('')
+})
+
+export const DhcpLeaseSchema = z.object({
+  ip: z.string(),
+  mac: z.string(),
+  hostName: z.string(),
+  expiresAt: z.number(),
+  /** BadAddress : adresse refusée car déjà utilisée sur le réseau. */
+  state: z.enum(['Active', 'BadAddress']).default('Active')
+})
+
+export const DhcpScopeSchema = z.object({
+  /** Adresse du réseau (identifiant de l'étendue). */
+  scopeId: z.string(),
+  name: z.string(),
+  description: z.string().default(''),
+  start: z.string(),
+  end: z.string(),
+  prefixLength: z.number().int().min(1).max(30),
+  state: z.enum(['Active', 'Inactive']).default('Active'),
+  leaseDurationSec: z
+    .number()
+    .int()
+    .positive()
+    .default(8 * 24 * 3600),
+  exclusions: z.array(DhcpExclusionSchema).default([]),
+  reservations: z.array(DhcpReservationSchema).default([]),
+  leases: z.array(DhcpLeaseSchema).default([]),
+  options: DhcpOptionsSchema.default({ router: [], dnsServers: [], dnsDomain: null })
+})
+
+export const DhcpServerSchema = z.object({
+  /** Autorisé dans Active Directory (obligatoire pour un serveur membre d'un domaine). */
+  authorized: z.boolean().default(false),
+  scopes: z.array(DhcpScopeSchema).default([]),
+  serverOptions: DhcpOptionsSchema.default({ router: [], dnsServers: [], dnsDomain: null })
+})
+
+/** Données des rôles serveur. */
+export const ServerServicesSchema = z.object({
+  dhcp: DhcpServerSchema.nullable().default(null)
+})
+
 const deviceBase = {
   id: z.string(),
   name: z.string(),
@@ -93,7 +151,12 @@ const deviceBase = {
   interfaces: z.array(NetInterfaceSchema)
 }
 
-export const ServerDeviceSchema = z.object({ ...deviceBase, kind: z.literal('server'), host: HostSchema })
+export const ServerDeviceSchema = z.object({
+  ...deviceBase,
+  kind: z.literal('server'),
+  host: HostSchema,
+  services: ServerServicesSchema.default({ dhcp: null })
+})
 export const ClientDeviceSchema = z.object({ ...deviceBase, kind: z.literal('client'), host: HostSchema })
 export const SwitchDeviceSchema = z.object({ ...deviceBase, kind: z.literal('switch') })
 export const RouterDeviceSchema = z.object({
@@ -145,6 +208,12 @@ export type SwitchDevice = z.infer<typeof SwitchDeviceSchema>
 export type RouterDevice = z.infer<typeof RouterDeviceSchema>
 export type CloudDevice = z.infer<typeof CloudDeviceSchema>
 export type Device = z.infer<typeof DeviceSchema>
+export type DhcpOptions = z.infer<typeof DhcpOptionsSchema>
+export type DhcpScope = z.infer<typeof DhcpScopeSchema>
+export type DhcpServer = z.infer<typeof DhcpServerSchema>
+export type DhcpReservation = z.infer<typeof DhcpReservationSchema>
+export type DhcpLease = z.infer<typeof DhcpLeaseSchema>
+export type ServerServices = z.infer<typeof ServerServicesSchema>
 export type HostDevice = ServerDevice | ClientDevice
 export type LinkEnd = z.infer<typeof LinkEndSchema>
 export type Link = z.infer<typeof LinkSchema>

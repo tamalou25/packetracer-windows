@@ -109,7 +109,7 @@ export function buildDevice(
   const base = { id, name: deviceName, position: { ...position }, powered: true, interfaces }
   switch (kind) {
     case 'server':
-      return { ...base, kind, host: createHost('server') }
+      return { ...base, kind, host: createHost('server'), services: { dhcp: null } }
     case 'client':
       return { ...base, kind, host: createHost('client') }
     case 'switch':

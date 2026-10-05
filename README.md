@@ -16,7 +16,8 @@ PowerShell / CMD simulées.
 | 2     | Canvas de topologie, fichiers `.slab` | ✅   |
 | 3     | Moteur IP, mode Simulation            | ✅   |
 | 4     | Consoles PowerShell / CMD             | ✅   |
-| 5–9   | DHCP, DNS, AD DS, GPO, partages       | ⏳   |
+| 5     | DHCP                                  | ✅   |
+| 6–9   | DNS, AD DS, GPO, partages             | ⏳   |
 | 10    | Mode Labs                             | ⏳   |
 | 11    | Installeur + mises à jour             | ⏳   |
 

@@ -9,6 +9,7 @@ import { useLabStore } from '../../store/lab'
 import { Terminal } from '../console/Terminal'
 import { EventLogView } from '../device-window/config/EventLogView'
 import { appInfo, DESKTOP_APPS } from './apps'
+import { DhcpApp } from '../apps/DhcpApp'
 import { NetworkSettingsApp } from './NetworkSettingsApp'
 import { ServerManagerApp } from './ServerManagerApp'
 import { SystemApp } from './SystemApp'
@@ -23,6 +24,8 @@ function renderApp(id: string, device: HostDevice): ReactNode {
       return <Terminal deviceId={device.id} kind="powershell" autoFocus />
     case 'network':
       return <NetworkSettingsApp device={device} />
+    case 'dhcp':
+      return device.kind === 'server' ? <DhcpApp device={device} /> : null
     case 'system':
       return <SystemApp device={device} />
     case 'events':
