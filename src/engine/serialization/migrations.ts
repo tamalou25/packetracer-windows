@@ -5,7 +5,7 @@
  */
 import { DEFAULT_DC_POLICY_ID, DEFAULT_DOMAIN_POLICY_ID, defaultDomainGpos } from '../services/gpo/defaults'
 
-export const CURRENT_SCHEMA_VERSION = 2
+export const CURRENT_SCHEMA_VERSION = 3
 
 type RawDocument = Record<string, unknown>
 
@@ -37,9 +37,20 @@ function addDefaultGpos(doc: RawDocument): RawDocument {
   return { ...doc, schemaVersion: 2 }
 }
 
+/** Version 3 : identifiant du lab pédagogique en cours (métadonnées). */
+function addLabId(doc: RawDocument): RawDocument {
+  const meta = isRecord(doc['meta']) ? doc['meta'] : {}
+  return {
+    ...doc,
+    meta: { ...meta, labId: typeof meta['labId'] === 'string' ? meta['labId'] : '' },
+    schemaVersion: 3
+  }
+}
+
 /** migrations[n] migre un document de la version n vers n + 1. */
 export const migrations: Record<number, (doc: RawDocument) => RawDocument> = {
-  1: addDefaultGpos
+  1: addDefaultGpos,
+  2: addLabId
 }
 
 export type MigrationResult = { ok: true; doc: RawDocument } | { ok: false; message: string }

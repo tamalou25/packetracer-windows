@@ -1,0 +1,90 @@
+{
+  "formatVersion": 1,
+  "id": "lab-01-adressage",
+  "title": "Adressage IP et routage entre deux réseaux",
+  "difficulty": "Débutant",
+  "duration": "20 min",
+  "summary": "Configurer un routeur et deux postes pour faire communiquer deux réseaux.",
+  "statement": "# Contexte\n\nLa société **Garnier & Fils** sépare son service commercial (réseau A) et son atelier (réseau B) par un routeur. Les deux postes ne communiquent pas encore : vous êtes chargé(e) de leur adressage IP.\n\n## Plan d’adressage\n\n- Réseau A : `192.168.10.0/24` — PC1 : `192.168.10.10`, routeur R1 (Gi0/0) : `192.168.10.254`\n- Réseau B : `192.168.20.0/24` — PC2 : `192.168.20.10`, routeur R1 (Gi0/1) : `192.168.20.254`\n- La passerelle par défaut d’un poste est l’adresse du routeur sur son propre réseau.\n\n## Travail demandé\n\n1. Configurez les deux interfaces du routeur R1.\n2. Configurez l’adresse, le masque et la passerelle de PC1 et de PC2.\n3. Testez la communication avec `ping` (console du poste ou outil PDU), puis cliquez sur **Vérifier**.\n\n> Astuce : en mode **Simulation**, suivez le parcours des paquets ARP et ICMP d’un réseau à l’autre.",
+  "start": {
+    "devices": [
+      { "kind": "client", "name": "PC1", "x": 80, "y": 120 },
+      { "kind": "switch", "name": "SW1", "x": 80, "y": 320 },
+      { "kind": "router", "name": "R1", "x": 330, "y": 320 },
+      { "kind": "switch", "name": "SW2", "x": 580, "y": 320 },
+      { "kind": "client", "name": "PC2", "x": 580, "y": 120 }
+    ],
+    "links": [
+      ["PC1:Ethernet0", "SW1:Fa0/1"],
+      ["SW1:Fa0/2", "R1:Gi0/0"],
+      ["R1:Gi0/1", "SW2:Fa0/2"],
+      ["PC2:Ethernet0", "SW2:Fa0/1"]
+    ]
+  },
+  "criteria": [
+    {
+      "id": "r1-a",
+      "label": "R1 (Gi0/0) a l’adresse 192.168.10.254/24",
+      "hint": "Ouvrez la fenêtre du routeur (double-clic), onglet Config, et choisissez l’interface reliée au réseau A.",
+      "check": {
+        "type": "interfaceIp",
+        "device": "R1",
+        "interface": "Gi0/0",
+        "address": "192.168.10.254",
+        "prefixLength": 24
+      }
+    },
+    {
+      "id": "r1-b",
+      "label": "R1 (Gi0/1) a l’adresse 192.168.20.254/24",
+      "hint": "Chaque interface d’un routeur appartient à un réseau différent : vérifiez l’adresse et le masque de l’interface côté atelier.",
+      "check": {
+        "type": "interfaceIp",
+        "device": "R1",
+        "interface": "Gi0/1",
+        "address": "192.168.20.254",
+        "prefixLength": 24
+      }
+    },
+    {
+      "id": "pc1-ip",
+      "label": "PC1 a l’adresse 192.168.10.10/24",
+      "hint": "Le poste est en DHCP par défaut et n’obtient qu’une adresse APIPA (169.254.x.x) : passez-le en adressage statique.",
+      "check": { "type": "interfaceIp", "device": "PC1", "address": "192.168.10.10", "prefixLength": 24 }
+    },
+    {
+      "id": "pc2-ip",
+      "label": "PC2 a l’adresse 192.168.20.10/24",
+      "hint": "Vérifiez que l’adresse de PC2 appartient bien au réseau B et que le masque correspond au plan d’adressage.",
+      "check": { "type": "interfaceIp", "device": "PC2", "address": "192.168.20.10", "prefixLength": 24 }
+    },
+    {
+      "id": "pc1-gw",
+      "label": "PC1 utilise le routeur comme passerelle par défaut",
+      "hint": "Sans passerelle, un poste ne peut joindre que les machines de son propre réseau.",
+      "check": {
+        "type": "interfaceIp",
+        "device": "PC1",
+        "address": "192.168.10.10",
+        "gateway": "192.168.10.254"
+      }
+    },
+    {
+      "id": "pc2-gw",
+      "label": "PC2 utilise le routeur comme passerelle par défaut",
+      "hint": "La passerelle doit se trouver dans le même réseau que le poste.",
+      "check": {
+        "type": "interfaceIp",
+        "device": "PC2",
+        "address": "192.168.20.10",
+        "gateway": "192.168.20.254"
+      }
+    },
+    {
+      "id": "ping",
+      "label": "PC1 communique avec PC2 (ping)",
+      "hint": "Testez d’abord chaque passerelle depuis son poste ; si elle répond, comparez les masques et les passerelles des deux côtés.",
+      "check": { "type": "ping", "from": "PC1", "to": "192.168.20.10" }
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "formatVersion": 1,
+  "id": "lab-03-dns",
+  "title": "Zone DNS et résolution de noms",
+  "difficulty": "Intermédiaire",
+  "duration": "25 min",
+  "summary": "Créer une zone directe et une zone inverse, des enregistrements A, CNAME et PTR.",
+  "statement": "# Contexte\n\nLes utilisateurs de **Transports Leroy** doivent accéder à l’intranet par son nom. Le serveur **SRV1** (`192.168.10.1`) hébergera le DNS de la zone `entreprise.local`. Le poste **PC1** (`192.168.10.10`) utilise déjà SRV1 comme serveur DNS.\n\n## Travail demandé\n\n1. Installez le rôle **Serveur DNS** sur SRV1.\n2. Créez la zone de recherche directe principale `entreprise.local` et la zone inverse du réseau `192.168.10.0/24`.\n3. Ajoutez les enregistrements :\n   - hôte (A) `srv1` → `192.168.10.1`, avec son pointeur (PTR) ;\n   - hôte (A) `pc1` → `192.168.10.10` ;\n   - alias (CNAME) `intranet` → `srv1.entreprise.local`.\n4. Depuis PC1, testez avec `nslookup intranet.entreprise.local`, puis cliquez sur **Vérifier**.\n\n> Astuce : en mode **Simulation**, la requête DNS et la réponse apparaissent avec le nom demandé et le type d’enregistrement.",
+  "start": {
+    "devices": [
+      { "kind": "server", "name": "SRV1", "x": 330, "y": 100, "ip": "192.168.10.1/24", "dns": ["127.0.0.1"] },
+      { "kind": "switch", "name": "SW1", "x": 330, "y": 300 },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 330,
+        "y": 470,
+        "ip": "192.168.10.10/24",
+        "dns": ["192.168.10.1"]
+      }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/2"]
+    ]
+  },
+  "criteria": [
+    {
+      "id": "role",
+      "label": "Le rôle Serveur DNS est installé sur SRV1",
+      "hint": "Commencez par le rôle : sans lui, la console DNS et les cmdlets DnsServer ne sont pas disponibles.",
+      "check": { "type": "featureInstalled", "device": "SRV1", "feature": "DNS" }
+    },
+    {
+      "id": "a-srv1",
+      "label": "La zone entreprise.local contient l’hôte srv1 (192.168.10.1)",
+      "hint": "Vérifiez le nom de la zone (sans faute de frappe) puis le nom et l’adresse de l’enregistrement.",
+      "check": {
+        "type": "dnsRecord",
+        "server": "SRV1",
+        "zone": "entreprise.local",
+        "name": "srv1",
+        "recordType": "A",
+        "data": "192.168.10.1"
+      }
+    },
+    {
+      "id": "a-pc1",
+      "label": "La zone entreprise.local contient l’hôte pc1 (192.168.10.10)",
+      "hint": "Un enregistrement A associe un nom à une adresse IPv4.",
+      "check": {
+        "type": "dnsRecord",
+        "server": "SRV1",
+        "zone": "entreprise.local",
+        "name": "pc1",
+        "recordType": "A",
+        "data": "192.168.10.10"
+      }
+    },
+    {
+      "id": "cname",
+      "label": "L’alias intranet pointe vers srv1.entreprise.local",
+      "hint": "Un alias (CNAME) désigne un nom complet, pas une adresse IP.",
+      "check": {
+        "type": "dnsRecord",
+        "server": "SRV1",
+        "zone": "entreprise.local",
+        "name": "intranet",
+        "recordType": "CNAME",
+        "data": "srv1.entreprise.local"
+      }
+    },
+    {
+      "id": "ptr",
+      "label": "La zone inverse associe 192.168.10.1 à srv1.entreprise.local",
+      "hint": "La zone inverse doit exister avant de créer le pointeur ; l’assistant d’hôte peut créer le PTR associé.",
+      "check": {
+        "type": "dnsRecord",
+        "server": "SRV1",
+        "zone": "10.168.192.in-addr.arpa",
+        "name": "1",
+        "recordType": "PTR",
+        "data": "srv1.entreprise.local"
+      }
+    },
+    {
+      "id": "lookup",
+      "label": "PC1 résout intranet.entreprise.local en 192.168.10.1",
+      "hint": "Utilisez nslookup depuis le poste : le résultat indique le serveur interrogé et le nom réel derrière l’alias.",
+      "check": {
+        "type": "nslookup",
+        "client": "PC1",
+        "name": "intranet.entreprise.local",
+        "address": "192.168.10.1"
+      }
+    }
+  ]
+}

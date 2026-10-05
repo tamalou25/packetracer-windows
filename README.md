@@ -22,7 +22,7 @@ PowerShell / CMD simulées.
 | 7b    | Bureau façon serveur (fenêtres, menus) | ✅   |
 | 8     | Stratégies de groupe (GPO)             | ✅   |
 | 9     | Fichiers, partages, NTFS               | ✅   |
-| 10    | Mode Labs                              | ⏳   |
+| 10    | Mode Labs                              | ✅   |
 | 11    | Installeur + mises à jour              | ⏳   |
 
 ## Développement
@@ -89,3 +89,16 @@ Voir [`CLAUDE.md`](./CLAUDE.md) pour les conventions détaillées.
   de stratégie lu sur un partage.
 
 ![Accès effectif au travers d'un partage](docs/captures/fichiers/2-acces-effectif.webp)
+
+## Labs pédagogiques
+
+**Fichier > Ouvrir un lab…** (`Ctrl+L`) propose cinq labs prêts à l'emploi, du plus simple au plus
+complet : adressage et routage, DHCP, DNS, Active Directory + GPO, partages et NTFS. Chaque lab
+construit sa topologie de départ ; l'onglet **Lab** affiche l'énoncé et les objectifs, et
+**Vérifier** valide chaque critère (✅ / ❌) avec un indice qui oriente sans donner la solution.
+Le lab en cours est conservé dans le fichier `.slab` enregistré.
+
+Les labs sont des fichiers JSON du dossier [`labs/`](labs) (énoncé Markdown, topologie de départ,
+critères typés). Chaque lab est couvert par un test qui applique sa solution et exige 100 %.
+
+![Vérification d'un lab](docs/captures/labs/2-verification.webp)

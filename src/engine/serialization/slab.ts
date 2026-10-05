@@ -17,9 +17,11 @@ export const SlabDocumentSchema = z.object({
   meta: z
     .object({
       title: z.string().default(''),
-      description: z.string().default('')
+      description: z.string().default(''),
+      /** Lab pédagogique en cours (identifiant du fichier labs/*.json), '' sinon. */
+      labId: z.string().default('')
     })
-    .default({ title: '', description: '' }),
+    .default({ title: '', description: '', labId: '' }),
   lab: LabStateSchema,
   ui: z.object({ viewport: ViewportSchema.nullable().default(null) }).default({ viewport: null })
 })
@@ -32,7 +34,7 @@ export interface SerializeOptions {
   savedAt: string
   appVersion: string
   viewport?: Viewport | null
-  meta?: { title?: string; description?: string }
+  meta?: { title?: string; description?: string; labId?: string }
 }
 
 export function createSlabDocument(lab: LabState, options: SerializeOptions): SlabDocument {
@@ -41,7 +43,11 @@ export function createSlabDocument(lab: LabState, options: SerializeOptions): Sl
     app: 'ServerLab',
     appVersion: options.appVersion,
     savedAt: options.savedAt,
-    meta: { title: options.meta?.title ?? '', description: options.meta?.description ?? '' },
+    meta: {
+      title: options.meta?.title ?? '',
+      description: options.meta?.description ?? '',
+      labId: options.meta?.labId ?? ''
+    },
     lab,
     ui: { viewport: options.viewport ?? null }
   }

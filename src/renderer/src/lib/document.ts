@@ -6,9 +6,11 @@ import { createLab, parseSlab, serializeSlab } from '@engine/index'
 import { UNTITLED, useLabStore } from '../store/lab'
 import { useConsoleStore } from '../store/console'
 import { useDesktopStore } from '../store/desktop'
+import { useLabsStore } from '../store/labs'
 import { useSimStore } from '../store/sim'
 import { useUiStore } from '../store/ui'
 import { getFlowInstance } from './flow'
+import { labById } from './labCatalog'
 
 function api() {
   return window.serverlab
@@ -22,12 +24,12 @@ export function serializeCurrent(): string {
     savedAt: new Date().toISOString(),
     appVersion: useUiStore.getState().appVersion,
     viewport,
-    meta: { title: fileName.replace(/\.slab$/i, '') }
+    meta: { title: fileName.replace(/\.slab$/i, ''), labId: useLabsStore.getState().active?.id ?? '' }
   })
 }
 
 /** Réinitialise l'interface liée au document (sélection, fenêtres, câblage). */
-function resetUi(): void {
+export function resetDocumentUi(): void {
   const ui = useUiStore.getState()
   ui.clearSelection()
   ui.setCableStart(null)
@@ -51,8 +53,12 @@ export function loadContent(
     useUiStore.getState().showModal({ title: 'Ouverture impossible', message: parsed.message })
     return false
   }
-  resetUi()
+  resetDocumentUi()
   useLabStore.getState().load(parsed.doc.lab, file, parsed.doc.ui.viewport, dirty)
+  // Lab pédagogique enregistré avec le document : le panneau Lab est rétabli
+  const lab = parsed.doc.meta.labId ? labById(parsed.doc.meta.labId) : undefined
+  useLabsStore.getState().setActive(lab ?? null)
+  if (lab) useUiStore.getState().setRightTab('lab')
   return true
 }
 
@@ -71,7 +77,8 @@ export async function confirmDiscard(): Promise<boolean> {
 
 export async function newDocument(): Promise<void> {
   if (!(await confirmDiscard())) return
-  resetUi()
+  resetDocumentUi()
+  useLabsStore.getState().setActive(null)
   useLabStore.getState().load(createLab(), { path: null, name: UNTITLED })
   await api().clearAutosave()
 }

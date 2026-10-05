@@ -39,7 +39,7 @@ test('construire une topologie, l’enregistrer puis la rouvrir', async () => {
       schemaVersion: number
       lab: { devices: object }
     }
-    expect(saved.schemaVersion).toBe(2)
+    expect(saved.schemaVersion).toBe(3)
     expect(Object.keys(saved.lab.devices)).toHaveLength(3)
 
     // Nouveau document puis réouverture

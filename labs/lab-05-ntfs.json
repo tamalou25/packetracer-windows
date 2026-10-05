@@ -1,0 +1,115 @@
+{
+  "formatVersion": 1,
+  "id": "lab-05-ntfs",
+  "title": "Partage de fichiers et autorisations NTFS",
+  "difficulty": "Avancé",
+  "duration": "40 min",
+  "summary": "Partager un dossier et régler finement les droits NTFS par groupe, puis connecter un lecteur réseau.",
+  "statement": "# Contexte\n\nDans le domaine `lab.local`, la comptabilité veut un dossier commun sur **SRV1**. Les comptables (`GG_Compta`, dont **jdupont**) doivent pouvoir le modifier ; la direction (`GG_Direction`, dont **mmartin**) doit seulement le consulter ; les autres utilisateurs (comme **pdurand**) ne doivent pas y accéder.\n\nCompte d’administration : `LAB\\Administrateur` / `P@ssw0rd`. Mot de passe des utilisateurs : `Azerty123!`.\n\n## Travail demandé\n\n1. Sur SRV1, créez le dossier `C:\\Partages\\Compta`.\n2. Partagez-le sous le nom `Compta` : les autorisations de partage restent larges (par exemple *Tout le monde : Contrôle total*) car les droits sont gérés par NTFS.\n3. Réglez les autorisations NTFS du dossier :\n   - désactivez l’héritage en conservant une copie des autorisations ;\n   - retirez `BUILTIN\\Utilisateurs` ;\n   - `GG_Compta` : **Modification** ; `GG_Direction` : **Lecture et exécution**.\n4. Sur PC1, ouvrez une session `LAB\\jdupont` et connectez le lecteur réseau `S:` à `\\\\SRV1\\Compta`, puis cliquez sur **Vérifier**.\n\n> Astuce : l’onglet **Accès effectif** des propriétés du dossier montre les droits réels d’un utilisateur, au travers du partage.",
+  "start": {
+    "devices": [
+      { "kind": "server", "name": "SRV1", "x": 330, "y": 100, "ip": "192.168.10.1/24", "dns": ["127.0.0.1"] },
+      { "kind": "switch", "name": "SW1", "x": 330, "y": 300 },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 330,
+        "y": 470,
+        "ip": "192.168.10.10/24",
+        "dns": ["192.168.10.1"]
+      }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/2"]
+    ],
+    "domain": {
+      "name": "lab.local",
+      "netbios": "LAB",
+      "dc": "SRV1",
+      "ous": ["Societe"],
+      "users": [
+        { "name": "Jean Dupont", "sam": "jdupont", "ou": "Societe", "password": "Azerty123!" },
+        { "name": "Marie Martin", "sam": "mmartin", "ou": "Societe", "password": "Azerty123!" },
+        { "name": "Paul Durand", "sam": "pdurand", "ou": "Societe", "password": "Azerty123!" }
+      ],
+      "groups": [
+        { "name": "GG_Compta", "ou": "Societe", "members": ["jdupont"] },
+        { "name": "GG_Direction", "ou": "Societe", "members": ["mmartin"] }
+      ],
+      "join": ["PC1"]
+    }
+  },
+  "criteria": [
+    {
+      "id": "share",
+      "label": "Le dossier C:\\Partages\\Compta est partagé sous le nom Compta",
+      "hint": "Vérifiez le chemin exact du dossier et le nom du partage (net share ou Get-SmbShare sur SRV1).",
+      "check": { "type": "share", "server": "SRV1", "name": "Compta", "path": "C:\\Partages\\Compta" }
+    },
+    {
+      "id": "compta",
+      "label": "jdupont (GG_Compta) peut lire, créer et supprimer au travers du partage",
+      "hint": "Les droits réseau sont le plus restrictif du partage et de NTFS : contrôlez les deux, ainsi que l’appartenance aux groupes.",
+      "check": {
+        "type": "effectiveAccess",
+        "server": "SRV1",
+        "path": "C:\\Partages\\Compta",
+        "share": "Compta",
+        "account": "LAB\\jdupont",
+        "allow": ["list", "read", "write", "delete"]
+      }
+    },
+    {
+      "id": "direction",
+      "label": "mmartin (GG_Direction) peut consulter mais pas modifier",
+      "hint": "Comparez les autorisations NTFS accordées à chaque groupe : lecture seule ne signifie pas modification.",
+      "check": {
+        "type": "effectiveAccess",
+        "server": "SRV1",
+        "path": "C:\\Partages\\Compta",
+        "share": "Compta",
+        "account": "LAB\\mmartin",
+        "allow": ["list", "read"],
+        "deny": ["write", "delete"]
+      }
+    },
+    {
+      "id": "others",
+      "label": "pdurand n’a aucun accès au dossier",
+      "hint": "Tant que l’héritage est actif, les autorisations de C:\\ (dont BUILTIN\\Utilisateurs) s’appliquent toujours.",
+      "check": {
+        "type": "effectiveAccess",
+        "server": "SRV1",
+        "path": "C:\\Partages\\Compta",
+        "share": "Compta",
+        "account": "LAB\\pdurand",
+        "deny": ["list", "read"]
+      }
+    },
+    {
+      "id": "admins",
+      "label": "Les administrateurs gardent le contrôle total (NTFS)",
+      "hint": "En désactivant l’héritage, choisissez l’option qui conserve une copie des autorisations existantes.",
+      "check": {
+        "type": "effectiveAccess",
+        "server": "SRV1",
+        "path": "C:\\Partages\\Compta",
+        "account": "BUILTIN\\Administrateurs",
+        "allow": ["list", "read", "write", "delete", "changePermissions"]
+      }
+    },
+    {
+      "id": "drive",
+      "label": "Sur PC1, jdupont a connecté S: à \\\\SRV1\\Compta",
+      "hint": "La connexion se fait depuis la session de l’utilisateur sur le poste (Explorateur ou net use).",
+      "check": {
+        "type": "driveMapped",
+        "device": "PC1",
+        "letter": "S",
+        "path": "\\\\SRV1\\Compta",
+        "account": "LAB\\jdupont"
+      }
+    }
+  ]
+}

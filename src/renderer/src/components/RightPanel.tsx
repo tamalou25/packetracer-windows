@@ -1,18 +1,23 @@
 /**
- * Panneau de droite à onglets : Propriétés / Simulation.
+ * Panneau de droite à onglets : Propriétés / Simulation, et Lab quand un lab est ouvert.
  */
+import { LabPanel } from './labs/LabPanel'
 import { SimulationPanel } from './simulation/SimulationPanel'
 import { PropertiesPanel } from './properties/PropertiesPanel'
+import { useLabsStore } from '../store/labs'
 import { useUiStore, type RightTab } from '../store/ui'
 
-const TABS: { id: RightTab; label: string }[] = [
-  { id: 'properties', label: 'Propriétés' },
-  { id: 'simulation', label: 'Simulation' }
-]
-
 export function RightPanel() {
-  const tab = useUiStore((s) => s.rightTab)
+  const selected = useUiStore((s) => s.rightTab)
   const setTab = useUiStore((s) => s.setRightTab)
+  const lab = useLabsStore((s) => s.active)
+  const TABS: { id: RightTab; label: string }[] = [
+    ...(lab ? [{ id: 'lab' as const, label: 'Lab' }] : []),
+    { id: 'properties', label: 'Propriétés' },
+    { id: 'simulation', label: 'Simulation' }
+  ]
+  // Onglet Lab demandé sans lab ouvert : retour aux propriétés
+  const tab = selected === 'lab' && !lab ? 'properties' : selected
   return (
     <aside className="flex w-80 shrink-0 flex-col border-l border-line bg-panel" aria-label="Panneau latéral">
       <div className="flex border-b border-line" role="tablist">
@@ -32,7 +37,7 @@ export function RightPanel() {
           </button>
         ))}
       </div>
-      {tab === 'properties' ? <PropertiesPanel /> : <SimulationPanel />}
+      {tab === 'lab' ? <LabPanel /> : tab === 'properties' ? <PropertiesPanel /> : <SimulationPanel />}
     </aside>
   )
 }

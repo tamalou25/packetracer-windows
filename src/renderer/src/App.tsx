@@ -15,6 +15,8 @@ import { StatusBar } from './components/StatusBar'
 import { useDocumentLifecycle } from './hooks/useDocumentLifecycle'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useBackgroundServices } from './hooks/useBackgroundServices'
+import { LabPicker } from './components/labs/LabPicker'
+import { useLabsStore } from './store/labs'
 import { useConsoleSessionSync } from './hooks/useConsoleSessionSync'
 import { useMenuBridge } from './hooks/useMenuBridge'
 import { useSimulationPlayback } from './hooks/useSimulationPlayback'
@@ -45,7 +47,7 @@ function handleMenuCommand(msg: MenuCommandMessage): void {
       void saveDocument(true)
       break
     case 'file:openLab':
-      ui.notify('info', 'Le mode Labs arrive à la phase 10.')
+      useLabsStore.getState().setPickerOpen(true)
       break
     case 'edit:undo':
       undo()
@@ -135,6 +137,7 @@ export function App() {
         <StatusBar />
       </div>
       <DeviceWindows />
+      <LabPicker />
       <Toasts />
       <HelpPanel />
       <Modal />
