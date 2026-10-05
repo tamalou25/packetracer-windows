@@ -17,7 +17,6 @@ import {
 } from '@xyflow/react'
 import {
   addDevice,
-  connect,
   DEVICE_KINDS,
   disconnect,
   moveDevice,
@@ -28,6 +27,7 @@ import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
 import { runAction } from '../../lib/run'
 import { sendSimplePdu } from '../../lib/network'
+import { pickCablePort } from '../../lib/cabling'
 import { ICON_CENTER, setFlowInstance } from '../../lib/flow'
 import { DND_DEVICE_MIME } from '../Palette'
 import { CableEdge, type CableFlowEdge } from './CableEdge'
@@ -233,18 +233,9 @@ export function TopologyCanvas() {
 
   const onPickPort = useCallback(
     (ifaceId: string) => {
-      const ui = useUiStore.getState()
       if (!picker) return
-      const end = { deviceId: picker.deviceId, ifaceId }
       setPicker(null)
-      if (!ui.cableStart) {
-        ui.setCableStart(end)
-        return
-      }
-      const start = ui.cableStart
-      ui.setCableStart(null)
-      const linkId = runAction((lab) => connect(lab, start, end))
-      if (linkId) ui.select({ link: linkId, devices: [] })
+      pickCablePort(picker.deviceId, ifaceId)
     },
     [picker]
   )

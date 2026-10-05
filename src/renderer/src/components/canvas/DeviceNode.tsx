@@ -3,9 +3,11 @@
  * icône monochrome, liseré de la couleur de catégorie, LED d'état en coin,
  * nom et adresse IP principale sous le nœud.
  */
-import { memo } from 'react'
-import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
+import { memo, useEffect, useRef, useState } from 'react'
+import { Handle, NodeToolbar, Position, type Node, type NodeProps } from '@xyflow/react'
 import { useLabStore } from '../../store/lab'
+import { useUiStore } from '../../store/ui'
+import { PortTray } from './PortTray'
 import { DEVICE_ICONS, KIND_STRIPE } from '../../lib/devices'
 import { deviceHealth, primaryAddress, type DeviceHealth } from '../../lib/health'
 
@@ -25,15 +27,44 @@ const LED: Record<DeviceHealth, string> = {
 
 const IP_TONE = { normal: 'text-fg-muted', warn: 'text-warn', none: 'text-fg-subtle' } as const
 
-function DeviceNodeComponent({ data, selected }: NodeProps<DeviceFlowNode>) {
+/** Délai avant de masquer le panneau de ports (le temps d'y amener la souris). */
+const HOVER_GRACE_MS = 180
+
+function DeviceNodeComponent({ data, selected, dragging }: NodeProps<DeviceFlowNode>) {
   const lab = useLabStore((s) => s.lab)
+  const tool = useUiStore((s) => s.tool)
+  const [hover, setHover] = useState(false)
+  const leaveTimer = useRef<number | null>(null)
+  useEffect(
+    () => () => {
+      if (leaveTimer.current) window.clearTimeout(leaveTimer.current)
+    },
+    []
+  )
+  const enter = () => {
+    if (leaveTimer.current) window.clearTimeout(leaveTimer.current)
+    setHover(true)
+  }
+  const leave = () => {
+    leaveTimer.current = window.setTimeout(() => setHover(false), HOVER_GRACE_MS)
+  }
+
   const device = lab.devices[data.deviceId]
   if (!device) return null
+  const cableMode = tool === 'cable'
+  // Panneau de ports au survol (outils Sélection et Câble), jamais pendant un déplacement
+  const showPorts = hover && !dragging && (tool === 'select' || cableMode)
   const Icon = DEVICE_ICONS[device.kind]
   const health = deviceHealth(lab, device)
   const ip = primaryAddress(lab, device)
   return (
-    <div className="relative h-14 w-14" data-testid={`device-${device.name}`} data-health={health.status}>
+    <div
+      className="relative h-14 w-14"
+      data-testid={`device-${device.name}`}
+      data-health={health.status}
+      onMouseEnter={enter}
+      onMouseLeave={leave}
+    >
       <div
         className={`relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-md border bg-surface shadow-xs transition-colors ${
           selected ? 'border-accent ring-1 ring-accent' : 'border-line-strong hover:border-fg-subtle'
@@ -60,6 +91,9 @@ function DeviceNodeComponent({ data, selected }: NodeProps<DeviceFlowNode>) {
           </span>
         )}
       </div>
+      <NodeToolbar isVisible={showPorts} position={Position.Right} align="start" offset={14}>
+        <PortTray device={device} interactive={cableMode} onMouseEnter={enter} onMouseLeave={leave} />
+      </NodeToolbar>
       <Handle type="source" position={Position.Top} className={handleClass} isConnectable={false} />
       <Handle type="target" position={Position.Top} className={handleClass} isConnectable={false} />
     </div>

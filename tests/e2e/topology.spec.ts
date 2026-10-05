@@ -12,8 +12,8 @@ test('construire une topologie, l’enregistrer puis la rouvrir', async () => {
     await expect(page.locator('.react-flow__node')).toHaveCount(3)
     await expect(page.getByTestId('device-SRV1')).toBeVisible()
 
-    await cableDevices(page, 'SRV1', 'Ethernet0', 'SW1', 'Port 1')
-    await cableDevices(page, 'PC1', 'Ethernet0', 'SW1', 'Port 2')
+    await cableDevices(page, 'SRV1', 'Ethernet0', 'SW1', 'Fa0/1')
+    await cableDevices(page, 'PC1', 'Ethernet0', 'SW1', 'Fa0/2')
     await expect(page.locator('.react-flow__edge')).toHaveCount(2)
     await expect(page).toHaveTitle(/Sans titre \* — ServerLab/)
 

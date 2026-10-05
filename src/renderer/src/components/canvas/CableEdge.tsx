@@ -29,7 +29,8 @@ function CableEdgeComponent({ id, source, target, data, selected }: EdgeProps<Ca
   const sourceNode = useInternalNode(source)
   const targetNode = useInternalNode(target)
   const lab = useLabStore((s) => s.lab)
-  const showPortLabels = useUiStore((s) => s.showPortLabels)
+  // Noms de ports aux extrémités : option d'affichage, ou automatiquement pendant le câblage
+  const showPortLabels = useUiStore((s) => s.showPortLabels || s.tool === 'cable')
   const link = data ? lab.links[data.linkId] : undefined
   if (!sourceNode || !targetNode || !link) return null
 

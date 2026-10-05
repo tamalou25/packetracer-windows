@@ -73,16 +73,19 @@ export function createInterface(draft: Draft<LabState>, name: string, kind: Devi
   }
 }
 
-/** Noms des interfaces par défaut selon le type d'équipement. */
+/**
+ * Noms des interfaces par défaut selon le type d'équipement, à la manière du matériel réel :
+ * cartes Ethernet0 (serveur, poste), FastEthernet Fa0/1… (switch), GigabitEthernet Gi0/0… (routeur).
+ */
 export function defaultInterfaceNames(kind: DeviceKind): string[] {
   switch (kind) {
     case 'server':
     case 'client':
       return ['Ethernet0']
     case 'switch':
-      return Array.from({ length: SWITCH_PORT_COUNT }, (_, i) => `Port ${i + 1}`)
+      return Array.from({ length: SWITCH_PORT_COUNT }, (_, i) => `Fa0/${i + 1}`)
     case 'router':
-      return Array.from({ length: ROUTER_INTERFACE_COUNT }, (_, i) => `Eth${i}`)
+      return Array.from({ length: ROUTER_INTERFACE_COUNT }, (_, i) => `Gi0/${i}`)
     case 'cloud':
       return ['WAN']
   }

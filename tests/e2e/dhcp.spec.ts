@@ -7,8 +7,8 @@ test('DHCP : étendue créée dans la console, le poste obtient une adresse (DOR
     await placeDevice(page, 'server', 220, 160)
     await placeDevice(page, 'client', 220, 420)
     await placeDevice(page, 'switch', 520, 290)
-    await cableDevices(page, 'SRV1', 'Ethernet0', 'SW1', 'Port 1')
-    await cableDevices(page, 'PC1', 'Ethernet0', 'SW1', 'Port 2')
+    await cableDevices(page, 'SRV1', 'Ethernet0', 'SW1', 'Fa0/1')
+    await cableDevices(page, 'PC1', 'Ethernet0', 'SW1', 'Fa0/2')
     await configureHostIp(page, 'SRV1', '192.168.10.1', '255.255.255.0')
 
     // Rôle DHCP en PowerShell, étendue via la console graphique

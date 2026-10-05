@@ -8,8 +8,8 @@ test('Nœuds : IP principale, LED d’état (opérationnel, à vérifier, non ra
     await placeDevice(page, 'switch', 520, 290)
     await placeDevice(page, 'client', 240, 420)
     await placeDevice(page, 'client', 760, 420)
-    await cableDevices(page, 'SRV1', 'Ethernet0', 'SW1', 'Port 1')
-    await cableDevices(page, 'PC1', 'Ethernet0', 'SW1', 'Port 2')
+    await cableDevices(page, 'SRV1', 'Ethernet0', 'SW1', 'Fa0/1')
+    await cableDevices(page, 'PC1', 'Ethernet0', 'SW1', 'Fa0/2')
 
     const srv = page.getByTestId('device-SRV1')
     // Carte raccordée mais sans adresse statique ni serveur DHCP : APIPA, LED orange

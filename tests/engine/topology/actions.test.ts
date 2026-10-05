@@ -36,7 +36,7 @@ describe('ajout d’équipements', () => {
     s = r.state
     expect(s.devices[sw.id]?.interfaces).toHaveLength(16)
     expect(s.devices[sw.id]?.interfaces.every((i) => !i.l3)).toBe(true)
-    expect(s.devices[r.id]?.interfaces.map((i) => i.name)).toEqual(['Eth0', 'Eth1', 'Eth2', 'Eth3'])
+    expect(s.devices[r.id]?.interfaces.map((i) => i.name)).toEqual(['Gi0/0', 'Gi0/1', 'Gi0/2', 'Gi0/3'])
   })
 
   it('génère des MAC uniques et déterministes', () => {
