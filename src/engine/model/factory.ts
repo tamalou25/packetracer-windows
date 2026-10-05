@@ -12,7 +12,7 @@ export const ROUTER_INTERFACE_COUNT = 4
 export const SERVER_MAX_INTERFACES = 4
 
 export function createLab(): LabState {
-  return { devices: {}, links: {}, seq: 0, clock: 0 }
+  return { devices: {}, links: {}, seq: 0, clock: 0, domains: {} }
 }
 
 /** Incrémente le compteur et renvoie la nouvelle valeur. */
@@ -109,7 +109,7 @@ export function buildDevice(
   const base = { id, name: deviceName, position: { ...position }, powered: true, interfaces }
   switch (kind) {
     case 'server':
-      return { ...base, kind, host: createHost('server'), services: { dhcp: null } }
+      return { ...base, kind, host: createHost('server'), services: { dhcp: null, dns: null } }
     case 'client':
       return { ...base, kind, host: createHost('client') }
     case 'switch':

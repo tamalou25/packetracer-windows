@@ -7,6 +7,7 @@ import { raise, transact, type EngineResult } from '../core/result'
 import type { LabState, ServerDevice } from '../model/schema'
 import { requireDevice } from '../topology/actions'
 import { createDhcpServer } from './dhcp'
+import { createDnsServer } from './dns'
 
 export interface FeatureInfo {
   name: string
@@ -146,6 +147,7 @@ export function uninstallFeatures(
 /** Initialise les données d'un rôle à son installation. */
 function onFeatureInstalled(_draft: Draft<LabState>, device: Draft<ServerDevice>, name: string): void {
   if (name === 'DHCP' && !device.services.dhcp) device.services.dhcp = createDhcpServer()
+  if (name === 'DNS' && !device.services.dns) device.services.dns = createDnsServer()
 }
 
 function onFeatureRemoved(_draft: Draft<LabState>, _device: Draft<ServerDevice>, _name: string): void {

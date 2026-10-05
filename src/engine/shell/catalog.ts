@@ -5,11 +5,13 @@
 import type { CommandCatalog } from './ps/interpreter'
 import { coreCmdlets } from './ps/cmdlets/core'
 import { dhcpCmdlets } from './ps/cmdlets/dhcp'
+import { dnsCmdlets } from './ps/cmdlets/dns'
 import { netCmdlets } from './ps/cmdlets/net'
 import { systemCmdlets } from './ps/cmdlets/system'
+import { nslookupTool } from './tools/dns'
 import { hostnameTool, ipconfigTool, pingTool, tracertTool, whoamiTool } from './tools/net'
 
 export const CATALOG: CommandCatalog = {
-  cmdlets: [...coreCmdlets, ...netCmdlets, ...systemCmdlets, ...dhcpCmdlets],
-  tools: [ipconfigTool, pingTool, tracertTool, hostnameTool, whoamiTool]
+  cmdlets: [...coreCmdlets, ...netCmdlets, ...systemCmdlets, ...dhcpCmdlets, ...dnsCmdlets],
+  tools: [ipconfigTool, pingTool, tracertTool, nslookupTool, hostnameTool, whoamiTool]
 }

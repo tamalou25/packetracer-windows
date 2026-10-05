@@ -2,6 +2,7 @@
  * Métadonnées des applications du Bureau (les composants sont associés dans DesktopTab).
  */
 import {
+  Globe,
   LayoutDashboard,
   Monitor,
   Network,
@@ -63,6 +64,14 @@ export const DESKTOP_APPS: DesktopAppInfo[] = [
     color: 'bg-teal-700',
     tool: true,
     available: (d) => has(d, 'RSAT-DHCP')
+  },
+  {
+    id: 'dns',
+    label: 'DNS',
+    icon: Globe,
+    color: 'bg-sky-600',
+    tool: true,
+    available: (d) => has(d, 'RSAT-DNS-Server')
   },
   {
     id: 'events',

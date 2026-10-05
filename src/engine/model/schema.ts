@@ -138,9 +138,40 @@ export const DhcpServerSchema = z.object({
   serverOptions: DhcpOptionsSchema.default({ router: [], dnsServers: [], dnsDomain: null })
 })
 
+export const DNS_RECORD_TYPES = ['A', 'PTR', 'CNAME', 'NS', 'SOA', 'SRV'] as const
+
+export const DnsRecordSchema = z.object({
+  /** Nom relatif à la zone (« @ » pour la racine de la zone). */
+  name: z.string(),
+  type: z.enum(DNS_RECORD_TYPES),
+  /** Données : adresse IPv4 (A), nom complet (CNAME, PTR, NS), « priorité poids port cible » (SRV)… */
+  data: z.string(),
+  ttl: z.number().int().positive().default(3600),
+  /** Inscrit dynamiquement par un client (mise à jour dynamique). */
+  dynamic: z.boolean().default(false)
+})
+
+export const DnsZoneSchema = z.object({
+  /** Nom complet en minuscules (lab.local, 1.168.192.in-addr.arpa). */
+  name: z.string(),
+  reverse: z.boolean(),
+  /** Zone intégrée à Active Directory (stockée dans l'annuaire). */
+  adIntegrated: z.boolean().default(false),
+  dynamicUpdate: z.enum(['None', 'Secure', 'NonsecureAndSecure']).default('None'),
+  records: z.array(DnsRecordSchema).default([])
+})
+
+export const DnsServerSchema = z.object({
+  zones: z.array(DnsZoneSchema).default([]),
+  forwarders: z.array(z.string()).default([]),
+  /** Utiliser les indications de racine si aucun redirecteur ne répond. */
+  useRootHints: z.boolean().default(true)
+})
+
 /** Données des rôles serveur. */
 export const ServerServicesSchema = z.object({
-  dhcp: DhcpServerSchema.nullable().default(null)
+  dhcp: DhcpServerSchema.nullable().default(null),
+  dns: DnsServerSchema.nullable().default(null)
 })
 
 const deviceBase = {
@@ -155,7 +186,7 @@ export const ServerDeviceSchema = z.object({
   ...deviceBase,
   kind: z.literal('server'),
   host: HostSchema,
-  services: ServerServicesSchema.default({ dhcp: null })
+  services: ServerServicesSchema.default({ dhcp: null, dns: null })
 })
 export const ClientDeviceSchema = z.object({ ...deviceBase, kind: z.literal('client'), host: HostSchema })
 export const SwitchDeviceSchema = z.object({ ...deviceBase, kind: z.literal('switch') })
@@ -183,6 +214,76 @@ export const LinkSchema = z.object({
   b: LinkEndSchema
 })
 
+// ---------------------------------------------------------------------------
+// Active Directory
+// ---------------------------------------------------------------------------
+
+/** Unité d'organisation ou conteneur (CN=Users, CN=Computers…). */
+export const AdContainerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  /** Conteneur parent (null = racine du domaine). */
+  parentId: z.string().nullable(),
+  kind: z.enum(['ou', 'container']),
+  description: z.string().default(''),
+  /** Protéger contre la suppression accidentelle. */
+  protected: z.boolean().default(false),
+  builtin: z.boolean().default(false)
+})
+
+export const AdUserSchema = z.object({
+  id: z.string(),
+  /** Nom d'ouverture de session (pré-Windows 2000). */
+  sam: z.string(),
+  /** Nom complet (CN). */
+  name: z.string(),
+  givenName: z.string().default(''),
+  surname: z.string().default(''),
+  upn: z.string().default(''),
+  parentId: z.string(),
+  password: z.string().default(''),
+  enabled: z.boolean().default(true),
+  mustChangePassword: z.boolean().default(false),
+  description: z.string().default(''),
+  builtin: z.boolean().default(false)
+})
+
+export const AdGroupSchema = z.object({
+  id: z.string(),
+  sam: z.string(),
+  name: z.string(),
+  parentId: z.string(),
+  scope: z.enum(['DomainLocal', 'Global', 'Universal']),
+  category: z.enum(['Security', 'Distribution']).default('Security'),
+  /** Identifiants des membres (utilisateurs, groupes, ordinateurs). */
+  members: z.array(z.string()).default([]),
+  description: z.string().default(''),
+  builtin: z.boolean().default(false)
+})
+
+export const AdComputerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  parentId: z.string(),
+  /** Équipement du lab correspondant (null si l'ordinateur n'existe plus). */
+  deviceId: z.string().nullable(),
+  enabled: z.boolean().default(true),
+  dnsHostName: z.string().default('')
+})
+
+export const DomainSchema = z.object({
+  /** Nom DNS du domaine (lab.local). */
+  name: z.string(),
+  /** Nom NetBIOS (LAB). */
+  netbios: z.string(),
+  /** Contrôleurs de domaine (identifiants d'équipements). */
+  controllers: z.array(z.string()).default([]),
+  containers: z.array(AdContainerSchema).default([]),
+  users: z.array(AdUserSchema).default([]),
+  groups: z.array(AdGroupSchema).default([]),
+  computers: z.array(AdComputerSchema).default([])
+})
+
 /** État complet d'un lab : source de vérité unique de l'application. */
 export const LabStateSchema = z.object({
   devices: z.record(z.string(), DeviceSchema),
@@ -190,7 +291,9 @@ export const LabStateSchema = z.object({
   /** Compteur servant à générer identifiants et adresses MAC de façon déterministe. */
   seq: z.number().int().nonnegative(),
   /** Horloge simulée (millisecondes). */
-  clock: z.number().nonnegative().default(0)
+  clock: z.number().nonnegative().default(0),
+  /** Domaines Active Directory (clé : nom DNS du domaine). */
+  domains: z.record(z.string(), DomainSchema).default({})
 })
 
 export const DeviceKindSchema = z.enum(DEVICE_KINDS)
@@ -214,6 +317,15 @@ export type DhcpServer = z.infer<typeof DhcpServerSchema>
 export type DhcpReservation = z.infer<typeof DhcpReservationSchema>
 export type DhcpLease = z.infer<typeof DhcpLeaseSchema>
 export type ServerServices = z.infer<typeof ServerServicesSchema>
+export type DnsRecord = z.infer<typeof DnsRecordSchema>
+export type DnsRecordType = DnsRecord['type']
+export type DnsZone = z.infer<typeof DnsZoneSchema>
+export type DnsServer = z.infer<typeof DnsServerSchema>
+export type AdContainer = z.infer<typeof AdContainerSchema>
+export type AdUser = z.infer<typeof AdUserSchema>
+export type AdGroup = z.infer<typeof AdGroupSchema>
+export type AdComputer = z.infer<typeof AdComputerSchema>
+export type Domain = z.infer<typeof DomainSchema>
 export type HostDevice = ServerDevice | ClientDevice
 export type LinkEnd = z.infer<typeof LinkEndSchema>
 export type Link = z.infer<typeof LinkSchema>

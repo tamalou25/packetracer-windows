@@ -9,6 +9,7 @@ import { prefixToMask } from '../../net/ipv4'
 import { carrierUp } from '../../net/segment'
 import type { NetInterface } from '../../model/schema'
 import { dhcpRelease, dhcpRenew } from '../../services/dhcp-client'
+import { firstAddress, resolveName } from '../../services/dns-resolver'
 import type { ExecContext } from '../context'
 import type { ToolDef } from './types'
 
@@ -27,10 +28,13 @@ function connectionSuffix(ctx: ExecContext, iface: NetInterface): string {
   return ''
 }
 
-/** Résout la cible d'un ping/tracert (adresse IP ; les noms seront résolus par le DNS). */
-export function resolveForTool(_ctx: ExecContext, target: string): { ip: string; display: string } | null {
+/** Résout la cible d'un ping/tracert : adresse IP ou nom (requête DNS tracée). */
+export function resolveForTool(ctx: ExecContext, target: string): { ip: string; display: string } | null {
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(target)) return { ip: target, display: target }
-  return null
+  const resolution = resolveName(ctx.state, ctx.deviceId, target)
+  ctx.addTrace(resolution.trace)
+  const ip = firstAddress(resolution)
+  return ip ? { ip, display: `${resolution.fqdn} [${ip}]` } : null
 }
 
 function ipconfigAdapter(ctx: ExecContext, iface: NetInterface, all: boolean): string[] {

@@ -17,7 +17,8 @@ PowerShell / CMD simulées.
 | 3     | Moteur IP, mode Simulation            | ✅   |
 | 4     | Consoles PowerShell / CMD             | ✅   |
 | 5     | DHCP                                  | ✅   |
-| 6–9   | DNS, AD DS, GPO, partages             | ⏳   |
+| 6     | DNS                                   | ✅   |
+| 7–9   | AD DS, GPO, partages                  | ⏳   |
 | 10    | Mode Labs                             | ⏳   |
 | 11    | Installeur + mises à jour             | ⏳   |
 
