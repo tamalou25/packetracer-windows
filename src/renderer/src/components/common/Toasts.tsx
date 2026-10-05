@@ -9,7 +9,7 @@ export function Toasts() {
   const dismiss = useUiStore((s) => s.dismissToast)
   return (
     <div
-      className="pointer-events-none fixed right-4 bottom-24 z-[300] flex w-96 flex-col gap-2"
+      className="pointer-events-none fixed right-4 bottom-10 z-[300] flex w-96 flex-col gap-2"
       aria-live="polite"
     >
       {toasts.map((t) => {

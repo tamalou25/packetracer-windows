@@ -89,6 +89,8 @@ interface UiState {
   clipboard: { devices: Device[]; links: Link[] } | null
   pasteCount: number
   appVersion: string
+  /** Heure (horloge du poste) de la dernière copie de récupération écrite. */
+  lastAutosave: number | null
 
   setTheme: (theme: Theme) => void
   setMode: (mode: SimMode) => void
@@ -116,6 +118,7 @@ interface UiState {
   setClipboard: (clip: UiState['clipboard']) => void
   nextPasteOffset: () => number
   setAppVersion: (version: string) => void
+  setLastAutosave: (time: number | null) => void
 }
 
 let toastSeq = 0
@@ -141,6 +144,7 @@ export const useUiStore = create<UiState>()((set, get) => ({
   clipboard: null,
   pasteCount: 0,
   appVersion: '0.0.0',
+  lastAutosave: null,
 
   setTheme: (theme) => {
     applyThemeToDocument(theme)
@@ -206,5 +210,6 @@ export const useUiStore = create<UiState>()((set, get) => ({
     set({ pasteCount: count })
     return count * 40
   },
-  setAppVersion: (appVersion) => set({ appVersion })
+  setAppVersion: (appVersion) => set({ appVersion }),
+  setLastAutosave: (lastAutosave) => set({ lastAutosave })
 }))

@@ -9,9 +9,9 @@ import { HelpPanel } from './components/common/HelpPanel'
 import { Modal } from './components/common/Modal'
 import { Toasts } from './components/common/Toasts'
 import { DeviceWindows } from './components/device-window/DeviceWindow'
-import { ModeSwitch } from './components/ModeSwitch'
 import { Palette } from './components/Palette'
 import { RightPanel } from './components/RightPanel'
+import { StatusBar } from './components/StatusBar'
 import { useDocumentLifecycle } from './hooks/useDocumentLifecycle'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useAutoDhcp } from './hooks/useAutoDhcp'
@@ -132,9 +132,7 @@ export function App() {
           </main>
           {showProperties && <RightPanel />}
         </div>
-        <footer className="flex items-center justify-end gap-4 border-t border-line bg-panel px-4 py-1.5">
-          <ModeSwitch />
-        </footer>
+        <StatusBar />
       </div>
       <DeviceWindows />
       <Toasts />

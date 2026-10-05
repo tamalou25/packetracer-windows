@@ -27,7 +27,8 @@ export function useDocumentLifecycle(): void {
 
     // Copie de récupération toutes les 60 s si le document a été modifié
     const timer = setInterval(() => {
-      if (useLabStore.getState().dirty) void api.writeAutosave(serializeCurrent())
+      if (!useLabStore.getState().dirty) return
+      void api.writeAutosave(serializeCurrent()).then(() => useUiStore.getState().setLastAutosave(Date.now()))
     }, AUTOSAVE_INTERVAL_MS)
 
     const offOpened = api.onFileOpened((file) => void openExternalDocument(file))

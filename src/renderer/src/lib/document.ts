@@ -37,6 +37,7 @@ function resetUi(): void {
   useSimStore.getState().discard()
   useConsoleStore.getState().reset()
   useDesktopStore.getState().reset()
+  ui.setLastAutosave(null)
 }
 
 /** Charge un contenu .slab ; affiche une erreur explicite s'il est invalide. */
