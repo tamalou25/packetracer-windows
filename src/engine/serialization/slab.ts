@@ -59,8 +59,29 @@ export function serializeSlab(lab: LabState, options: SerializeOptions): string 
 
 export type ParseResult = { ok: true; doc: SlabDocument } | { ok: false; message: string }
 
-/** Analyse, migre et valide le contenu d'un fichier .slab. */
+/**
+ * Longueur maximale d'un document .slab (même limite que MAX_SLAB_BYTES côté process principal :
+ * un texte de N octets UTF-8 compte au plus N caractères).
+ */
+export const MAX_SLAB_LENGTH = 20 * 1024 * 1024
+
+/**
+ * Analyse, migre et valide le contenu d'un fichier .slab (ouvert, récent ou de récupération).
+ * Ne lève jamais d'exception : tout contenu invalide donne un message en français. Les champs
+ * inconnus (fichier d'une version plus récente, ajout manuel) sont ignorés et retirés.
+ */
 export function parseSlab(content: string): ParseResult {
+  if (content.length > MAX_SLAB_LENGTH)
+    return { ok: false, message: 'Le fichier est trop volumineux pour un lab ServerLab.' }
+  try {
+    return parseSlabContent(content)
+  } catch {
+    // Filet de sécurité : une incohérence non prévue ne doit jamais faire planter l'application
+    return { ok: false, message: 'Le fichier .slab est illisible (structure inattendue).' }
+  }
+}
+
+function parseSlabContent(content: string): ParseResult {
   let raw: unknown
   try {
     raw = JSON.parse(content)
