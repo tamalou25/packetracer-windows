@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import {
   cableDevices,
   configureHostIp,
+  expectSignedIn,
   launchApp,
   openConsole,
   openDesktop,
@@ -96,7 +97,7 @@ test('AD DS : promotion par l’assistant, OU et utilisateur, jonction du poste,
     await pc.getByTestId('logon-error-ok').click()
     await pc.getByTestId('logon-password').fill('Azerty123!')
     await pc.getByTestId('logon-submit').click()
-    await expect(pc.getByTestId('taskbar')).toBeVisible()
+    await expectSignedIn(page, 'PC1')
 
     await pc.getByTestId('tab-console').click()
     await pc.getByTestId('console-cmd').click()

@@ -25,10 +25,16 @@ export async function launchApp(options: { userData?: string } = {}): Promise<La
   })
   const page = await app.firstWindow()
   const consoleErrors: string[] = []
+  // Erreurs du renderer : conservées pour les assertions et affichées dans les journaux (CI)
   page.on('console', (msg) => {
-    if (msg.type() === 'error') consoleErrors.push(msg.text())
+    if (msg.type() !== 'error') return
+    consoleErrors.push(msg.text())
+    console.log(`[renderer] ${msg.text()}`)
   })
-  page.on('pageerror', (err) => consoleErrors.push(err.message))
+  page.on('pageerror', (err) => {
+    consoleErrors.push(err.message)
+    console.log(`[renderer] ${err.stack ?? err.message}`)
+  })
   await page.waitForLoadState('domcontentloaded')
   const close = async () => {
     await app.evaluate(({ dialog }) => {
@@ -133,6 +139,17 @@ export async function unlock(page: Page, device: string, password: string, user?
   if (user) await win.getByTestId('logon-user').fill(user)
   await win.getByTestId('logon-password').fill(password)
   await win.getByTestId('logon-submit').click()
+}
+
+/**
+ * Attend la fin de l'ouverture de session : le Bureau s'affiche, ou le message d'erreur de l'écran
+ * de connexion est remonté tel quel (diagnostic explicite).
+ */
+export async function expectSignedIn(page: Page, device: string): Promise<void> {
+  const win = page.getByTestId(`device-window-${device}`)
+  const error = win.getByTestId('logon-error')
+  await expect(win.getByTestId('taskbar').or(error)).toBeVisible()
+  if (await error.isVisible()) throw new Error(`Ouverture de session refusée : ${await error.innerText()}`)
 }
 
 /** Tape une commande dans la console visible et valide. */

@@ -4,7 +4,7 @@
  * Ouverture de session : action du moteur (Kerberos tracé). Déverrouillage : identifiants vérifiés
  * localement, la session reste ouverte.
  */
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { ArrowRight, Keyboard, Power, RotateCcw, UserRound, UsersRound } from 'lucide-react'
 import {
   changePasswordAndLogon,
@@ -57,13 +57,20 @@ export function LockScreen({ device, mode }: { device: HostDevice; mode: 'logon'
   const [error, setError] = useState('')
   /** Étape à laquelle revenir après le message d'erreur. */
   const [errorReturn, setErrorReturn] = useState<Stage>('form')
-  const firstField = useRef<HTMLInputElement>(null)
+  const firstField = useRef<HTMLInputElement | null>(null)
+  const passwordField = useRef<HTMLInputElement | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+  const previousStage = useRef<Stage>('lock')
   const parts = formatClockParts(clock)
 
-  useEffect(() => {
+  // Focus posé de façon synchrone (jamais différé) pour ne pas déplacer le curseur pendant la saisie.
+  // Après une erreur, le curseur revient dans le mot de passe, comme sur un vrai système.
+  useLayoutEffect(() => {
+    const fromError = previousStage.current === 'error'
+    previousStage.current = stage
     if (stage === 'lock') rootRef.current?.focus()
-    if (stage === 'form' || stage === 'change') requestAnimationFrame(() => firstField.current?.focus())
+    else if (stage === 'form' || stage === 'change')
+      (fromError && stage === 'form' ? passwordField : firstField).current?.focus()
   }, [stage, other])
 
   const defaultDomain = domain?.netbios ?? null
@@ -269,7 +276,10 @@ export function LockScreen({ device, mode }: { device: HostDevice; mode: 'logon'
               )}
               <div className="flex">
                 <input
-                  ref={mode === 'unlock' || !other || stage === 'change' ? firstField : undefined}
+                  ref={(el) => {
+                    passwordField.current = el
+                    if (mode === 'unlock' || !other || stage === 'change') firstField.current = el
+                  }}
                   className={field}
                   type="password"
                   placeholder={stage === 'change' ? 'Ancien mot de passe' : 'Mot de passe'}
