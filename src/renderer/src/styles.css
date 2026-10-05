@@ -1,0 +1,38 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Segoe UI', 'Inter', system-ui, -apple-system, 'Noto Sans', 'Ubuntu', sans-serif;
+  --font-mono: 'Cascadia Mono', 'Consolas', 'DejaVu Sans Mono', 'Liberation Mono', monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  @apply bg-slate-100 font-sans text-sm text-slate-800 antialiased select-none;
+}
+
+/* Les champs de saisie restent sélectionnables */
+input,
+textarea,
+select,
+.selectable {
+  @apply select-text;
+}
+
+/* Barre de défilement discrète */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  @apply rounded bg-slate-300;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
