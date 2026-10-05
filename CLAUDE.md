@@ -76,6 +76,29 @@ npm run dist         # installeur local via electron-builder → dist/
 - Commits : Conventional Commits (`feat(engine): …`, `fix(renderer): …`, `test: …`, `ci: …`, `docs: …`).
 - Un commit par étape, tests verts avant d'enchaîner.
 
+## Règles de travail (roadmap v1.1 → v5.0)
+
+La roadmap est dans `ROADMAP.md` ; ses milestones, labels et issues sont décrits dans
+`.github/roadmap/roadmap.json` et créés par le workflow « Roadmap sync » (ne crée que ce qui manque).
+
+- Une issue = une branche `feat/<num>-<slug>` = une PR qui référence l'issue (`Closes #N`).
+- Tests Vitest obligatoires pour toute logique du moteur ; CI verte avant de proposer le merge.
+- Ne jamais mélanger deux issues dans une même PR.
+- Ne jamais commencer un milestone avant que le précédent soit terminé et validé par Gary.
+- À la fin de chaque issue : résumé en 3 lignes + comment tester manuellement.
+- À la fin de chaque milestone : mise à jour de `CHANGELOG.md`, bump de version, tag `vX.Y.0`.
+- Conventional Commits, code commenté en français.
+- Aucune image/icône/logo Microsoft ou Cisco, aucune vraie commande système exécutée.
+
+### Cibles d'architecture (prérequis v1.1)
+
+- **Modules de rôles** : chaque rôle = un dossier `src/engine/roles/<rôle>` exposant un `RoleModule`
+  (id, dépendances, état, cmdlets/outils, vues GUI, critères de lab, tâches de fond, évènements).
+- **Commandes** : toute modification d'état = commande nommée `{ type, params }` passant par un
+  `dispatch` unique ; annuler/rétablir et journal par patches immer (aucun inverse écrit à la main).
+- **Migrations** : un fichier `.slab` de référence par version de schéma, testé.
+- **Validation** : tout fichier importé passe par un schéma zod.
+
 ## Recettes
 
 ### Ajouter une cmdlet PowerShell

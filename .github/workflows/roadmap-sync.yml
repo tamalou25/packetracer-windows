@@ -1,0 +1,37 @@
+# Synchronise la roadmap avec GitHub : labels, milestones et issues décrits dans
+# .github/roadmap/roadmap.json. Idempotent : ne crée que ce qui manque, ne modifie jamais
+# une issue existante. Seul le jeton GITHUB_TOKEN du workflow est utilisé.
+name: Roadmap sync
+
+on:
+  push:
+    paths:
+      - '.github/roadmap/**'
+      - 'scripts/roadmap-sync.mjs'
+      - '.github/workflows/roadmap-sync.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: roadmap-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Labels, milestones et issues
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Synchronisation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/roadmap-sync.mjs

@@ -1,0 +1,283 @@
+{
+  "labels": [
+    {
+      "name": "feature",
+      "color": "1f883d",
+      "description": "Nouvelle fonctionnalité"
+    },
+    {
+      "name": "refactor",
+      "color": "8250df",
+      "description": "Restructuration du code sans changement visible"
+    },
+    {
+      "name": "bug",
+      "color": "d73a4a",
+      "description": "Quelque chose ne fonctionne pas"
+    },
+    {
+      "name": "engine",
+      "color": "0969da",
+      "description": "Moteur de simulation (src/engine)"
+    },
+    {
+      "name": "ui",
+      "color": "fbca04",
+      "description": "Interface (renderer React, menus)"
+    },
+    {
+      "name": "role",
+      "color": "c5def5",
+      "description": "Rôle serveur simulé"
+    },
+    {
+      "name": "network",
+      "color": "006b75",
+      "description": "Réseau (L2/L3, services réseau)"
+    },
+    {
+      "name": "security",
+      "color": "b60205",
+      "description": "Sécurité, durcissement, audit"
+    },
+    {
+      "name": "pedagogy",
+      "color": "f9a8d4",
+      "description": "Labs, guidage, évaluation"
+    }
+  ],
+  "milestones": [
+    {
+      "title": "v1.1",
+      "description": "Consolider : prérequis d'architecture (RoleModule, commandes, migrations, zod), annuler/rétablir, accueil, tutoriel, performance."
+    },
+    {
+      "title": "v2.0",
+      "description": "Nouveaux rôles serveur : WSUS, IIS, RDS, Hyper-V, ADCS, DFS, Sauvegarde."
+    },
+    {
+      "title": "v3.0",
+      "description": "Réseau avancé : VLAN, relais DHCP, pare-feu, RRAS, NPS, multi-sites AD."
+    },
+    {
+      "title": "v4.0",
+      "description": "Cybersécurité défensive : mode Audit, labs de durcissement, journaux de sécurité, verrouillage, rapport PDF."
+    },
+    {
+      "title": "v5.0",
+      "description": "Pédagogie et communauté : éditeur de labs, mode examen, bibliothèque communautaire, client Linux, FR/EN."
+    }
+  ],
+  "issues": [
+    {
+      "title": "Prérequis : système de modules de rôles (RoleModule)",
+      "milestone": "v1.1",
+      "labels": ["refactor", "engine"],
+      "body": "## Objectif\n\nChaque rôle serveur devient un module autonome dans `src/engine/roles/<rôle>` qui déclare tout ce qui le concerne : ajouter un rôle ne doit plus toucher au cœur du moteur.\n\n## Critères d'acceptation\n\n- [ ] Interface `RoleModule` : id, nom affiché, dépendances, état initial + schéma zod, cmdlets PowerShell et outils CMD, vues GUI (applications du Bureau), types de critères de lab, tâches de fond, évènements journalisés\n- [ ] Registre unique : installation/suppression d'une fonctionnalité, catalogue des cmdlets, critères de lab et tâches de fond dérivés du registre (plus de listes ni de `switch` codés en dur)\n- [ ] DHCP, DNS, AD DS, GPO et Fichiers migrés vers `src/engine/roles/<rôle>`\n- [ ] État des rôles stocké de façon générique sur le serveur, avec migration `.slab` testée\n- [ ] Tâches de fond (bail DHCP, application des GPO) pilotées par le moteur et non plus par un hook React\n- [ ] Comportement inchangé : tous les tests existants (moteur et E2E) restent verts\n- [ ] Recette « Ajouter un rôle » dans CLAUDE.md\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n## Notes\n\nAudit : `ServerDevice.services = {dhcp, dns}`, `onFeatureInstalled` en if/else, `shell/catalog.ts` listé à la main, `switch` de `labs/criteria.ts`, `useBackgroundServices.ts`.\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Prérequis : pattern Command (commandes nommées, dispatch, patches immer)",
+      "milestone": "v1.1",
+      "labels": ["refactor", "engine"],
+      "body": "## Objectif\n\nToute modification d'état passe par une commande nommée et réversible : base de l'annuler/rétablir, du journal et du rejeu.\n\n## Critères d'acceptation\n\n- [ ] Chaque modification = commande `{ type, params }` sérialisable, exécutée par un `dispatch` unique du moteur\n- [ ] Inverse calculé par immer (`produceWithPatches`) : aucune fonction inverse écrite à la main\n- [ ] Journal des commandes (type, libellé en français, heure simulée) consultable\n- [ ] GUI, consoles PowerShell/CMD et labs passent par `dispatch` ; actions à forme de retour spéciale (`adds/join`, `dhcp-client`, `gpo/processing`) normalisées\n- [ ] Rejeu : rejouer le journal depuis l'état initial redonne exactement le même état (test)\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Prérequis : migrations .slab testées par fichiers de référence",
+      "milestone": "v1.1",
+      "labels": ["refactor", "engine"],
+      "body": "## Objectif\n\nGarantir qu'un ancien lab s'ouvre toujours, quelle que soit sa version de format.\n\n## Critères d'acceptation\n\n- [ ] Un fichier `.slab` de référence par version de schéma (v1, v2, v3…) dans `tests/engine/serialization/fixtures`\n- [ ] Chaque fichier de référence s'ouvre, migre jusqu'à la version courante et passe la validation zod\n- [ ] Test de la migration 1 → 2 (GPO par défaut), absent aujourd'hui\n- [ ] Procédure dans CLAUDE.md : toute évolution du format = nouvelle migration + nouveau fichier de référence\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Prérequis : validation zod de tout fichier importé",
+      "milestone": "v1.1",
+      "labels": ["refactor", "engine", "security"],
+      "body": "## Objectif\n\nAucun fichier lu par l'application ne peut la faire planter ni exécuter quoi que ce soit.\n\n## Critères d'acceptation\n\n- [ ] Inventaire des fichiers lus : `.slab`, récupération automatique, labs JSON, `settings.json`, `recent.json`, futurs labs téléchargés\n- [ ] Chaque lecture passe par un schéma zod, avec une erreur claire en français\n- [ ] Tests de fichiers corrompus, tronqués, trop gros ou avec des champs inconnus\n- [ ] Aucun contenu importé n'est exécuté ni injecté comme HTML brut\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Annuler / rétablir sur le journal de commandes",
+      "milestone": "v1.1",
+      "labels": ["feature", "ui", "engine"],
+      "body": "## Objectif\n\nAnnuler et rétablir partout, avec des libellés compréhensibles, en s'appuyant sur le pattern Command.\n\n## Critères d'acceptation\n\n- [ ] Ctrl+Z / Ctrl+Y (et Maj+Ctrl+Z) sur le canvas, les configurations GUI et les commandes console\n- [ ] Menu Édition : « Annuler : <libellé de la commande> » / « Rétablir : … »\n- [ ] Un glisser-déposer = une seule entrée ; les tâches de fond (DHCP, GPO) ne polluent pas l'historique\n- [ ] Historique de 100 commandes au moins, vidé à l'ouverture d'un autre document\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n## Notes\n\nDéjà en place (audit) : pile de 100 instantanés dans `store/lab.ts`, raccourcis dans `useKeyboardShortcuts.ts`. Dépend du pattern Command.\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Thème suivant le système, raccourcis clavier, zoom et minimap",
+      "milestone": "v1.1",
+      "labels": ["feature", "ui"],
+      "body": "## Objectif\n\nCompléter l'ergonomie existante.\n\n## Critères d'acceptation\n\n- [ ] Choix Système / Sombre / Clair dans Affichage > Thème ; « Système » par défaut, suit l'OS en direct\n- [ ] Tous les raccourcis listés dans Aide > Raccourcis clavier, cohérents avec le menu\n- [ ] Zoom molette et Ctrl+= / Ctrl+- / Ctrl+0 ; minimap masquable, préférence conservée\n- [ ] Test E2E du mode Système\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n## Notes\n\nDéjà en place (audit) : thèmes sombre/clair, `ZoomControls`, minimap, raccourcis V/C/P/Suppr.\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Écran d'accueil",
+      "milestone": "v1.1",
+      "labels": ["feature", "ui"],
+      "body": "## Objectif\n\nPoint d'entrée clair au lancement.\n\n## Critères d'acceptation\n\n- [ ] Affiché au lancement sans fichier : labs récents (nom, date, dossier), Nouveau lab, Ouvrir…, labs fournis (difficulté, durée)\n- [ ] Fichier récent introuvable signalé et retirable de la liste\n- [ ] Accessible ensuite depuis Fichier > Accueil\n- [ ] Test E2E\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Tutoriel interactif au premier lancement",
+      "milestone": "v1.1",
+      "labels": ["feature", "ui", "pedagogy"],
+      "body": "## Objectif\n\nFaire réussir un premier ping en quelques minutes sans lire de documentation.\n\n## Critères d'acceptation\n\n- [ ] Parcours guidé : placer un serveur et un poste, câbler, configurer les adresses IP, ping, avec mise en évidence des zones concernées\n- [ ] Chaque étape est validée par l'état réel du lab (pas un simple bouton Suivant)\n- [ ] Passable, désactivable, relançable depuis Aide ; préférence enregistrée\n- [ ] Test E2E du parcours complet\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Bouton « Signaler un bug »",
+      "milestone": "v1.1",
+      "labels": ["feature", "ui", "security"],
+      "body": "## Objectif\n\nFaciliter les retours avec un rapport prérempli.\n\n## Critères d'acceptation\n\n- [ ] Aide > Signaler un bug ouvre le navigateur sur une issue GitHub préremplie : version, OS, version d'Electron, étapes à compléter\n- [ ] Ouverture par le process principal avec liste blanche (uniquement `https://github.com/tamalou25/packetracer-windows/issues/new`)\n- [ ] Aucune donnée du lab ni donnée personnelle envoyée automatiquement\n- [ ] Test E2E (ouverture externe simulée)\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Performance : topologie de 100 équipements fluide",
+      "milestone": "v1.1",
+      "labels": ["feature", "engine", "ui"],
+      "body": "## Objectif\n\nRester fluide sur de grandes topologies, mesures à l'appui.\n\n## Critères d'acceptation\n\n- [ ] Générateur de lab de 100 équipements ; mesures avant / après documentées\n- [ ] Nœuds abonnés à leur seul équipement : glisser un nœud ne re-rend pas les autres\n- [ ] Tâches de fond incrémentales (seulement les équipements concernés ; pas de DORA retenté à chaque modification)\n- [ ] Test automatisé avec seuils (temps d'ouverture, fluidité du glisser) fixés après la première mesure\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n## Notes\n\nAudit : `DeviceNode` s'abonne à tout le lab ; `useBackgroundServices` relance DHCP + GPO sur tout le lab à chaque changement.\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Sortir la logique métier des composants React",
+      "milestone": "v1.1",
+      "labels": ["refactor", "engine", "ui"],
+      "body": "## Objectif\n\nRespecter la règle « jamais de logique métier dans un composant ».\n\n## Critères d'acceptation\n\n- [ ] Implications des autorisations NTFS (`IMPLIES`) et recherche des partages couvrant un dossier déplacées dans le moteur (`FileProperties.tsx`)\n- [ ] Comptage des ports utilisés et statut « contrôleur de domaine » fournis par le moteur (`PropertiesPanel.tsx`)\n- [ ] Aucun changement visible\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n## Notes\n\nAjoutée par l'audit.\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Rôle WSUS",
+      "milestone": "v2.0",
+      "labels": ["feature", "role", "engine"],
+      "body": "## Objectif\n\nSimuler la gestion centralisée des mises à jour.\n\n## Critères d'acceptation\n\n- [ ] Rôle installable (assistant et `Install-WindowsFeature UpdateServices`) sous forme de RoleModule, console WSUS\n- [ ] Synchronisation simulée d'un catalogue de mises à jour fictives, classifications filtrables\n- [ ] Groupes d'ordinateurs (ciblage côté serveur ou côté client par GPO) et approbations par groupe\n- [ ] GPO « emplacement intranet du service de mise à jour » appliquée aux clients\n- [ ] **Acceptation** : un client ne reçoit que les mises à jour approuvées pour son groupe\n- [ ] Critère de lab et cmdlets principales\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Rôle IIS",
+      "milestone": "v2.0",
+      "labels": ["feature", "role", "engine"],
+      "body": "## Objectif\n\nSimuler un serveur web interne.\n\n## Critères d'acceptation\n\n- [ ] Rôle Web-Server, console : sites, liaisons (IP, port, en-tête d'hôte), dossier racine\n- [ ] HTTPS : liaison 443 avec certificat (auto-signé ou émis par l'AC interne)\n- [ ] Requête HTTP simulée depuis un client (navigateur simulé, `Invoke-WebRequest`) avec résolution DNS\n- [ ] **Acceptation** : `http://intranet.domaine.local` répond depuis un client après ajout du CNAME\n- [ ] Erreurs réalistes (404, liaison en conflit, site arrêté) et critère de lab\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Rôle RDS (services Bureau à distance)",
+      "milestone": "v2.0",
+      "labels": ["feature", "role", "engine"],
+      "body": "## Objectif\n\nSimuler l'accès aux sessions distantes.\n\n## Critères d'acceptation\n\n- [ ] Hôte de session, groupe d'accès, collection et RemoteApp\n- [ ] Connexion Bureau à distance simulée depuis un client\n- [ ] **Acceptation** : seuls les membres autorisés ouvrent une session (refus explicite sinon)\n- [ ] Évènement 4624 de type 10 et critère de lab\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Rôle Hyper-V",
+      "milestone": "v2.0",
+      "labels": ["feature", "role", "engine"],
+      "body": "## Objectif\n\nSimuler la virtualisation et les commutateurs virtuels.\n\n## Critères d'acceptation\n\n- [ ] Machines virtuelles imbriquées dans un hôte, visibles et configurables\n- [ ] Commutateurs virtuels externe / interne / privé, carte réseau de VM rattachée\n- [ ] **Acceptation** : une VM sur commutateur privé ne joint pas le réseau physique\n- [ ] Démarrage/arrêt des VM, cmdlets `New-VM`, `New-VMSwitch`… et migration `.slab`\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n## Notes\n\nRisque (audit) : premier cas d'équipements imbriqués dans le modèle.\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Rôle ADCS (services de certificats)",
+      "milestone": "v2.0",
+      "labels": ["feature", "role", "engine"],
+      "body": "## Objectif\n\nSimuler une infrastructure à clé publique d'entreprise.\n\n## Critères d'acceptation\n\n- [ ] AC racine d'entreprise, modèles de certificats, demande, émission et révocation\n- [ ] Inscription automatique par GPO ; certificat racine approuvé par les membres du domaine\n- [ ] **Acceptation** : certificat IIS émis par l'AC interne, approuvé par les clients du domaine\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n## Notes\n\nDépend du rôle IIS pour le critère d'acceptation.\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Rôle DFS (espaces de noms et réplication)",
+      "milestone": "v2.0",
+      "labels": ["feature", "role", "engine"],
+      "body": "## Objectif\n\nSimuler les espaces de noms et la réplication de fichiers.\n\n## Critères d'acceptation\n\n- [ ] Espace de noms de domaine (`\\\\domaine\\partages`) avec dossiers et cibles\n- [ ] Groupes de réplication entre deux serveurs (réplication simulée avec délai)\n- [ ] **Acceptation** : un fichier créé sur un serveur apparaît sur l'autre\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Rôle Sauvegarde du serveur et corbeille AD",
+      "milestone": "v2.0",
+      "labels": ["feature", "role", "engine"],
+      "body": "## Objectif\n\nSimuler la sauvegarde, la restauration et la corbeille Active Directory.\n\n## Critères d'acceptation\n\n- [ ] Planification de sauvegarde (volumes, dossiers, état du système) et historique\n- [ ] Restauration de fichiers et d'objets\n- [ ] Corbeille Active Directory activable (`Enable-ADOptionalFeature`)\n- [ ] **Acceptation** : un utilisateur AD supprimé est restaurable\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "VLAN, trunk 802.1Q et routage inter-VLAN",
+      "milestone": "v3.0",
+      "labels": ["feature", "network", "engine"],
+      "body": "## Objectif\n\nSegmenter le réseau comme en entreprise.\n\n## Critères d'acceptation\n\n- [ ] VLAN par port de switch (accès), trunk 802.1Q, VLAN natif\n- [ ] Routeur « on a stick » : sous-interfaces (`Gi0/0.10`, encapsulation dot1Q) et routage inter-VLAN\n- [ ] Trames étiquetées visibles en mode Simulation ; migration `.slab`\n- [ ] **Acceptation** : deux postes de VLAN différents ne communiquent que via le routeur\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n## Notes\n\nRisque (audit) : refonte des domaines L2 du moteur.\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Relais DHCP (helper-address)",
+      "milestone": "v3.0",
+      "labels": ["feature", "network", "engine"],
+      "body": "## Objectif\n\nUn serveur DHCP unique pour plusieurs réseaux.\n\n## Critères d'acceptation\n\n- [ ] `ip helper-address` sur une interface ou sous-interface de routeur\n- [ ] Le serveur choisit l'étendue d'après l'adresse du relais (giaddr), visible en Simulation\n- [ ] **Acceptation** : un même serveur DHCP sert plusieurs VLAN\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Pare-feu simulé",
+      "milestone": "v3.0",
+      "labels": ["feature", "network", "engine", "security"],
+      "body": "## Objectif\n\nDes règles de pare-feu qui ont un effet réel sur les échanges.\n\n## Critères d'acceptation\n\n- [ ] Profils domaine / privé / public selon le réseau détecté, activables par profil\n- [ ] Règles entrantes et sortantes (protocole, port, adresses) ; console et `New-NetFirewallRule`, `netsh advfirewall`\n- [ ] Effet réel : ICMP bloqué → ping en échec, SMB bloqué → partage inaccessible, paquet rejeté visible en Simulation\n- [ ] Configurable par GPO\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "RRAS : VPN simple et NAT",
+      "milestone": "v3.0",
+      "labels": ["feature", "network", "engine"],
+      "body": "## Objectif\n\nAccès distant et partage de connexion Internet.\n\n## Critères d'acceptation\n\n- [ ] Rôle Accès à distance : NAT entre le LAN et Internet (nuage) avec traduction visible en Simulation\n- [ ] VPN simple client → serveur avec attribution d'une adresse du pool\n- [ ] **Acceptation** : un poste du LAN joint 8.8.8.8 via le NAT ; un client VPN joint un serveur interne\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "NPS / RADIUS",
+      "milestone": "v3.0",
+      "labels": ["feature", "network", "engine", "security"],
+      "body": "## Objectif\n\nAuthentifier les accès VPN selon les groupes AD.\n\n## Critères d'acceptation\n\n- [ ] Rôle NPS, client RADIUS (serveur VPN), stratégies réseau par groupe AD\n- [ ] **Acceptation** : seuls les membres du groupe autorisé établissent le VPN\n- [ ] Journal NPS (accès accordé / refusé)\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Multi-sites AD, réplication et rôles FSMO",
+      "milestone": "v3.0",
+      "labels": ["feature", "network", "engine"],
+      "body": "## Objectif\n\nSimuler un domaine réparti sur plusieurs sites.\n\n## Critères d'acceptation\n\n- [ ] Sites, sous-réseaux et liens de sites (coût, intervalle) ; console Sites et services\n- [ ] Second contrôleur de domaine (promotion dans un domaine existant) et réplication simulée entre DC\n- [ ] Rôles FSMO : affichage (`netdom query fsmo`) et transfert (`Move-ADDirectoryServerOperationMasterRole`)\n- [ ] Un client s'authentifie auprès du DC de son site\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Mode Audit : score de sécurité et recommandations",
+      "milestone": "v4.0",
+      "labels": ["feature", "security", "engine"],
+      "body": "## Objectif\n\nAnalyser un lab et expliquer comment le durcir.\n\n## Critères d'acceptation\n\n- [ ] Analyse du lab → score sur 100 et recommandations classées par gravité, chacune avec la correction suggérée et l'objet concerné\n- [ ] Règles : trop de membres dans Admins du domaine, mots de passe sans expiration, partage « Tout le monde : Contrôle total », SMBv1 activé, politique de mot de passe faible, comptes inactifs, pare-feu désactivé\n- [ ] Règles déclaratives testées une à une\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Labs de durcissement",
+      "milestone": "v4.0",
+      "labels": ["feature", "security", "pedagogy"],
+      "body": "## Objectif\n\nApprendre en corrigeant un lab volontairement mal configuré.\n\n## Critères d'acceptation\n\n- [ ] Au moins 3 labs mal configurés (AD, partages, pare-feu)\n- [ ] Critère de lab « score d'audit ≥ N » et critères ciblés\n- [ ] Indices sans solution ; test qui applique les corrections et exige 100 %\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Journaux de sécurité simulés et filtrables",
+      "milestone": "v4.0",
+      "labels": ["feature", "security", "engine"],
+      "body": "## Objectif\n\nLire les évènements de sécurité comme sur un vrai serveur.\n\n## Critères d'acceptation\n\n- [ ] Évènements 4624, 4625, 4720, 4728, 4740 et 4672 générés aux bons moments\n- [ ] Observateur d'évènements : filtres par ID, niveau, source et date ; `Get-WinEvent -FilterHashtable`\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n## Notes\n\nAudit : 4624, 4625 et 4720 existent déjà ; 4728, 4740 et 4672 manquent.\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Stratégies de verrouillage de compte et d'audit par GPO",
+      "milestone": "v4.0",
+      "labels": ["feature", "security", "engine"],
+      "body": "## Objectif\n\nDes stratégies dont l'effet est visible dans les journaux.\n\n## Critères d'acceptation\n\n- [ ] Verrouillage (seuil, durée, réinitialisation) : N échecs → compte verrouillé, évènement 4740\n- [ ] Stratégie d'audit (ouvertures de session, gestion des comptes) qui conditionne la génération des évènements\n- [ ] Déverrouillage depuis la console AD et `Unlock-ADAccount`\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Rapport d'audit exportable en PDF",
+      "milestone": "v4.0",
+      "labels": ["feature", "security", "ui"],
+      "body": "## Objectif\n\nGarder une trace du travail de durcissement.\n\n## Critères d'acceptation\n\n- [ ] Export PDF depuis le process principal (dialogue d'enregistrement natif)\n- [ ] Contenu : lab, date, score, recommandations et état corrigé / non corrigé\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Éditeur de labs intégré",
+      "milestone": "v5.0",
+      "labels": ["feature", "pedagogy", "ui"],
+      "body": "## Objectif\n\nCréer des labs sans écrire de code.\n\n## Critères d'acceptation\n\n- [ ] Énoncé Markdown avec aperçu ; topologie de départ = lab courant\n- [ ] Critères construits sans code (sélecteurs d'équipements/objets + conditions), testables immédiatement sur le lab courant\n- [ ] Indices progressifs (plusieurs niveaux)\n- [ ] Export / import JSON validé par zod\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Mode examen",
+      "milestone": "v5.0",
+      "labels": ["feature", "pedagogy", "ui"],
+      "body": "## Objectif\n\nS'entraîner en conditions d'épreuve.\n\n## Critères d'acceptation\n\n- [ ] Chronomètre, indices désactivés, vérification finale unique\n- [ ] Note détaillée par critère et export du résultat\n- [ ] Toute sortie du mode examen est signalée dans le résultat\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Bibliothèque communautaire de labs",
+      "milestone": "v5.0",
+      "labels": ["feature", "pedagogy", "security"],
+      "body": "## Objectif\n\nPartager et télécharger des labs en toute sécurité.\n\n## Critères d'acceptation\n\n- [ ] Index JSON hébergé dans un dépôt GitHub public séparé (titre, auteur, difficulté, version, empreinte SHA-256)\n- [ ] Parcourir et télécharger depuis l'application ; validation zod stricte et vérification de l'empreinte\n- [ ] Aucun code exécuté depuis un lab ; taille maximale ; erreurs claires\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n## Notes\n\nNécessite un dépôt public (audit : le dépôt actuel est privé).\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Client Linux simulé",
+      "milestone": "v5.0",
+      "labels": ["feature", "pedagogy", "network", "engine"],
+      "body": "## Objectif\n\nIntégrer un poste Linux au domaine.\n\n## Critères d'acceptation\n\n- [ ] Nouveau type d'équipement : poste Ubuntu simulé avec un terminal bash simulé\n- [ ] `ip a`, `ip route`, `ping`, `dig`, `realm join`, `smbclient` / montage CIFS\n- [ ] **Acceptation** : le poste rejoint le domaine et accède à un partage selon les droits NTFS\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Interface FR / EN (i18n)",
+      "milestone": "v5.0",
+      "labels": ["feature", "pedagogy", "ui"],
+      "body": "## Objectif\n\nRendre l'application utilisable en anglais.\n\n## Critères d'acceptation\n\n- [ ] Bibliothèque i18n, fichiers fr / en, Affichage > Langue (par défaut : langue du système)\n- [ ] Interface et menus traduits\n- [ ] Test qui échoue si une clé manque dans une langue\n- [ ] Tests Vitest de la logique du moteur, CI verte\n\n## Notes\n\nAudit : chaînes françaises codées en dur dans tous les composants.\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Signature de code de l'installeur : procédure",
+      "milestone": "v5.0",
+      "labels": ["feature", "pedagogy", "security"],
+      "body": "## Objectif\n\nDocumenter la signature pour supprimer l'avertissement SmartScreen.\n\n## Critères d'acceptation\n\n- [ ] Documentation : types de certificats, coûts, secrets GitHub nécessaires, configuration electron-builder\n- [ ] Aucune automatisation sans accord explicite, aucun secret dans le dépôt\n- [ ] Documentation relue, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    }
+  ]
+}
