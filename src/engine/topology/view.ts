@@ -1,12 +1,14 @@
 /**
- * Résumé visuel d'un équipement pour le canvas : état (LED du nœud) et adresse IP principale.
- * Purement dérivé de l'état du moteur, sans le modifier.
+ * Résumé visuel du canvas : état (LED) et adresse IP principale de chaque nœud, voyants des
+ * câbles. Purement dérivé de l'état du moteur, sans le modifier ; `canvasStatus` le calcule une
+ * fois pour tous les nœuds et le réutilise tant que le réseau n'a pas changé.
  */
 import type { Device, LabState } from '../model/schema'
 import { effectiveIpv4, hasUsableAddress } from '../net/addressing'
 import { ipConflicts } from '../net/conflicts'
+import { memoByNetwork } from '../net/network-key'
 import { isHostDevice, linkOnInterface } from './queries'
-import { endStatus } from './status'
+import { endStatus, type LedStatus } from './status'
 
 /** ok : opérationnel · warn : à vérifier · off : éteint · idle : aucun câble raccordé. */
 export type DeviceHealth = 'ok' | 'warn' | 'off' | 'idle'
@@ -17,18 +19,6 @@ export interface HealthInfo {
   label: string
 }
 
-/** Conflits d'adresses calculés une seule fois par état du lab (partagés par tous les nœuds). */
-const conflictCache = new WeakMap<LabState, Set<string>>()
-
-function conflictsOf(lab: LabState): Set<string> {
-  let set = conflictCache.get(lab)
-  if (!set) {
-    set = ipConflicts(lab)
-    conflictCache.set(lab, set)
-  }
-  return set
-}
-
 export function deviceHealth(lab: LabState, device: Device): HealthInfo {
   if (!device.powered) return { status: 'off', label: 'Éteint' }
   const linked = device.interfaces
@@ -37,7 +27,7 @@ export function deviceHealth(lab: LabState, device: Device): HealthInfo {
   if (linked.length === 0) return { status: 'idle', label: 'Aucun câble raccordé' }
   if (isHostDevice(device) && device.host.pendingReboot)
     return { status: 'warn', label: 'Redémarrage requis pour appliquer des modifications' }
-  const conflicts = conflictsOf(lab)
+  const conflicts = ipConflicts(lab)
   for (const { iface, link } of linked) {
     if (!link || !iface.enabled) continue
     const side = link.a.deviceId === device.id && link.a.ifaceId === iface.id ? 'a' : 'b'
@@ -89,3 +79,65 @@ export function primaryAddress(lab: LabState, device: Device): PrimaryAddress | 
     more: addresses.length - 1
   }
 }
+
+/** Résumé d'un nœud du canvas. */
+export interface DeviceView {
+  health: HealthInfo
+  ip: PrimaryAddress | null
+}
+
+/** Résumé d'un câble du canvas : voyants et noms des ports aux deux extrémités. */
+export interface LinkView {
+  a: LedStatus
+  b: LedStatus
+  portA: string
+  portB: string
+}
+
+export interface CanvasStatus {
+  devices: Record<string, DeviceView>
+  links: Record<string, LinkView>
+}
+
+const sameHealth = (x: HealthInfo, y: HealthInfo) => x.status === y.status && x.label === y.label
+const sameIp = (x: PrimaryAddress | null, y: PrimaryAddress | null) =>
+  x === y || (!!x && !!y && x.text === y.text && x.tone === y.tone && x.more === y.more)
+const sameLink = (x: LinkView, y: LinkView) =>
+  x.a === y.a && x.b === y.b && x.portA === y.portA && x.portB === y.portB
+
+let previous: CanvasStatus = { devices: {}, links: {} }
+
+/**
+ * Calcule le résumé de tous les nœuds et câbles. Une entrée identique à celle du calcul précédent
+ * est réutilisée par référence : seuls les nœuds réellement modifiés sont redessinés.
+ */
+function computeCanvasStatus(lab: LabState): CanvasStatus {
+  const devices: Record<string, DeviceView> = {}
+  for (const device of Object.values(lab.devices)) {
+    const view = { health: deviceHealth(lab, device), ip: primaryAddress(lab, device) }
+    const old = previous.devices[device.id]
+    devices[device.id] = old && sameHealth(old.health, view.health) && sameIp(old.ip, view.ip) ? old : view
+  }
+  const links: Record<string, LinkView> = {}
+  for (const link of Object.values(lab.links)) {
+    const portName = (end: typeof link.a) =>
+      lab.devices[end.deviceId]?.interfaces.find((i) => i.id === end.ifaceId)?.name ?? ''
+    const view = {
+      a: endStatus(lab, link, 'a'),
+      b: endStatus(lab, link, 'b'),
+      portA: portName(link.a),
+      portB: portName(link.b)
+    }
+    const old = previous.links[link.id]
+    links[link.id] = old && sameLink(old, view) ? old : view
+  }
+  previous = { devices, links }
+  return previous
+}
+
+/** Résumé du canvas, recalculé seulement quand le réseau ou un redémarrage en attente change. */
+export const canvasStatus: (lab: LabState) => CanvasStatus = memoByNetwork(
+  computeCanvasStatus,
+  (before, after) =>
+    !isHostDevice(before) || !isHostDevice(after) || before.host.pendingReboot === after.host.pendingReboot
+)
