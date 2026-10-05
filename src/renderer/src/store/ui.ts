@@ -6,6 +6,7 @@ import { create } from 'zustand'
 import type { Device, DeviceKind, Link } from '@engine/index'
 import type { SimMode, Theme } from '@shared/ipc'
 import { readPref, writePref } from '../lib/prefs'
+import { useLabStore } from './lab'
 
 /** Outil actif sur le canvas. */
 export type Tool = 'select' | 'cable' | 'delete' | 'pdu'
@@ -167,7 +168,11 @@ export const useUiStore = create<UiState>()((set, get) => ({
     applyThemeToDocument(theme)
     set({ theme })
   },
-  setMode: (mode) => set({ mode, rightTab: mode === 'simulation' ? 'simulation' : 'properties' }),
+  setMode: (mode) => {
+    set({ mode, rightTab: mode === 'simulation' ? 'simulation' : 'properties' })
+    // Tâches de fond des rôles : actives en Temps réel, suspendues en Simulation
+    useLabStore.getState().setRealtime(mode === 'realtime')
+  },
   togglePortLabels: () => set((s) => ({ showPortLabels: !s.showPortLabels })),
   toggleMinimap: () =>
     set((s) => {

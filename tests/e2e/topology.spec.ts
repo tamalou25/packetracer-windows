@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { CURRENT_SCHEMA_VERSION } from '../../src/engine/serialization/migrations'
 import { cableDevices, clickMenu, launchApp, placeDevice } from './helpers'
 
 test('construire une topologie, l’enregistrer puis la rouvrir', async () => {
@@ -39,7 +40,7 @@ test('construire une topologie, l’enregistrer puis la rouvrir', async () => {
       schemaVersion: number
       lab: { devices: object }
     }
-    expect(saved.schemaVersion).toBe(3)
+    expect(saved.schemaVersion).toBe(CURRENT_SCHEMA_VERSION)
     expect(Object.keys(saved.lab.devices)).toHaveLength(3)
 
     // Nouveau document puis réouverture

@@ -51,6 +51,16 @@ test('DHCP : étendue créée dans la console, le poste obtient une adresse (DOR
     await expect(events).toContainText('DHCP')
     const pc = page.getByTestId('device-window-PC1')
     await expect(pc.getByTestId('terminal-cmd')).toContainText('192.168.10.100')
+    await pc.getByTestId('close-device-window').click()
+
+    // Tâches de fond pilotées par le moteur : suspendues en Simulation, reprises en Temps réel
+    await placeDevice(page, 'client', 520, 470)
+    await cableDevices(page, 'PC2', 'Ethernet0', 'SW1', 'Fa0/3')
+    const pc2 = page.getByTestId('device-PC2')
+    await expect(pc2).toBeVisible()
+    await expect(pc2).not.toContainText('192.168.10.101')
+    await page.getByTestId('mode-realtime').click()
+    await expect(pc2).toContainText('192.168.10.101/24')
     expect(consoleErrors).toEqual([])
   } finally {
     await close()

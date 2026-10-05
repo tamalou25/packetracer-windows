@@ -149,7 +149,9 @@ export function StartMenu({ device, onClose, onPower }: StartMenuProps) {
       apps: available.filter((a) => a.start === 'admin' || (a.tool && a.start !== 'top'))
     },
     { id: 'system', label: 'Système', apps: available.filter((a) => a.start === 'system') }
-  ].filter((f) => f.apps.length > 0)
+  ]
+    .map((f) => ({ ...f, apps: f.apps.sort((a, b) => a.label.localeCompare(b.label, 'fr')) }))
+    .filter((f) => f.apps.length > 0)
   const entries = [
     ...available.filter((a) => a.start === 'top').map((a) => ({ key: a.id, label: a.label, app: a })),
     ...folders.map((f) => ({ key: `folder-${f.id}`, label: f.label, folder: f }))

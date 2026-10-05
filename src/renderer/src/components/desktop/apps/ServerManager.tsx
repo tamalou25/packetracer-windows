@@ -7,15 +7,11 @@ import { useState, type ReactNode } from 'react'
 import {
   ChevronRight,
   Flag,
-  Globe,
-  HardDrive,
   LayoutDashboard,
   RefreshCw,
   Server,
   ServerCog,
   TriangleAlert,
-  UsersRound,
-  Waypoints,
   type LucideIcon
 } from 'lucide-react'
 import {
@@ -23,6 +19,7 @@ import {
   effectiveIpv4,
   featureInfo,
   nodePath,
+  roleModules,
   type EventLogEntry,
   type ServerDevice
 } from '@engine/index'
@@ -31,6 +28,7 @@ import { formatSimTime } from '../../../lib/format'
 import { useLabStore } from '../../../store/lab'
 import { MessageBox } from '../shell/classic'
 import { DESKTOP_APPS } from '../apps'
+import { roleIcon } from '../roleViews'
 
 type Page = 'dashboard' | 'local' | 'all' | `role:${string}`
 
@@ -40,51 +38,43 @@ interface RoleDef {
   icon: LucideIcon
   /** Sources d'événements propres au rôle. */
   sources: string[]
+  /** Fonctionnalités de type rôle du module (le rôle est affiché si l'une est installée). */
+  roleFeatures: string[]
 }
 
-const ROLES: RoleDef[] = [
-  {
-    feature: 'AD-Domain-Services',
-    label: 'AD DS',
-    icon: UsersRound,
-    sources: ['ActiveDirectory_DomainService', 'Security-Auditing']
-  },
-  { feature: 'DHCP', label: 'DHCP', icon: Waypoints, sources: ['DhcpServer'] },
-  { feature: 'DNS', label: 'DNS', icon: Globe, sources: ['DNS', 'DNS Server', 'Serveur DNS'] },
-  {
-    feature: 'FileAndStorage-Services',
-    label: 'Services de fichiers et de stockage',
-    icon: HardDrive,
-    sources: ['Srv', 'LanmanServer']
-  }
-]
+/** Rôles affichés en vignettes : modules du registre dont la fonctionnalité principale est un rôle. */
+const ROLES: RoleDef[] = roleModules()
+  .filter((m) => featureInfo(m.feature)?.role)
+  .map((m) => ({
+    feature: m.feature,
+    label: m.displayName,
+    icon: roleIcon(m.id),
+    sources: m.events.sources,
+    roleFeatures: m.features.filter((f) => f.role).map((f) => f.name)
+  }))
+  .sort((a, b) => a.feature.localeCompare(b.feature))
 
 interface ServiceRow {
   display: string
   name: string
 }
 
-/** Services Windows simulés, dérivés des rôles installés (tous en cours d'exécution). */
+/** Services système simulés : ceux du système, puis ceux déclarés par les rôles installés. */
 function servicesOf(device: ServerDevice, dc: boolean): (ServiceRow & { role?: string })[] {
   const has = (f: string) => device.host.features.includes(f)
+  const fromRoles = roleModules().flatMap((m) =>
+    m.services
+      .filter((s) => s.when === 'always' || (s.when === 'installed' ? has(m.feature) : dc))
+      .map((s) => ({ display: s.display, name: s.name, role: m.feature }))
+  )
   return [
     { display: 'Client DHCP', name: 'Dhcp' },
     { display: 'Client DNS', name: 'Dnscache' },
     { display: 'Journal d’événements', name: 'EventLog' },
     { display: 'Pare-feu', name: 'MpsSvc' },
-    { display: 'Serveur', name: 'LanmanServer', role: 'FileAndStorage-Services' },
     { display: 'Station de travail', name: 'LanmanWorkstation' },
-    ...(has('DHCP') ? [{ display: 'Serveur DHCP', name: 'DHCPServer', role: 'DHCP' }] : []),
-    ...(has('DNS') ? [{ display: 'Serveur DNS', name: 'DNS', role: 'DNS' }] : []),
-    ...(dc
-      ? [
-          { display: 'Services de domaine Active Directory', name: 'NTDS', role: 'AD-Domain-Services' },
-          { display: 'Centre de distribution de clés Kerberos', name: 'Kdc', role: 'AD-Domain-Services' },
-          { display: 'Ouverture de session réseau', name: 'Netlogon', role: 'AD-Domain-Services' },
-          { display: 'Réplication DFS', name: 'DFSR', role: 'AD-Domain-Services' }
-        ]
-      : [])
-  ]
+    ...fromRoles
+  ].sort((a, b) => a.display.localeCompare(b.display, 'fr'))
 }
 
 interface Notification {
@@ -185,12 +175,8 @@ export function ServerManager({ device }: { device: ServerDevice }) {
   const domains = useLabStore((s) => s.lab.domains)
   const dc = Object.values(domains).some((d) => d.controllers.includes(device.id))
   const notifications = notificationsOf(device, dc)
-  // Les services de fichiers et de stockage sont présents sur tout serveur (rôle Serveur de fichiers)
-  const installedRoles = ROLES.filter(
-    (r) =>
-      device.host.features.includes(r.feature) ||
-      (r.feature === 'FileAndStorage-Services' && device.host.features.includes('FS-FileServer'))
-  )
+  // Un rôle est affiché dès qu'un de ses services de rôle est installé (Serveur de fichiers par défaut)
+  const installedRoles = ROLES.filter((r) => r.roleFeatures.some((f) => device.host.features.includes(f)))
   const tools = DESKTOP_APPS.filter((a) => a.tool && a.available(device)).sort((a, b) =>
     a.label.localeCompare(b.label, 'fr')
   )

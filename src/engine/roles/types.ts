@@ -65,7 +65,7 @@ export interface ViewRequirement {
 /**
  * Vue graphique du rôle : application du Bureau simulé. Le moteur n'importe pas React : la vue
  * est décrite ici (titre, commande Exécuter, disponibilité) et son composant est associé par
- * l'interface (`renderer/src/components/desktop/roleViews.tsx`).
+ * l'interface (`renderer/src/components/desktop/roleViews.ts`, composant dans `renderApp.tsx`).
  */
 export interface RoleView {
   /** Identifiant de l'application du Bureau. */
