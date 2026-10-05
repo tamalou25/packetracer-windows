@@ -9,6 +9,7 @@
  */
 import { clearEventLog } from '../core/eventlog'
 import type { EngineResult } from '../core/result'
+import { nextDeviceName } from '../model/factory'
 import type { LabState, Position } from '../model/schema'
 import { addStaticRoute, removeStaticRoute, setInterfaceIpv4 } from '../net/config'
 import { backgroundLabel, runBackgroundTasks } from '../roles/background'
@@ -90,7 +91,8 @@ function shellExec(
 /** Commandes du système de base (topologie, réseau, système, consoles, lots). */
 const CORE_COMMANDS = {
   // Topologie
-  'topology.addDevice': def(addDevice, (_s, p) => `Ajouter ${p.name ?? `un équipement (${p.kind})`}`),
+  // Sans nom imposé : le nom que l'équipement recevra (SRV1, PC2…)
+  'topology.addDevice': def(addDevice, (s, p) => `Ajouter ${p.name?.trim() || nextDeviceName(s, p.kind)}`),
   'topology.removeDevices': def(removeDevices, (s, ids) => `Supprimer ${deviceNames(s, ids)}`),
   'topology.renameDevice': def(renameDevice, (s, id, name) => `Renommer ${deviceName(s, id)} en ${name}`),
   'topology.moveDevice': def(moveDevice, (s, id) => `Déplacer ${deviceName(s, id)}`),

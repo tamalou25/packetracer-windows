@@ -64,11 +64,16 @@ export function parseRecentFiles(text: string): RecentFile[] {
 
 // --- Messages IPC du renderer -----------------------------------------------------------------
 
+/** Longueur maximale d'un libellé de menu reçu du renderer. */
+export const MAX_MENU_LABEL = 120
+
 export const MenuStateSchema = z.object({
   mode: z.enum(['realtime', 'simulation']),
   showPortLabels: z.boolean(),
   showProperties: z.boolean(),
-  showMinimap: z.boolean()
+  showMinimap: z.boolean(),
+  undoLabel: z.string().max(MAX_MENU_LABEL).nullable(),
+  redoLabel: z.string().max(MAX_MENU_LABEL).nullable()
 }) satisfies z.ZodType<MenuState>
 
 export const DocStateSchema = z.object({

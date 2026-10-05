@@ -8,6 +8,7 @@ import { MAX_SLAB_BYTES } from '../../src/shared/ipc'
 import {
   DEFAULT_SETTINGS,
   DocStateSchema,
+  MAX_MENU_LABEL,
   MAX_RECENT,
   MAX_RECENT_BYTES,
   MAX_SETTINGS_BYTES,
@@ -64,11 +65,29 @@ describe('recent.json', () => {
 
 describe('messages IPC', () => {
   it('état du menu : forme exacte exigée', () => {
-    const ok = { mode: 'realtime', showPortLabels: false, showProperties: true, showMinimap: true }
+    const ok = {
+      mode: 'realtime',
+      showPortLabels: false,
+      showProperties: true,
+      showMinimap: true,
+      undoLabel: 'Annuler : Ajouter SRV1',
+      redoLabel: null
+    }
     expect(MenuStateSchema.safeParse(ok).success).toBe(true)
     expect(MenuStateSchema.safeParse({ ...ok, mode: 'turbo' }).success).toBe(false)
     expect(MenuStateSchema.safeParse({ ...ok, showMinimap: 'oui' }).success).toBe(false)
     expect(MenuStateSchema.safeParse(null).success).toBe(false)
+  })
+
+  it('état du menu : libellés Annuler / Rétablir texte court ou null', () => {
+    const base = { mode: 'simulation', showPortLabels: true, showProperties: false, showMinimap: false }
+    expect(MenuStateSchema.safeParse({ ...base, undoLabel: null, redoLabel: null }).success).toBe(true)
+    expect(MenuStateSchema.safeParse({ ...base, undoLabel: null }).success).toBe(false)
+    expect(MenuStateSchema.safeParse({ ...base, undoLabel: 42, redoLabel: null }).success).toBe(false)
+    expect(
+      MenuStateSchema.safeParse({ ...base, undoLabel: 'x'.repeat(MAX_MENU_LABEL + 1), redoLabel: null })
+        .success
+    ).toBe(false)
   })
 
   it('état du document : nom limité à 200 caractères', () => {

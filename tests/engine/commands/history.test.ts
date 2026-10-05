@@ -174,6 +174,15 @@ describe('historique annuler / rétablir', () => {
     expect(historyLabels(emptyHistory())).toEqual({ undo: null, redo: null })
   })
 
+  it('équipement posé depuis la palette : le libellé donne le nom qu’il recevra', () => {
+    const s = run(
+      { state: createLab(), history: emptyHistory() },
+      command('topology.addDevice', { kind: 'server', position: { x: 0, y: 0 } }),
+      command('topology.addDevice', { kind: 'server', position: { x: 0, y: 0 } })
+    )
+    expect(s.history.past.map((e) => e.label)).toEqual(['Ajouter SRV1', 'Ajouter SRV2'])
+  })
+
   it('libellés du menu Édition, tronqués au besoin', () => {
     expect(menuLabel('Annuler', null)).toBe('Annuler')
     expect(menuLabel('Annuler', 'Ajouter SRV1')).toBe('Annuler : Ajouter SRV1')

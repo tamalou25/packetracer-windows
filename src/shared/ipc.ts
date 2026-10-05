@@ -55,6 +55,10 @@ export interface MenuState {
   showPortLabels: boolean
   showProperties: boolean
   showMinimap: boolean
+  /** Libellé de l'élément Édition > Annuler (« Annuler : Ajouter SRV1 »), null : rien à annuler. */
+  undoLabel: string | null
+  /** Libellé de l'élément Édition > Rétablir, null : rien à rétablir. */
+  redoLabel: string | null
 }
 
 /** Informations sur l'application. */

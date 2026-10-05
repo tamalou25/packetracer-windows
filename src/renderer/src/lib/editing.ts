@@ -12,22 +12,30 @@ export function isEditableTarget(target: EventTarget | null): boolean {
   return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
 }
 
-export function undo(): void {
-  if (isEditableTarget(document.activeElement)) {
+/**
+ * Cible d'annuler / rétablir : `auto` (clavier) garde l'annulation native du texte dans un champ
+ * de saisie ; `lab` (menu Édition, ligne de console vide) annule toujours la dernière commande.
+ */
+export type HistoryTarget = 'auto' | 'lab'
+
+/** Annule la dernière commande du lab et affiche son libellé. */
+export function undo(target: HistoryTarget = 'auto'): void {
+  if (target === 'auto' && isEditableTarget(document.activeElement)) {
     document.execCommand('undo')
     return
   }
   const outcome = useLabStore.getState().undo()
-  if (!outcome.ok) useUiStore.getState().notify('info', outcome.message)
+  useUiStore.getState().notify('info', outcome.ok ? `Annulé : ${outcome.label}` : outcome.message)
 }
 
-export function redo(): void {
-  if (isEditableTarget(document.activeElement)) {
+/** Rétablit la dernière commande annulée et affiche son libellé. */
+export function redo(target: HistoryTarget = 'auto'): void {
+  if (target === 'auto' && isEditableTarget(document.activeElement)) {
     document.execCommand('redo')
     return
   }
   const outcome = useLabStore.getState().redo()
-  if (!outcome.ok) useUiStore.getState().notify('info', outcome.message)
+  useUiStore.getState().notify('info', outcome.ok ? `Rétabli : ${outcome.label}` : outcome.message)
 }
 
 export function deleteSelection(): void {

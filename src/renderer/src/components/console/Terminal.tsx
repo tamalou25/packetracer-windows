@@ -6,6 +6,7 @@ import { complete, type ShellKind } from '@engine/index'
 import { terminalKey, useConsoleStore } from '../../store/console'
 import { useLabStore } from '../../store/lab'
 import { cancelConsoleInput, ensureTerminal, promptOf, submitConsoleInput } from '../../lib/console'
+import { redo, undo } from '../../lib/editing'
 
 interface TerminalProps {
   deviceId: string
@@ -115,6 +116,11 @@ export function Terminal({ deviceId, kind, autoFocus }: TerminalProps) {
       idx = e.key === 'ArrowUp' ? Math.max(0, idx - 1) : Math.min(h.length, idx + 1)
       setHistoryIndex(idx)
       setInput(idx === h.length ? '' : (h[idx] ?? ''))
+    } else if ((e.ctrlKey || e.metaKey) && !term.pending && input === '' && /^[zy]$/i.test(e.key)) {
+      // Ligne vide : Ctrl+Z / Ctrl+Y (ou Maj+Ctrl+Z) annulent ou rétablissent la dernière commande du lab
+      e.preventDefault()
+      if (e.key.toLowerCase() === 'y' || e.shiftKey) redo('lab')
+      else undo('lab')
     } else if (e.key === 'c' && e.ctrlKey) {
       e.preventDefault()
       cancelConsoleInput(key, secure ? '' : input)
