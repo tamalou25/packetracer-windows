@@ -1,7 +1,13 @@
 /**
  * Aides côté interface pour l'annuaire : droits de la session, opérations réseau (jonction, connexion).
  */
-import { isDomainAdmin, type HostDevice, type LabState, type PacketTrace } from '@engine/index'
+import {
+  isDomainAdmin,
+  type Command,
+  type DirectoryOutcome,
+  type HostDevice,
+  type LabState
+} from '@engine/index'
 import { useLabStore } from '../store/lab'
 import { useUiStore } from '../store/ui'
 import { runNetworkOperation } from './network'
@@ -22,10 +28,27 @@ export function requireAdmin(device: HostDevice): boolean {
   return false
 }
 
-/** Applique une opération d'annuaire tracée (jonction, ouverture de session). */
-export function runDirectoryOperation(op: { state: LabState; trace: PacketTrace }, onDone: () => void): void {
-  runNetworkOperation(op.trace, () => {
-    useLabStore.getState().run(() => ({ ok: true, state: op.state, value: undefined }))
-    onDone()
+type DirectoryCommand = Command<
+  'adds.logon' | 'adds.changePasswordAndLogon' | 'adds.joinDomain' | 'adds.leaveDomain'
+>
+
+/**
+ * Exécute une commande d'annuaire tracée (jonction, ouverture de session) : les échanges sont
+ * rejoués en mode Simulation, puis la commande est validée et son issue transmise à `onDone`.
+ */
+export function runDirectoryCommand(
+  cmd: DirectoryCommand,
+  onDone: (outcome: DirectoryOutcome) => void
+): void {
+  const prepared = useLabStore.getState().prepare(cmd)
+  const result = prepared.result
+  if (!result.ok) {
+    useUiStore.getState().notify('error', result.error.message)
+    return
+  }
+  const outcome = result.value as DirectoryOutcome
+  runNetworkOperation(outcome.trace, () => {
+    useLabStore.getState().commit(prepared)
+    onDone(outcome)
   })
 }

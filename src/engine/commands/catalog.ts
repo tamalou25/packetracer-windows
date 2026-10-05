@@ -6,7 +6,7 @@
  */
 import { fail, type EngineResult } from '../core/result'
 import { clearEventLog } from '../core/eventlog'
-import type { LabState } from '../model/schema'
+import type { LabState, Position } from '../model/schema'
 import { addStaticRoute, removeStaticRoute, setInterfaceIpv4 } from '../net/config'
 import type { PacketTrace } from '../sim/trace'
 import {
@@ -30,7 +30,7 @@ import {
   type DirectoryOperation,
   type LogonOutcome
 } from '../services/adds/join'
-import { autoConfigureDhcp } from '../services/dhcp-client'
+import { autoConfigureDhcp, dhcpRelease, dhcpRenew, type DhcpOperation } from '../services/dhcp-client'
 import { authorizeDhcpServer, completeDhcpPostInstall } from '../services/dhcp-authorization'
 import {
   addExclusion,
@@ -55,6 +55,7 @@ import {
   setShareAcl
 } from '../services/files/actions'
 import type { AccessToken } from '../services/files/acl'
+import { findNode } from '../services/files/paths'
 import { mapDrive, unmapDrive, type DriveOperation } from '../services/files/smb'
 import { autoGroupPolicy } from '../services/gpo/processing'
 import {
@@ -103,7 +104,8 @@ export interface CommandDef<A extends unknown[], T> {
 
 function def<A extends unknown[], T>(
   run: (state: LabState, ...args: A) => EngineResult<T>,
-  label: (state: LabState, ...args: A) => string
+  // Arguments déduits de l'action seule (le libellé peut ignorer les derniers)
+  label: NoInfer<(state: LabState, ...args: A) => string>
 ): CommandDef<A, T> {
   return { run, label }
 }
@@ -143,6 +145,67 @@ function directory(op: DirectoryOperation | LogonOutcome): EngineResult<Director
 function drive(op: DriveOperation): EngineResult<{ trace: PacketTrace }> {
   if (!op.ok) return { ok: false, error: { code: `SystemError${op.code}`, message: op.message } }
   return { ok: true, state: op.state, value: { trace: op.trace } }
+}
+
+/** Résultat d'un renouvellement ou d'une libération de bail (l'échec est aussi journalisé). */
+export type DhcpClientOutcome = Omit<DhcpOperation, 'state'>
+
+function dhcpClient(op: DhcpOperation): EngineResult<DhcpClientOutcome> {
+  const { state, ...outcome } = op
+  return { ok: true, state, value: outcome }
+}
+
+/** Déplacement de plusieurs équipements (fin d'un glisser sur le canvas). */
+function moveDevices(state: LabState, moves: { id: string; position: Position }[]): EngineResult {
+  let current = state
+  for (const move of moves) {
+    const result = moveDevice(current, move.id, move.position)
+    if (!result.ok) return result
+    current = result.state
+  }
+  return { ok: true, state: current, value: undefined }
+}
+
+// --- Opérations composées des assistants ------------------------------------------------------
+
+/** Nouvelle étendue DHCP avec ses options (assistant « Nouvelle étendue »). */
+function createScope(
+  state: LabState,
+  deviceId: string,
+  input: Parameters<typeof addScope>[2],
+  options: Parameters<typeof setDhcpOptions>[3] | null
+): EngineResult<string> {
+  const created = addScope(state, deviceId, input)
+  if (!created.ok || !options) return created
+  const configured = setDhcpOptions(created.state, deviceId, created.value, options)
+  return configured.ok ? { ok: true, state: configured.state, value: created.value } : configured
+}
+
+/** Nouvelle GPO, liée aussitôt si une cible est donnée (null = racine du domaine). */
+function createGpoAndLink(
+  state: LabState,
+  domainName: string,
+  input: Parameters<typeof createGpo>[2],
+  target?: string | null
+): EngineResult<string> {
+  const created = createGpo(state, domainName, input)
+  if (!created.ok || target === undefined) return created
+  const linked = linkGpo(created.state, domainName, created.value, target)
+  return linked.ok ? { ok: true, state: linked.state, value: created.value } : linked
+}
+
+/** Partage d'un dossier, créé au besoin avec ses parents (assistant « Nouveau partage »). */
+function shareFolder(
+  state: LabState,
+  serverId: string,
+  input: Parameters<typeof createShare>[2],
+  token: AccessToken
+): EngineResult {
+  const server = state.devices[serverId]
+  const exists = server?.kind === 'server' && findNode(server.storage, input.path) !== undefined
+  const created = exists ? null : createItem(state, serverId, input.path, 'folder', token, { parents: true })
+  if (created && !created.ok) return created
+  return createShare(created ? created.state : state, serverId, input, token)
 }
 
 /** Résultat d'une ligne de console (sans l'état, porté par EngineResult). */
@@ -200,6 +263,14 @@ export const COMMANDS = {
   'topology.removeDevices': def(removeDevices, (s, ids) => `Supprimer ${deviceNames(s, ids)}`),
   'topology.renameDevice': def(renameDevice, (s, id, name) => `Renommer ${deviceName(s, id)} en ${name}`),
   'topology.moveDevice': def(moveDevice, (s, id) => `Déplacer ${deviceName(s, id)}`),
+  'topology.moveDevices': def(
+    moveDevices,
+    (s, moves) =>
+      `Déplacer ${deviceNames(
+        s,
+        moves.map((m) => m.id)
+      )}`
+  ),
   'topology.setPower': def(setPower, (s, id, on) => `${on ? 'Allumer' : 'Éteindre'} ${deviceName(s, id)}`),
   'topology.connect': def(
     connect,
@@ -225,6 +296,14 @@ export const COMMANDS = {
   'net.addStaticRoute': def(
     addStaticRoute,
     (s, id, r) => `Ajouter la route ${r.network}/${r.mask}${on(s, id)}`
+  ),
+  'net.dhcpRenew': def(
+    (s: LabState, id: string, ifaceId: string) => dhcpClient(dhcpRenew(s, id, ifaceId)),
+    (s, id, ifaceId) => `Renouveler le bail DHCP de ${interfaceName(s, id, ifaceId)}`
+  ),
+  'net.dhcpRelease': def(
+    (s: LabState, id: string, ifaceId: string) => dhcpClient(dhcpRelease(s, id, ifaceId)),
+    (s, id, ifaceId) => `Libérer le bail DHCP de ${interfaceName(s, id, ifaceId)}`
   ),
   'net.removeStaticRoute': def(removeStaticRoute, (s, id) => `Supprimer une route statique${on(s, id)}`),
 
@@ -255,6 +334,7 @@ export const COMMANDS = {
       `${yesNo(authorized, 'Autoriser', 'Retirer l’autorisation de')} ${deviceName(s, id)} dans AD`
   ),
   'dhcp.addScope': def(addScope, (s, id, input) => `Créer l’étendue ${input.name}${on(s, id)}`),
+  'dhcp.createScope': def(createScope, (s, id, input) => `Créer l’étendue ${input.name}${on(s, id)}`),
   'dhcp.removeScope': def(
     removeScope,
     (s, id, scopeId) => `Supprimer l’étendue ${scopeName(s, id, scopeId)}`
@@ -345,6 +425,11 @@ export const COMMANDS = {
 
   // Stratégies de groupe
   'gpo.create': def(createGpo, (_s, _d, input) => `Créer la GPO ${input.name}`),
+  'gpo.createAndLink': def(createGpoAndLink, (s, d, input, target) =>
+    target === undefined
+      ? `Créer la GPO ${input.name}`
+      : `Créer la GPO ${input.name} et la lier à ${linkTargetName(s, d, target)}`
+  ),
   'gpo.delete': def(deleteGpo, (s, d, id) => `Supprimer la GPO ${gpoName(s, d, id)}`),
   'gpo.rename': def(renameGpo, (s, d, id, name) => `Renommer la GPO ${gpoName(s, d, id)} en ${name}`),
   'gpo.setStatus': def(setGpoStatus, (s, d, id) => `Modifier l’état de la GPO ${gpoName(s, d, id)}`),
@@ -383,6 +468,10 @@ export const COMMANDS = {
   'files.removeItem': def(removeItem, (s, id, path) => `Supprimer ${path}${on(s, id)}`),
   'files.createShare': def(
     createShare,
+    (s, id, input) => `Partager ${input.path} sous ${input.name}${on(s, id)}`
+  ),
+  'files.shareFolder': def(
+    shareFolder,
     (s, id, input) => `Partager ${input.path} sous ${input.name}${on(s, id)}`
   ),
   'files.removeShare': def(removeShare, (s, id, name) => `Arrêter le partage ${name}${on(s, id)}`),

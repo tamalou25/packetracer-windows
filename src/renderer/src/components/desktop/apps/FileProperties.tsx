@@ -7,7 +7,6 @@ import { useState } from 'react'
 import {
   canonicalAcl,
   childrenOf,
-  createShare,
   effectiveAccess,
   effectiveAcl,
   findNode,
@@ -16,12 +15,7 @@ import {
   nodePath,
   principalName,
   principalToken,
-  removeNtfs,
-  removeShare,
   resolvePrincipal,
-  setNtfsEntry,
-  setNtfsInheritance,
-  setShareAcl,
   SHARE_RIGHT_LABELS,
   formatShortDate,
   type FsNode,
@@ -31,10 +25,12 @@ import {
   type ServerDevice,
   type ShareAce,
   type ShareRight,
-  type SmbShare
+  type SmbShare,
+  command,
+  batch
 } from '@engine/index'
 import { accountOptions, displaySize, explorerToken, fileType } from '../../../lib/explorer'
-import { runActionOk } from '../../../lib/run'
+import { runCommandOk } from '../../../lib/run'
 import { useLabStore } from '../../../store/lab'
 import { useAppWindow } from '../shell/AppWindow'
 import {
@@ -221,13 +217,16 @@ function AdvancedSharing({
   const [permissions, setPermissions] = useState(false)
   const token = explorerToken(lab, server)
   const apply = (): boolean => {
-    if (!enabled) return existing ? runActionOk((l) => removeShare(l, server.id, existing.name, token)) : true
+    if (!enabled)
+      return existing ? runCommandOk(command('files.removeShare', server.id, existing.name, token)) : true
     if (!existing)
-      return runActionOk((l) => {
-        const created = createShare(l, server.id, { name, path, description: comment }, token)
-        return created.ok ? setShareAcl(created.state, server.id, name, acl, token) : created
-      })
-    return runActionOk((l) => setShareAcl(l, server.id, existing.name, acl, token))
+      return runCommandOk(
+        batch(`Partager ${path} sous ${name}`, [
+          command('files.createShare', server.id, { name, path, description: comment }, token),
+          command('files.setShareAcl', server.id, name, acl, token)
+        ])
+      )
+    return runCommandOk(command('files.setShareAcl', server.id, existing.name, acl, token))
   }
   return (
     <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/10">
@@ -475,7 +474,7 @@ function Security({
     mine.filter((e) => e.inherited && e.ace.type === 'Deny').map((e) => e.ace.rights)
   )
   const save = (allow: NtfsRight[], deny: NtfsRight[]) =>
-    selected && runActionOk((l) => setNtfsEntry(l, server.id, path, selected, { allow, deny }, token))
+    selected && runCommandOk(command('files.setNtfsEntry', server.id, path, selected, { allow, deny }, token))
 
   return (
     <div className="flex flex-col gap-2" data-testid="fileprops-security">
@@ -518,8 +517,15 @@ function Security({
             if (!id) return
             // Comme dans l'interface réelle : Lecture et exécution par défaut
             if (
-              runActionOk((l) =>
-                setNtfsEntry(l, server.id, path, id, { allow: ['ReadAndExecute'], deny: [] }, token)
+              runCommandOk(
+                command(
+                  'files.setNtfsEntry',
+                  server.id,
+                  path,
+                  id,
+                  { allow: ['ReadAndExecute'], deny: [] },
+                  token
+                )
               )
             )
               setSelected(id)
@@ -539,8 +545,8 @@ function Security({
               )
               return
             }
-            runActionOk((l) =>
-              removeNtfs(l, server.id, path, principalName(l, server, selected), 'all', token)
+            runCommandOk(
+              command('files.removeNtfs', server.id, path, principalName(lab, server, selected), 'all', token)
             )
           }}
           data-testid="security-remove"
@@ -628,7 +634,7 @@ function Security({
                     primary: true,
                     testId: 'inheritance-convert',
                     onClick: () => {
-                      runActionOk((l) => setNtfsInheritance(l, server.id, path, 'convert', token))
+                      runCommandOk(command('files.setNtfsInheritance', server.id, path, 'convert', token))
                       setInheritance(false)
                     }
                   },
@@ -636,7 +642,7 @@ function Security({
                     label: 'Supprimer les autorisations héritées',
                     testId: 'inheritance-remove',
                     onClick: () => {
-                      runActionOk((l) => setNtfsInheritance(l, server.id, path, 'remove', token))
+                      runCommandOk(command('files.setNtfsInheritance', server.id, path, 'remove', token))
                       setInheritance(false)
                     }
                   },
@@ -648,7 +654,7 @@ function Security({
                     primary: true,
                     testId: 'inheritance-enable',
                     onClick: () => {
-                      runActionOk((l) => setNtfsInheritance(l, server.id, path, 'enable', token))
+                      runCommandOk(command('files.setNtfsInheritance', server.id, path, 'enable', token))
                       setInheritance(false)
                     }
                   },

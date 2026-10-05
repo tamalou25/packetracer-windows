@@ -11,7 +11,6 @@ import {
   POLICY_SETTINGS,
   POLICY_STATE_LABELS,
   settingValue,
-  updateGpoSettings,
   WALLPAPER_STYLE_LABELS,
   WALLPAPER_STYLES,
   type Domain,
@@ -22,10 +21,11 @@ import {
   type PolicyNode,
   type PolicySettingInfo,
   type PolicyState,
-  type WallpaperStyle
+  type WallpaperStyle,
+  command
 } from '@engine/index'
 import { requireAdmin } from '../../lib/directory'
-import { runActionOk } from '../../lib/run'
+import { runCommandOk } from '../../lib/run'
 import { WALLPAPER_DIR } from '../../lib/wallpapers'
 import { useLabStore } from '../../store/lab'
 import {
@@ -98,7 +98,7 @@ export function GpoEditor({ device, gpoId }: { device: HostDevice; gpoId: string
     }
   ]
   const save = (patch: GpoSettingsPatch): boolean =>
-    requireAdmin(device) && runActionOk((l) => updateGpoSettings(l, domain.name, gpo.id, patch))
+    requireAdmin(device) && runCommandOk(command('gpo.updateSettings', domain.name, gpo.id, patch))
 
   const settings = POLICY_SETTINGS.filter((s) => s.node === node)
   const current = findNode(EDITOR_TREE, node)

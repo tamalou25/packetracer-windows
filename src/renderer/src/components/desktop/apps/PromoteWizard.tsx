@@ -10,9 +10,10 @@ import {
   passwordMeetsPolicy,
   validDnsName,
   type ForestInput,
-  type ServerDevice
+  type ServerDevice,
+  command
 } from '@engine/index'
-import { runAction } from '../../../lib/run'
+import { runCommand } from '../../../lib/run'
 import { useLabStore } from '../../../store/lab'
 import { useAppWindow } from '../shell/AppWindow'
 import { MessageBox, WinButton, WinInput } from '../shell/classic'
@@ -117,7 +118,7 @@ export function PromoteWizard({ device }: { device: ServerDevice }) {
   const finish = () => {
     setSignout(false)
     // Promotion et redémarrage : le Bureau revient à l'écran de verrouillage
-    runAction((lab) => installForest(lab, device.id, input))
+    runCommand(command('adds.installForest', device.id, input))
   }
 
   const nb = netbios || defaultNetbios(domain)

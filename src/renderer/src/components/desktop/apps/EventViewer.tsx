@@ -4,9 +4,9 @@
  */
 import { useState } from 'react'
 import { BookOpen, CircleAlert, FolderClosed, Info, ScrollText, TriangleAlert } from 'lucide-react'
-import { clearEventLog, type EventLogEntry, type HostDevice } from '@engine/index'
+import { type EventLogEntry, type HostDevice, command } from '@engine/index'
 import { formatSimTime } from '../../../lib/format'
-import { runAction } from '../../../lib/run'
+import { runCommand } from '../../../lib/run'
 import { Mmc, MmcAction, type MmcNode } from '../../mmc/Mmc'
 import { MessageBox } from '../shell/classic'
 
@@ -194,7 +194,7 @@ export function EventViewer({ device }: { device: HostDevice }) {
               testId: 'eventvwr-confirm-clear',
               onClick: () => {
                 setConfirmClear(false)
-                runAction((lab) => clearEventLog(lab, device.id, log))
+                runCommand(command('system.clearEventLog', device.id, log))
               }
             },
             { label: 'Annuler', onClick: () => setConfirmClear(false) }

@@ -4,7 +4,7 @@
  */
 import { useState } from 'react'
 import { CircleCheck, CircleX, MinusCircle } from 'lucide-react'
-import { completeDhcpPostInstall, type DhcpPostInstallResult, type ServerDevice } from '@engine/index'
+import { type DhcpPostInstallResult, type ServerDevice, command } from '@engine/index'
 import { useLabStore } from '../../../store/lab'
 import { useAppWindow } from '../shell/AppWindow'
 import { WinButton } from '../shell/classic'
@@ -30,7 +30,7 @@ export function DhcpPostInstall({ device }: { device: ServerDevice }) {
   const commit = () => {
     const r = useLabStore
       .getState()
-      .run((lab) => completeDhcpPostInstall(lab, device.id, { authorize: member && authorize }))
+      .dispatch(command('dhcp.completePostInstall', device.id, { authorize: member && authorize }))
     setOutcome(r.ok ? { ok: true, value: r.value } : { ok: false, message: r.error.message })
     setStep('summary')
   }

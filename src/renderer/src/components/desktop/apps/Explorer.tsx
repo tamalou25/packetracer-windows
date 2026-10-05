@@ -20,15 +20,12 @@ import {
   Unplug
 } from 'lucide-react'
 import {
-  createItem,
   formatShortDate,
-  mapDrive,
   parseUnc,
-  removeItem,
   sessionDrives,
-  unmapDrive,
   type FsNode,
-  type HostDevice
+  type HostDevice,
+  command
 } from '@engine/index'
 import { launch } from '../../../lib/desktop'
 import {
@@ -114,23 +111,25 @@ export function Explorer({ device, initial }: { device: HostDevice; initial?: st
 
   const create = (what: 'folder' | 'file', name: string) => {
     if (!folder) return
-    const r = createItem(lab, folder.server.id, joinLocation(folder.localPath, name), what, token, {
-      ...(folder.share ? { share: folder.share.name } : {})
-    })
+    const r = useLabStore.getState().dispatch(
+      command('files.createItem', folder.server.id, joinLocation(folder.localPath, name), what, token, {
+        ...(folder.share ? { share: folder.share.name } : {})
+      })
+    )
     if (!r.ok) return fail(r.error.message)
-    useLabStore.getState().run(() => r)
     setDialog(null)
   }
 
   const remove = (item: FsNode) => {
     if (!folder) return
-    const r = removeItem(lab, folder.server.id, joinLocation(folder.localPath, item.name), token, {
-      recurse: true,
-      ...(folder.share ? { share: folder.share.name } : {})
-    })
+    const r = useLabStore.getState().dispatch(
+      command('files.removeItem', folder.server.id, joinLocation(folder.localPath, item.name), token, {
+        recurse: true,
+        ...(folder.share ? { share: folder.share.name } : {})
+      })
+    )
     setDialog(null)
     if (!r.ok) return fail(r.error.message)
-    useLabStore.getState().run(() => r)
     setSelected(null)
   }
 
@@ -314,8 +313,7 @@ export function Explorer({ device, initial }: { device: HostDevice; initial?: st
             }}
             onOpenDrive={(letter) => navigate(letter === 'C' ? 'C:\\' : `${letter}:\\`)}
             onDisconnect={(letter) => {
-              const r = unmapDrive(lab, device.id, letter, token.account)
-              if (r.ok) useLabStore.getState().run(() => ({ ok: true, state: r.state, value: undefined }))
+              useLabStore.getState().dispatch(command('files.unmapDrive', device.id, letter, token.account))
             }}
           />
         </div>
@@ -372,22 +370,25 @@ export function Explorer({ device, initial }: { device: HostDevice; initial?: st
           used={drives.map((d) => d.letter)}
           onCancel={() => setDialog(null)}
           onSubmit={(letter, path, persistent) => {
-            const op = mapDrive(lab, device.id, letter, path, token, { persistent })
+            const prepared = useLabStore
+              .getState()
+              .prepare(command('files.mapDrive', device.id, letter, path, token, { persistent }))
+            const op = prepared.result
             if (!op.ok) {
               setDialog({
                 kind: 'message',
                 title: 'Connecter un lecteur réseau',
                 message:
-                  op.code === 53 || op.code === 67
-                    ? `Le dossier spécifié n’est pas valide.\n\n${op.message}`
-                    : op.message,
+                  op.error.code === 'SystemError53' || op.error.code === 'SystemError67'
+                    ? `Le dossier spécifié n’est pas valide.\n\n${op.error.message}`
+                    : op.error.message,
                 icon: 'error'
               })
               return
             }
             setDialog(null)
-            runNetworkOperation(op.trace, () => {
-              useLabStore.getState().run(() => ({ ok: true, state: op.state, value: undefined }))
+            runNetworkOperation(op.value.trace, () => {
+              useLabStore.getState().commit(prepared)
               navigate(`${letter}:\\`)
             })
           }}

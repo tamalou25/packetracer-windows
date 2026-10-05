@@ -2,8 +2,8 @@
  * Champ de nom validé à la perte de focus ou avec Entrée.
  */
 import { useEffect, useState } from 'react'
-import { renameDevice } from '@engine/index'
-import { runAction } from '../../lib/run'
+import { command } from '@engine/index'
+import { runCommand } from '../../lib/run'
 import { inputClass } from './ui'
 
 export function EditableName({ deviceId, name }: { deviceId: string; name: string }) {
@@ -15,7 +15,7 @@ export function EditableName({ deviceId, name }: { deviceId: string; name: strin
       setValue(name)
       return
     }
-    const ok = runAction((lab) => renameDevice(lab, deviceId, value)) !== undefined
+    const ok = runCommand(command('topology.renameDevice', deviceId, value)) !== undefined
     if (!ok) setValue(name)
   }
 

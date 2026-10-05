@@ -2,17 +2,8 @@
  * Propriétés IPv4 d'une carte réseau (serveur ou poste), à la manière de l'assistant système.
  */
 import { useEffect, useState } from 'react'
-import {
-  dhcpRelease,
-  dhcpRenew,
-  effectiveIpv4,
-  prefixToMask,
-  setInterfaceEnabled,
-  setInterfaceIpv4,
-  type Device,
-  type NetInterface
-} from '@engine/index'
-import { runAction } from '../../../lib/run'
+import { command, effectiveIpv4, prefixToMask, type Device, type NetInterface } from '@engine/index'
+import { runCommand } from '../../../lib/run'
 import { runNetworkOperation } from '../../../lib/network'
 import { useLabStore } from '../../../store/lab'
 import { useUiStore } from '../../../store/ui'
@@ -59,10 +50,14 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
 
   /** Opération DHCP (renouveler/libérer) : rejouée en mode Simulation. */
   const dhcpOperation = (kind: 'renew' | 'release') => {
-    const lab = useLabStore.getState().lab
-    const op = kind === 'renew' ? dhcpRenew(lab, device.id, iface.id) : dhcpRelease(lab, device.id, iface.id)
+    const store = useLabStore.getState()
+    const prepared = store.prepare(
+      command(kind === 'renew' ? 'net.dhcpRenew' : 'net.dhcpRelease', device.id, iface.id)
+    )
+    if (!prepared.result.ok) return
+    const op = prepared.result.value
     runNetworkOperation(op.trace, () => {
-      useLabStore.getState().run(() => ({ ok: true, state: op.state, value: undefined }))
+      useLabStore.getState().commit(prepared)
       const ui = useUiStore.getState()
       if (op.outcome === 'failed') ui.notify('error', `${iface.name} : ${op.message}`)
       else if (op.outcome === 'released') ui.notify('info', `Bail de ${iface.name} libéré.`)
@@ -71,8 +66,8 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
   }
 
   const apply = () => {
-    const result = runAction((lab) =>
-      setInterfaceIpv4(lab, device.id, iface.id, {
+    const result = runCommand(
+      command('net.setInterfaceIpv4', device.id, iface.id, {
         addressing: form.addressing,
         address: form.address,
         // Masque laissé vide : on applique celui proposé selon la classe, comme l'assistant système
@@ -97,7 +92,7 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
               type="checkbox"
               checked={iface.enabled}
               onChange={(e) =>
-                runAction((lab) => setInterfaceEnabled(lab, device.id, iface.id, e.target.checked))
+                runCommand(command('net.setInterfaceEnabled', device.id, iface.id, e.target.checked))
               }
             />
             Carte activée

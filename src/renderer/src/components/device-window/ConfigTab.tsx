@@ -3,8 +3,8 @@
  */
 import { useState } from 'react'
 import { Power } from 'lucide-react'
-import { isHostDevice, setInterfaceEnabled, setPower, type Device } from '@engine/index'
-import { runAction } from '../../lib/run'
+import { isHostDevice, type Device, command } from '@engine/index'
+import { runCommand } from '../../lib/run'
 import { EditableName } from '../common/EditableName'
 import { Button, Field, Section } from '../common/ui'
 import { InterfaceList } from '../properties/InterfaceList'
@@ -62,7 +62,9 @@ export function ConfigTab({ device }: { device: Device }) {
                   <EditableName deviceId={device.id} name={device.name} />
                 </Field>
                 <div>
-                  <Button onClick={() => runAction((lab) => setPower(lab, device.id, !device.powered))}>
+                  <Button
+                    onClick={() => runCommand(command('topology.setPower', device.id, !device.powered))}
+                  >
                     <Power size={14} /> {device.powered ? 'Éteindre l’équipement' : 'Allumer l’équipement'}
                   </Button>
                 </div>
@@ -80,7 +82,7 @@ export function ConfigTab({ device }: { device: Device }) {
                         type="checkbox"
                         checked={port.enabled}
                         onChange={(e) =>
-                          runAction((lab) => setInterfaceEnabled(lab, device.id, port.id, e.target.checked))
+                          runCommand(command('net.setInterfaceEnabled', device.id, port.id, e.target.checked))
                         }
                       />
                       {port.name}

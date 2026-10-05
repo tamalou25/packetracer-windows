@@ -4,7 +4,7 @@
  * membres du domaine appliquent leurs stratégies de groupe après un démarrage.
  */
 import { useEffect } from 'react'
-import { autoConfigureDhcp, autoGroupPolicy } from '@engine/index'
+import { command } from '@engine/index'
 import { useLabStore } from '../store/lab'
 import { useUiStore } from '../store/ui'
 
@@ -19,14 +19,8 @@ export function useBackgroundServices(): void {
       // Après la mise à jour en cours (évite les modifications imbriquées)
       queueMicrotask(() => {
         scheduled = false
-        const lab = useLabStore.getState().lab
-        const dhcp = autoConfigureDhcp(lab)
-        const policy = autoGroupPolicy(dhcp.state)
-        if (policy.state !== lab && useLabStore.getState().lab === lab) {
-          useLabStore
-            .getState()
-            .run(() => ({ ok: true, state: policy.state, value: undefined }), { undoable: false })
-        }
+        // Commande hors historique : annuler une action ne doit pas défaire un bail DHCP
+        useLabStore.getState().dispatch(command('background.tick'), { record: false })
       })
     }
     refresh()
