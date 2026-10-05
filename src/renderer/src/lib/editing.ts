@@ -17,7 +17,8 @@ export function undo(): void {
     document.execCommand('undo')
     return
   }
-  if (!useLabStore.getState().undo()) useUiStore.getState().notify('info', 'Rien à annuler.')
+  const outcome = useLabStore.getState().undo()
+  if (!outcome.ok) useUiStore.getState().notify('info', outcome.message)
 }
 
 export function redo(): void {
@@ -25,7 +26,8 @@ export function redo(): void {
     document.execCommand('redo')
     return
   }
-  if (!useLabStore.getState().redo()) useUiStore.getState().notify('info', 'Rien à rétablir.')
+  const outcome = useLabStore.getState().redo()
+  if (!outcome.ok) useUiStore.getState().notify('info', outcome.message)
 }
 
 export function deleteSelection(): void {
