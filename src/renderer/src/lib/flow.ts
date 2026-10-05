@@ -27,8 +27,7 @@ export function getFlowInstance(): FlowApi | null {
   return instance
 }
 
-/** Dimensions d'un nœud équipement (doivent correspondre à DeviceNode). */
-export const NODE_WIDTH = 88
-export const ICON_SIZE = 56
-/** Centre de l'icône relativement au coin supérieur gauche du nœud. */
-export const ICON_CENTER = { x: NODE_WIDTH / 2, y: ICON_SIZE / 2 }
+/** Dimensions d'un nœud équipement (carte de 56 px, voir DeviceNode). */
+export const NODE_SIZE = 56
+/** Centre de la carte relativement au coin supérieur gauche du nœud. */
+export const ICON_CENTER = { x: NODE_SIZE / 2, y: NODE_SIZE / 2 }

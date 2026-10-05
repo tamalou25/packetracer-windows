@@ -12,6 +12,15 @@ export const DEVICE_ICONS: Record<DeviceKind, LucideIcon> = {
   cloud: Cloud
 }
 
+/** Liseré de catégorie des nœuds du canvas. */
+export const KIND_STRIPE: Record<DeviceKind, string> = {
+  server: 'bg-kind-server',
+  client: 'bg-kind-client',
+  switch: 'bg-kind-switch',
+  router: 'bg-kind-router',
+  cloud: 'bg-kind-cloud'
+}
+
 /** Classes de la pastille de chaque type d'équipement (tokens de catégorie, voir styles.css). */
 export const DEVICE_COLORS: Record<DeviceKind, string> = {
   server: 'bg-kind-server text-white',
