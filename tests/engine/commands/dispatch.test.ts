@@ -12,6 +12,8 @@ import {
   dispatch,
   replay,
   type AnyCommand,
+  type DispatchResult,
+  type ShellOutcome,
   type JournalEntry,
   type LabState
 } from '@engine/index'
@@ -37,7 +39,7 @@ class Session {
   }
   shell(device: string, line: string, answers: string[] = []) {
     const session = createShellSession(this.state, id(this.state, device), 'powershell')
-    return this.run(command('shell.exec', session, line, answers))
+    return this.run(command('shell.exec', session, line, answers)) as DispatchResult<ShellOutcome>
   }
 }
 
