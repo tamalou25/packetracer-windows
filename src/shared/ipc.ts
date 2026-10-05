@@ -21,6 +21,7 @@ export type MenuCommand =
   | 'view:zoomOut'
   | 'view:fit'
   | 'view:togglePortLabels'
+  | 'view:toggleMinimap'
   | 'view:toggleProperties'
   | 'view:theme'
   | 'sim:realtime'
@@ -53,6 +54,7 @@ export interface MenuState {
   mode: SimMode
   showPortLabels: boolean
   showProperties: boolean
+  showMinimap: boolean
 }
 
 /** Informations sur l'application. */

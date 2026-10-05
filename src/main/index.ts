@@ -29,7 +29,12 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 let mainWindow: BrowserWindow | null = null
-let menuState: MenuState = { mode: 'realtime', showPortLabels: false, showProperties: true }
+let menuState: MenuState = {
+  mode: 'realtime',
+  showPortLabels: false,
+  showProperties: true,
+  showMinimap: true
+}
 let docState = { name: 'Sans titre', dirty: false }
 /** Préférences chargées au démarrage (après le choix éventuel du dossier userData). */
 let settings: Settings = { theme: 'dark' }

@@ -62,6 +62,7 @@ export function TopologyCanvas() {
   const cableStart = useUiStore((s) => s.cableStart)
   const pduSource = useUiStore((s) => s.pduSource)
   const theme = useUiStore((s) => s.theme)
+  const showMinimap = useUiStore((s) => s.showMinimap)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const [picker, setPicker] = useState<PortPickerState | null>(null)
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null)
@@ -305,15 +306,21 @@ export function TopologyCanvas() {
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1.2} color="var(--sl-canvas-grid)" />
         <Controls showInteractive={false} position="bottom-left" />
-        <MiniMap
-          position="bottom-right"
-          pannable
-          zoomable
-          nodeColor={(n) => {
-            const d = useLabStore.getState().lab.devices[n.id]
-            return d ? MINIMAP_COLORS[d.kind] : 'var(--sl-fg-subtle)'
-          }}
-        />
+        {showMinimap && (
+          <MiniMap
+            position="bottom-right"
+            pannable
+            zoomable
+            ariaLabel="Minimap"
+            className="serverlab-minimap"
+            style={{ width: 168, height: 104 }}
+            nodeBorderRadius={3}
+            nodeColor={(n) => {
+              const d = useLabStore.getState().lab.devices[n.id]
+              return d ? MINIMAP_COLORS[d.kind] : 'var(--sl-fg-subtle)'
+            }}
+          />
+        )}
         <CablePreview cursor={cableStart || pduSource ? cursor : null} />
         <PacketAnimation />
       </ReactFlow>

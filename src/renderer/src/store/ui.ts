@@ -5,6 +5,7 @@
 import { create } from 'zustand'
 import type { Device, DeviceKind, Link } from '@engine/index'
 import type { SimMode, Theme } from '@shared/ipc'
+import { readPref, writePref } from '../lib/prefs'
 
 /** Outil actif sur le canvas. */
 export type Tool = 'select' | 'cable' | 'delete' | 'pdu'
@@ -71,6 +72,7 @@ interface UiState {
   mode: SimMode
   showPortLabels: boolean
   showProperties: boolean
+  showMinimap: boolean
   tool: Tool
   /** Équipement de la palette « armé » (clic puis clic sur le canvas). */
   armed: DeviceKind | null
@@ -91,6 +93,7 @@ interface UiState {
   setTheme: (theme: Theme) => void
   setMode: (mode: SimMode) => void
   togglePortLabels: () => void
+  toggleMinimap: () => void
   toggleProperties: () => void
   setTool: (tool: Tool) => void
   setArmed: (kind: DeviceKind | null) => void
@@ -123,6 +126,7 @@ export const useUiStore = create<UiState>()((set, get) => ({
   mode: 'realtime',
   showPortLabels: false,
   showProperties: true,
+  showMinimap: readPref('minimap', true),
   tool: 'select',
   armed: null,
   selection: { devices: [], link: null },
@@ -144,6 +148,11 @@ export const useUiStore = create<UiState>()((set, get) => ({
   },
   setMode: (mode) => set({ mode, rightTab: mode === 'simulation' ? 'simulation' : 'properties' }),
   togglePortLabels: () => set((s) => ({ showPortLabels: !s.showPortLabels })),
+  toggleMinimap: () =>
+    set((s) => {
+      writePref('minimap', !s.showMinimap)
+      return { showMinimap: !s.showMinimap }
+    }),
   toggleProperties: () => set((s) => ({ showProperties: !s.showProperties })),
   setTool: (tool) => set({ tool, cableStart: null, pduSource: null, armed: null }),
   setArmed: (armed) => set({ armed, tool: 'select', cableStart: null, pduSource: null }),

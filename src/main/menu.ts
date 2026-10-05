@@ -91,6 +91,12 @@ export function buildMenu(ctx: MenuContext): Menu {
           checked: state.showProperties,
           click: cmd('view:toggleProperties')
         },
+        {
+          label: 'Afficher la minimap',
+          type: 'checkbox',
+          checked: state.showMinimap,
+          click: cmd('view:toggleMinimap')
+        },
         { type: 'separator' },
         {
           label: 'Thème sombre',

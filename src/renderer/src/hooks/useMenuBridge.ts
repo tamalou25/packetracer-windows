@@ -13,11 +13,12 @@ export function useMenuBridge(handler: MenuHandler): void {
   const mode = useUiStore((s) => s.mode)
   const showPortLabels = useUiStore((s) => s.showPortLabels)
   const showProperties = useUiStore((s) => s.showProperties)
+  const showMinimap = useUiStore((s) => s.showMinimap)
 
   // Synchronise les cases à cocher / boutons radio du menu natif
   useEffect(() => {
-    window.serverlab?.setMenuState({ mode, showPortLabels, showProperties })
-  }, [mode, showPortLabels, showProperties])
+    window.serverlab?.setMenuState({ mode, showPortLabels, showProperties, showMinimap })
+  }, [mode, showPortLabels, showProperties, showMinimap])
 
   useEffect(() => {
     if (!window.serverlab) return

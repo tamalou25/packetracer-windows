@@ -13,7 +13,8 @@ export function isMenuState(value: unknown): value is MenuState {
     isRecord(value) &&
     (value['mode'] === 'realtime' || value['mode'] === 'simulation') &&
     typeof value['showPortLabels'] === 'boolean' &&
-    typeof value['showProperties'] === 'boolean'
+    typeof value['showProperties'] === 'boolean' &&
+    typeof value['showMinimap'] === 'boolean'
   )
 }
 

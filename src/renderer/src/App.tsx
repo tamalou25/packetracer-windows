@@ -80,6 +80,9 @@ function handleMenuCommand(msg: MenuCommandMessage): void {
     case 'view:toggleProperties':
       ui.toggleProperties()
       break
+    case 'view:toggleMinimap':
+      ui.toggleMinimap()
+      break
     case 'view:theme':
       if (msg.arg === 'dark' || msg.arg === 'light') ui.setTheme(msg.arg)
       break
