@@ -94,6 +94,32 @@ describe('import .slab corrompu', () => {
       }
   })
 
+  it('champ de mauvais type : message entièrement en français', () => {
+    const english = /Invalid|expected|received|discriminator/
+    const doc = JSON.parse(BASE) as Record<string, unknown>
+    const lab = doc['lab'] as Record<string, unknown>
+    const device = Object.values(lab['devices'] as Record<string, Record<string, unknown>>)[0]!
+    for (const [target, key, value] of [
+      [lab, 'clock', 'abc'],
+      [device, 'kind', 'grille-pain'],
+      [lab, 'domains', []]
+    ] as [Record<string, unknown>, string, unknown][]) {
+      const saved = target[key]
+      target[key] = value
+      const r = safeParse(JSON.stringify(doc))
+      target[key] = saved
+      expect(r.ok).toBe(false)
+      if (!r.ok) {
+        expect(r.message).toMatch(/^Fichier \.slab invalide \(champ /)
+        expect(r.message).not.toMatch(english)
+      }
+    }
+    // Lab pédagogique : même règle
+    const badLab = parseLab({ ...lab1, title: 42 })
+    expect(badLab.ok).toBe(false)
+    if (!badLab.ok) expect(badLab.message).not.toMatch(english)
+  })
+
   it('contenus qui ne sont pas un document : refusés', () => {
     for (const content of ['', 'null', '42', '"ServerLab"', '[]', 'true', '{}', '[{"app":"ServerLab"}]'])
       expect(safeParse(content).ok).toBe(false)
