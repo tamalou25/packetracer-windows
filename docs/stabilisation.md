@@ -5,19 +5,19 @@ Une nouvelle session reprend **uniquement** à partir de ce fichier (lire aussi 
 
 ## État
 
-| Clé              | Valeur                                                                                 |
-| ---------------- | -------------------------------------------------------------------------------------- |
-| Étape en cours   | 1 — État des lieux (terminée, attente « OK étape 1 »)                                  |
-| Base de travail  | `main` @ `ee85a79` (merge PR #51), `package.json` = 2.0.0                              |
-| Prochaine action | Après « OK étape 1 » : étape 2 (preuve des acquis). En parallèle, Gary exécute A1 → A6 |
+| Clé              | Valeur                                                                                               |
+| ---------------- | ---------------------------------------------------------------------------------------------------- |
+| Étape en cours   | 2 — Preuve des acquis (terminée, attente « OK étape 2 »)                                             |
+| Base de travail  | `main` @ `ee85a79` (merge PR #51), `package.json` = 2.0.0                                            |
+| Prochaine action | Après « OK étape 2 » : étape 3 (couverture) ; y intégrer les tests manquants G1 → G4. Gary : A1 → A6 |
 
 ## Étapes
 
 | #   | Étape                      | Statut                                            |
 | --- | -------------------------- | ------------------------------------------------- |
 | 0   | Hygiène du dépôt           | validée (OK le 2026-10-06), actions Gary en cours |
-| 1   | État des lieux             | terminée, attente OK                              |
-| 2   | Preuve des acquis 2.0.0    | à faire                                           |
+| 1   | État des lieux             | validée (OK le 2026-10-06)                        |
+| 2   | Preuve des acquis 2.0.0    | terminée, attente OK                              |
 | 3   | Couverture                 | à faire                                           |
 | 4   | Chasse aux bugs par rôle   | à faire                                           |
 | 5   | Fichiers .slab             | à faire                                           |
@@ -77,6 +77,43 @@ Après A2 : PR `docs` alignant `roadmap.json`, `ROADMAP.md`, `CLAUDE.md` sur la 
 | `npm run typecheck`            | ✅       | 0       | 0                                                                                                                                                     |
 | `npm test`                     | ✅       | 0       | 265 réussis, 3 ignorés = `runIf` des scripts `perf:measure` et `fixture:slab` (voulu)                                                                 |
 | `xvfb-run -a npm run test:e2e` | ✅       | 0       | 31/31 en 1,9 min ; bundle renderer 2,0 Mo en un seul bloc (point déjà connu de la roadmap)                                                            |
+
+## Étape 2 — Preuve des acquis « Consolider » (ROADMAP.md)
+
+Fichiers : `E` = `tests/engine/…`, `S` = `tests/shared/…`, `P` = `tests/e2e/…`.
+
+| Critère                                      | Statut | Preuve (fichier › test)                                                                                                                                                       |
+| -------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rôles migrés dans `roles/<rôle>`             | ✅     | E `roles/registry.test.ts` › « déclare chaque rôle une fois… », « noms uniques… », « installer un rôle crée son état initial… »                                               |
+| Un nouveau rôle ne touche plus au cœur       | ⚠️     | Structure + recette CLAUDE.md, aucun test (G1). Le cœur importe encore 6 fonctions de rôles (client DHCP, résolveur DNS, jonction, fichiers)                                  |
+| Commande nommée via `dispatch` unique        | ✅     | E `commands/dispatch.test.ts` › « exécute la commande et produit une entrée… » ; store `lab.ts` : tout passe par `dispatchCommand` (relu)                                     |
+| Inverse par patches immer                    | ✅     | E `commands/patches.test.ts` › « aller-retour sur une suite d'actions réelles » ; `dispatch.test.ts` › « annuler toutes les entrées… »                                        |
+| Rejeu du journal = même état                 | ✅     | E `commands/dispatch.test.ts` › « rejouer les commandes depuis l'état initial redonne exactement le même état »                                                               |
+| `.slab` : un fichier de référence/version    | ✅     | E `serialization/migrations.test.ts` › « un fichier de référence existe pour chaque version » (v1 → v4)                                                                       |
+| Chacun s'ouvre et migre au format courant    | ✅     | E `migrations.test.ts` › « s'ouvre, migre… », « reste utilisable… », « se réenregistre au format courant sans perte »                                                         |
+| Tout fichier importé validé zod              | ✅     | E `serialization/robustness.test.ts` (`.slab`, labs) ; S `persisted.test.ts` (`settings.json`, `recent.json`, IPC). Récupération auto = même `parseSlab`, flux non testé (G2) |
+| Fichier corrompu = erreur claire, sans crash | ✅     | E `robustness.test.ts` › « tronqué n'importe où… », « caractères altérés : jamais d'exception », « trop volumineux… »                                                         |
+| Annuler/rétablir canvas + libellés           | ✅     | P `undo.spec.ts` (ajout, glisser = 1 entrée, menu « Annuler : Déplacer PC1 ») ; E `history.test.ts` › « libellés du menu Édition… »                                           |
+| Annuler/rétablir consoles                    | ✅     | P `undo.spec.ts` (New-NetIPAddress, Ctrl+Z, Maj+Ctrl+Z, menu Édition)                                                                                                         |
+| Annuler/rétablir configurations GUI          | ⚠️     | Moteur ✅ (E `history.test.ts` › « tout annuler ramène l'état initial… ») ; aucun E2E depuis une fenêtre de configuration (G3)                                                |
+| Thème « Système » par défaut                 | ✅     | P `theme.spec.ts` › « Thème Système par défaut : suit l'OS en direct… » ; S `persisted.test.ts`, `theme-shortcuts.test.ts`                                                    |
+| Raccourcis documentés                        | ✅     | P `theme.spec.ts` › « Aide > Raccourcis clavier : tous les raccourcis du menu » ; S `theme-shortcuts.test.ts`                                                                 |
+| Écran d'accueil (récents, nouveau, labs)     | ✅     | P `home.spec.ts` (3 tests) ; S `recent.test.ts`                                                                                                                               |
+| Tutoriel : premier ping guidé                | ✅     | P `tutorial.spec.ts` › « parcours complet jusqu'au premier ping »                                                                                                             |
+| Tutoriel : étapes validées par l'état réel   | ✅     | E `tutorial/first-ping.test.ts` (12 tests, dont « ping possible mais pas effectué : étape non validée »)                                                                      |
+| Tutoriel désactivable                        | ✅     | P `tutorial.spec.ts` › « passer et désactiver ; relancer depuis Aide… » ; S `persisted.test.ts`                                                                               |
+| Signaler un bug : issue préremplie           | ✅     | S `bug-report.test.ts` › « version, système et Electron ; étapes… » ; P `bug-report.spec.ts`                                                                                  |
+| URL en liste blanche                         | ✅     | S `bug-report.test.ts` › « seule la création d'issue… », « tout le reste est refusé »                                                                                         |
+| Performance : 100 équipements, mesuré        | ✅     | P `performance.spec.ts` (seuils, 0 rendu des autres nœuds) ; E `perf/large-lab.test.ts`, `roles/background.test.ts`, `topology/view.test.ts`                                  |
+| Logique NTFS et ports dans le moteur         | ✅     | E `roles/ui-queries.test.ts` (7 tests) ; `NTFS_IMPLIES` dans `roles/files/acl.ts`, absent des composants (relu)                                                               |
+
+Écarts avec les critères détaillés des issues v1.1 (hors tableau ROADMAP) :
+
+- **G1** Aucun test ne prouve qu'un rôle s'ajoute sans toucher au cœur.
+- **G2** Récupération automatique corrompue : parseur testé, flux `document.ts` non testé.
+- **G3** Annuler une configuration faite dans une fenêtre GUI : pas d'E2E.
+- **G4** « Journal des commandes consultable » : seuls les libellés Annuler / Rétablir du menu Édition sont visibles, aucune vue du journal. Fonctionnalité manquante → hors mission (gel), à consigner pour le milestone suivant.
+- Zoom Ctrl+= / Ctrl+- : accélérateurs déclarés et testés en format, jamais pressés en E2E (molette et menu le sont).
 
 ## Bugs
 
