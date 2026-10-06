@@ -32,6 +32,13 @@ est posée avant — ou l'installe à la fermeture. Les fichiers `.slab` et les 
 > Les mises à jour lisent les releases **publiques** du dépôt, sans aucun jeton embarqué : tant que
 > le dépôt GitHub est privé, la vérification répond « Aucune version publiée n'est accessible ».
 
+### Signaler un bug
+
+**Aide > Signaler un bug…** ouvre le navigateur sur une issue GitHub préremplie : version de
+ServerLab, système, versions d'Electron et de Chromium, et les rubriques à compléter (étapes pour
+reproduire, résultat attendu, résultat obtenu). Rien d'autre n'est transmis : ni le lab en cours,
+ni le nom d'utilisateur ou de la machine. Joignez vous-même un fichier `.slab` si besoin.
+
 ## État d'avancement
 
 | Phase | Contenu                                | État |
