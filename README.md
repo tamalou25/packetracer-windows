@@ -135,9 +135,17 @@ Voir [`CLAUDE.md`](./CLAUDE.md) pour les conventions détaillées.
 
 ![Accès effectif au travers d'un partage](docs/captures/fichiers/2-acces-effectif.webp)
 
+## Écran d'accueil
+
+Au lancement sans fichier, l'accueil propose **Nouveau lab**, **Ouvrir…**, les labs récents (nom,
+dossier, date ; un fichier déplacé ou supprimé est signalé « Introuvable » et peut être retiré de
+la liste) et les labs fournis avec leur difficulté et leur durée. Il reste accessible par
+**Fichier > Accueil** ; la case « Afficher l'accueil au démarrage » permet de démarrer directement
+sur le canvas.
+
 ## Labs pédagogiques
 
-**Fichier > Ouvrir un lab…** (`Ctrl+L`) propose cinq labs prêts à l'emploi, du plus simple au plus
+L'accueil et **Fichier > Ouvrir un lab…** (`Ctrl+L`) proposent cinq labs prêts à l'emploi, du plus simple au plus
 complet : adressage et routage, DHCP, DNS, Active Directory + GPO, partages et NTFS. Chaque lab
 construit sa topologie de départ ; l'onglet **Lab** affiche l'énoncé et les objectifs, et
 **Vérifier** valide chaque critère (✅ / ❌) avec un indice qui oriente sans donner la solution.
