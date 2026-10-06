@@ -6,6 +6,33 @@ La planification des versions suivantes est dans [ROADMAP.md](ROADMAP.md).
 
 ## [Non publié]
 
+## [2.0.1] — 2026-10-06
+
+Version de stabilisation de la 2.0.0 : corrections uniquement, aucune fonctionnalité nouvelle.
+Détail de la démarche dans `docs/stabilisation.md` ; écarts avec Windows Server dans `docs/fidelite.md`.
+
+### Corrigé
+
+- Console PowerShell : une expression régulière invalide (`-match '('`, `-notmatch`) affiche une
+  erreur au lieu de bloquer la console (#54).
+- `Get-Command -Name` et `Get-WindowsFeature -Name` suivent les jokers PowerShell (`*`, `?`) ; un
+  caractère spécial comme `(` ne bloque plus la console (#56).
+- `-in`, `-notin`, `-contains` et `-notcontains` acceptent une liste (`'a','b'`) dans `Where-Object`
+  et les filtres (#55).
+- `Get-ADUser -Properties` affiche les propriétés demandées, `*` pour toutes (#69).
+- `net share` signale un compte inconnu par l'erreur système 1332 (#53).
+- GPMC : l'entrée d'un compte supprimé peut être retirée du filtrage de sécurité (#61).
+- Onglet Sécurité NTFS : l'entrée d'un compte supprimé peut être retirée (#62).
+- Fichiers : noms réservés (`CON`, `NUL.txt`, `COM1`…) refusés ; points et espaces finaux retirés,
+  `Data.` désigne `Data` (#63).
+- Fichier `.slab` ou lab invalide : message d'erreur entièrement en français (#67).
+
+### Modifié
+
+- Tests : chaque commande, cmdlet et outil de console du moteur est exercé ; équivalence interface ⇔
+  PowerShell ⇔ cmd ; réouverture `.slab` après chaque commande ; couverture du moteur mesurée par
+  `npm run test:coverage` (lignes : 78 % → 90 %).
+
 ## [2.0.0] — 2026-10-06
 
 Milestone « v1.1 — Consolider » de la roadmap, publié sous le numéro 2.0.0 : nouvelle
@@ -70,7 +97,8 @@ Première release publique (installeur Windows NSIS et AppImage Linux).
 - Thèmes sombre et clair, interface compacte.
 - Mises à jour automatiques (electron-updater) et workflow de release sur tag.
 
-[Non publié]: https://github.com/tamalou25/packetracer-windows/compare/v2.0.0...HEAD
-[2.0.0]: https://github.com/tamalou25/packetracer-windows/compare/v1.0.0...v2.0.0
-[1.0.0]: https://github.com/tamalou25/packetracer-windows/compare/v0.1.1...v1.0.0
+[Non publié]: https://github.com/tamalou25/packetracer-windows/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/tamalou25/packetracer-windows/compare/v2.0.0...v2.0.1
+[2.0.0]: https://github.com/tamalou25/packetracer-windows/compare/dc9b76c...v2.0.0
+[1.0.0]: https://github.com/tamalou25/packetracer-windows/compare/v0.1.1...dc9b76c
 [0.1.1]: https://github.com/tamalou25/packetracer-windows/releases/tag/v0.1.1
