@@ -3,7 +3,7 @@
  */
 import { useEffect, useState } from 'react'
 import { prefixToMask, type Device, type NetInterface, command } from '@engine/index'
-import { runCommand } from '../../../lib/run'
+import { runCommand, runCommandOk } from '../../../lib/run'
 import { useUiStore } from '../../../store/ui'
 import { Button, Section, inputClass } from '../../common/ui'
 
@@ -72,7 +72,42 @@ export function RouterInterfaceForm({ device, iface }: { device: Device; iface: 
           </Button>
           <Button onClick={() => apply(true)}>Effacer l’adresse</Button>
         </div>
+        {device.kind === 'router' && <HelperAddresses device={device} iface={iface} />}
       </div>
     </Section>
+  )
+}
+
+/** Agent de relais DHCP : serveurs vers lesquels les diffusions DHCP de l'interface sont relayées. */
+function HelperAddresses({ device, iface }: { device: Device; iface: NetInterface }) {
+  const [text, setText] = useState(iface.helperAddresses?.join(', ') ?? '')
+  useEffect(() => setText(iface.helperAddresses?.join(', ') ?? ''), [iface])
+  const save = () => {
+    const list = text.split(/[,;\s]+/).filter(Boolean)
+    if (runCommandOk(command('net.setHelperAddresses', device.id, iface.id, list)))
+      useUiStore
+        .getState()
+        .notify('success', list.length ? `Relais DHCP activé sur ${iface.name}.` : 'Relais DHCP désactivé.')
+  }
+  return (
+    <div className="mt-2 border-t border-line pt-3">
+      <div className="mb-1 text-xs font-medium text-fg-muted">Relais DHCP (ip helper-address)</div>
+      <div className="flex gap-2">
+        <input
+          className={inputClass}
+          placeholder="Adresse du serveur DHCP (192.168.10.1)"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          data-testid="if-helper"
+        />
+        <Button onClick={save} data-testid="if-helper-apply">
+          Enregistrer
+        </Button>
+      </div>
+      <p className="mt-1 text-xs text-fg-muted">
+        Les requêtes DHCP diffusées sur ce réseau sont retransmises au serveur, qui choisit l’étendue d’après
+        l’adresse de cette interface.
+      </p>
+    </div>
   )
 }
