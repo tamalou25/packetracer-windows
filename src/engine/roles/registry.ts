@@ -14,11 +14,12 @@ import { dhcpRole } from './dhcp'
 import { dnsRole } from './dns'
 import { filesRole } from './files'
 import { gpoRole } from './gpo'
+import { iisRole } from './iis'
 import { wsusRole } from './wsus'
 import type { BackgroundTask, CriterionType, FeatureInfo, RoleModule, RoleView } from './types'
 
 /** Modules dans l'ordre d'exécution (dépendances d'abord : DHCP avant les stratégies de groupe). */
-const load = () => [dnsRole, dhcpRole, addsRole, gpoRole, filesRole, wsusRole] as const
+const load = () => [dnsRole, dhcpRole, addsRole, gpoRole, filesRole, wsusRole, iisRole] as const
 
 export type RoleModules = ReturnType<typeof load>
 
@@ -45,7 +46,13 @@ let features: FeatureInfo[] | null = null
 export function allFeatures(): FeatureInfo[] {
   if (features) return features
   const list = [...CORE_FEATURES, ...roleModules().flatMap((m) => m.features)]
-  const rootOf = (f: FeatureInfo) => (f.parent ?? f.name).toLowerCase()
+  // Fonctionnalité racine (en remontant les parents : Web-Mgmt-Console → Web-Mgmt-Tools → Web-Server)
+  const rootOf = (f: FeatureInfo): string => {
+    let current = f
+    for (let depth = 0; current.parent && depth < 8; depth++)
+      current = list.find((x) => x.name === current.parent) ?? { ...current, parent: undefined }
+    return current.name.toLowerCase()
+  }
   features = list
     .map((f, index) => ({ f, index }))
     .sort((a, b) => {

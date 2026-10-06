@@ -1,0 +1,92 @@
+{
+  "formatVersion": 1,
+  "id": "lab-07-iis",
+  "title": "Site Web intranet avec IIS",
+  "difficulty": "Intermédiaire",
+  "duration": "30 min",
+  "summary": "Publier un site intranet sur IIS avec un en-tête d’hôte et un alias DNS, puis le consulter depuis un poste.",
+  "statement": "# Contexte\n\nLe service communication veut un site **intranet** accessible depuis les postes du domaine `lab.local` à l’adresse `http://intranet.lab.local`, hébergé sur **SRV1** à côté du site par défaut.\n\nCompte d’administration : `LAB\\Administrateur` / `P@ssw0rd`.\n\n## Travail demandé\n\n1. Sur SRV1, installez le rôle **Serveur Web (IIS)** avec sa console de gestion.\n2. Créez le dossier `C:\\Sites\\Intranet` et une page `index.html` à l’intérieur.\n3. Dans le Gestionnaire IIS, créez le site **Intranet** pointant vers ce dossier, lié au port 80 avec le nom d’hôte `intranet.lab.local` (le site par défaut doit continuer à fonctionner).\n4. Dans la zone DNS `lab.local`, créez l’alias (CNAME) `intranet` vers `srv1.lab.local`.\n5. Sur PC1, ouvrez le **Navigateur Web** à l’adresse `http://intranet.lab.local`.\n\n> Astuce : `Invoke-WebRequest http://intranet.lab.local` sur PC1 affiche le code de réponse HTTP.",
+  "start": {
+    "devices": [
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 330,
+        "y": 100,
+        "ip": "192.168.10.1/24",
+        "dns": ["127.0.0.1"]
+      },
+      {
+        "kind": "switch",
+        "name": "SW1",
+        "x": 330,
+        "y": 300
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 330,
+        "y": 470,
+        "ip": "192.168.10.10/24",
+        "dns": ["192.168.10.1"]
+      }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/2"]
+    ],
+    "domain": {
+      "name": "lab.local",
+      "netbios": "LAB",
+      "dc": "SRV1",
+      "join": ["PC1"]
+    }
+  },
+  "criteria": [
+    {
+      "id": "role",
+      "label": "Le rôle Serveur Web (IIS) est installé sur SRV1",
+      "hint": "Le nom technique du rôle se trouve avec Get-WindowsFeature ; ajoutez les outils de gestion pour obtenir la console.",
+      "check": {
+        "type": "featureInstalled",
+        "device": "SRV1",
+        "feature": "Web-Server"
+      }
+    },
+    {
+      "id": "site",
+      "label": "Le site Intranet est démarré avec l’en-tête d’hôte demandé",
+      "hint": "Un site ne démarre pas si sa liaison (IP, port, nom d’hôte) est déjà utilisée par un autre site démarré.",
+      "check": {
+        "type": "iisSite",
+        "server": "SRV1",
+        "name": "Intranet",
+        "started": true,
+        "port": 80,
+        "host": "intranet.lab.local"
+      }
+    },
+    {
+      "id": "default",
+      "label": "Le site par défaut répond toujours par le nom du serveur",
+      "hint": "Le site par défaut écoute sans nom d’hôte : ne le modifiez pas et ne l’arrêtez pas.",
+      "check": {
+        "type": "httpResponse",
+        "from": "PC1",
+        "url": "http://srv1.lab.local",
+        "status": 200
+      }
+    },
+    {
+      "id": "browse",
+      "label": "PC1 obtient la page du site intranet (HTTP 200)",
+      "hint": "Le poste doit résoudre le nom (alias DNS), puis IIS choisit le site d’après l’en-tête d’hôte ; une erreur 403.14 signale l’absence de document par défaut.",
+      "check": {
+        "type": "httpResponse",
+        "from": "PC1",
+        "url": "http://intranet.lab.local",
+        "status": 200
+      }
+    }
+  ]
+}

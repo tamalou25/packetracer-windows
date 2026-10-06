@@ -99,8 +99,9 @@ export function uninstallFeatures(
 }
 
 /** Initialise les données d'un rôle à son installation (état initial déclaré par le module). */
-function onFeatureInstalled(_draft: Draft<LabState>, device: Draft<ServerDevice>, name: string): void {
+function onFeatureInstalled(draft: Draft<LabState>, device: Draft<ServerDevice>, name: string): void {
   for (const module of roleModules()) {
+    if (module.feature === name) module.onInstall?.(draft, device)
     const def = module.state
     if (!def || def.feature !== name) continue
     ensureRoleState(device, def)

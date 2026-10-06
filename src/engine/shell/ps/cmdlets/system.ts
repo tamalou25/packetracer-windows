@@ -2,6 +2,7 @@
  * Cmdlets système : rôles et fonctionnalités, redémarrage, renommage.
  */
 import { allFeatures, featureInfo, installFeatures, uninstallFeatures } from '../../../roles/features'
+import { newSelfSignedCertificate } from '../../../services/certificates'
 import { renameComputer, restartComputer } from '../../../services/system'
 import { setPower } from '../../../topology/actions'
 import { psError } from '../errors'
@@ -161,6 +162,41 @@ export const systemCmdlets: CmdletDef[] = [
         ctx.warn(
           `Les modifications seront prises en compte après le redémarrage de l’ordinateur ${ctx.host.name}.`
         )
+    }
+  },
+  {
+    name: 'New-SelfSignedCertificate',
+    module: 'PKI',
+    synopsis: 'Crée un certificat auto-signé dans le magasin de l’ordinateur.',
+    params: [
+      { name: 'DnsName', type: 'string[]', position: 0 },
+      { name: 'CertStoreLocation', type: 'string' },
+      { name: 'Subject', type: 'string' }
+    ],
+    run(ctx, args) {
+      const store = psToString(args['CertStoreLocation'] ?? '')
+        .replace(/^cert:\\?/i, '')
+        .replace(/\\$/, '')
+      if (store.toLowerCase() !== 'localmachine\\my')
+        throw psError(
+          'Seul le magasin Cert:\\LocalMachine\\My est simulé : indiquez -CertStoreLocation Cert:\\LocalMachine\\My.',
+          'InvalidArgument',
+          'CertStoreLocation,Microsoft.CertificateServices.Commands.NewSelfSignedCertificateCommand'
+        )
+      const names = args['DnsName'] ? flatten([args['DnsName']]).map((n) => psToString(n)) : []
+      const thumbprint = ctx.apply(newSelfSignedCertificate(ctx.state, ctx.deviceId, names))
+      ctx.writeLines([
+        '',
+        '   PSParentPath: Microsoft.PowerShell.Security\\Certificate::LocalMachine\\My',
+        ''
+      ])
+      return [
+        psObject(
+          'System.Security.Cryptography.X509Certificates.X509Certificate2',
+          { Thumbprint: thumbprint, Subject: `CN=${names[0]?.toLowerCase() ?? ''}` },
+          { kind: 'table', props: ['Thumbprint', 'Subject'] }
+        )
+      ]
     }
   }
 ]

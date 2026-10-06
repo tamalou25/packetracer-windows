@@ -10,6 +10,7 @@ import {
   FolderCog,
   FolderSymlink,
   Globe,
+  Earth,
   HardDrive,
   ScrollText,
   Server,
@@ -39,6 +40,8 @@ const STYLES: Record<string, ViewStyle> = {
   },
   newshare: { icon: FolderSymlink, color: 'text-amber-500', size: { w: 520, h: 470 } },
   wsus: { icon: CloudDownload, color: 'text-emerald-600', size: { w: 980, h: 600 } },
+  inetmgr: { icon: Earth, color: 'text-sky-600', size: { w: 960, h: 600 } },
+  browser: { icon: Globe, color: 'text-sky-500', size: { w: 820, h: 560 }, start: 'top' },
   wuclient: { icon: RefreshCw, color: 'text-sky-600', size: { w: 640, h: 520 }, start: 'system' }
 }
 
@@ -56,6 +59,7 @@ const ROLE_ICONS: Record<string, LucideIcon> = {
   dns: Globe,
   files: HardDrive,
   gpo: ScrollText,
+  iis: Earth,
   wsus: CloudDownload
 }
 

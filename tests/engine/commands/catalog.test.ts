@@ -365,6 +365,43 @@ describe('catalogue des commandes', () => {
     done(r)
   })
 
+  it('IIS : sites, liaisons, certificat SSL, dossier racine, démarrage et arrêt', () => {
+    const r = runner()
+    const srv = r.id('SRV1')
+    r.run(command('system.installFeatures', srv, ['Web-Server'], { includeManagementTools: true }))
+    r.run(command('files.createItem', srv, 'C:\\Sites\\Intranet', 'folder', r.admin(), { parents: true }))
+    r.run(
+      command('iis.addSite', srv, {
+        name: 'Intranet',
+        physicalPath: 'C:\\inetpub\\wwwroot',
+        binding: { host: 'intranet.lab.local' }
+      })
+    )
+    r.run(command('iis.setPhysicalPath', srv, 'Intranet', 'C:\\Sites\\Intranet'))
+    r.run(command('iis.addBinding', srv, 'Intranet', { protocol: 'https', host: 'intranet.lab.local' }))
+    const thumb = r.run<string>(command('system.newSelfSignedCertificate', srv, ['intranet.lab.local']))
+    r.run(
+      command(
+        'iis.setBindingCertificate',
+        srv,
+        'Intranet',
+        { ip: '*', port: 443, host: 'intranet.lab.local' },
+        thumb
+      )
+    )
+    r.run(
+      command('iis.removeBinding', srv, 'Intranet', {
+        protocol: 'https',
+        ip: '*',
+        port: 443,
+        host: 'intranet.lab.local'
+      })
+    )
+    r.run(command('iis.setSiteState', srv, 'Intranet', false))
+    r.run(command('iis.removeSite', srv, 'Intranet'))
+    done(r)
+  })
+
   it('toute commande du catalogue est couverte par ce fichier', () => {
     const missing = Object.keys(commandDefinitions()).filter((t) => !covered.has(t))
     expect(missing).toEqual([])

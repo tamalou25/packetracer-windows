@@ -150,6 +150,44 @@ export function createItem(
   })
 }
 
+/**
+ * Crée au besoin un chemin local (dossiers parents compris) sur un brouillon de serveur, sans
+ * contrôle d'autorisation : préparation du système (installation d'un rôle). Renvoie l'élément final.
+ */
+export function ensureLocalPath(
+  draft: Draft<LabState>,
+  server: Draft<ServerDevice>,
+  path: string,
+  kind: 'folder' | 'file',
+  size = 0
+): string {
+  const parts = splitLocalPath(path)
+  if (!parts || parts.length === 0) raise('InvalidPath', BAD_PATH)
+  let parentId: string | null = null
+  parts.forEach((part, index) => {
+    const existing = server.storage.nodes.find(
+      (n) => n.parentId === parentId && n.name.toLowerCase() === part.toLowerCase()
+    )
+    if (existing) {
+      parentId = existing.id
+      return
+    }
+    const last = index === parts.length - 1
+    const id = `fs${nextSeq(draft)}`
+    const node = newNode(id, part, parentId, last ? kind : 'folder', SYSTEM_TOKEN, draft.clock)
+    server.storage.nodes.push({ ...node, size: last && kind === 'file' ? size : 0 })
+    parentId = id
+  })
+  return parentId as unknown as string
+}
+
+/** Propriétaire des éléments créés par le système (groupe Administrateurs). */
+const SYSTEM_TOKEN: AccessToken = {
+  account: 'BUILTIN\\Administrateurs',
+  sids: [WELL_KNOWN_SIDS.administrators],
+  admin: true
+}
+
 function newNode(
   id: string,
   name: string,
