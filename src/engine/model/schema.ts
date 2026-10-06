@@ -238,6 +238,27 @@ export const HostPolicySchema = z.object({
   attempt: z.string().nullable().default(null)
 })
 
+/**
+ * Certificat du magasin de l'ordinateur (Cert:\LocalMachine\My ou Root).
+ * Chaîne de confiance : un certificat est approuvé si son émetteur est dans le magasin Root.
+ */
+export const CertificateSchema = z.object({
+  /** Empreinte (40 caractères hexadécimaux, dérivée de state.seq). */
+  thumbprint: z.string(),
+  /** Sujet (CN=intranet.lab.local). */
+  subject: z.string(),
+  issuer: z.string(),
+  /** Noms DNS couverts (extension Autre nom de l'objet). */
+  dnsNames: z.array(z.string()).default([]),
+  notBefore: z.number().default(0),
+  notAfter: z.number().default(0),
+  store: z.enum(['My', 'Root']).default('My'),
+  /** Certificat d'autorité de certification. */
+  ca: z.boolean().default(false),
+  /** Empreinte du certificat émetteur (null = auto-signé). */
+  issuerThumbprint: z.string().nullable().default(null)
+})
+
 /** Partie « système d'exploitation » commune aux serveurs et postes clients. */
 export const HostSchema = z.object({
   workgroup: z.string().default('WORKGROUP'),
@@ -260,6 +281,8 @@ export const HostSchema = z.object({
   policy: HostPolicySchema.default(() => ({ computer: null, user: null, attempt: null })),
   /** Lecteurs réseau connectés (net use). */
   drives: z.array(MappedDriveSchema).default([]),
+  /** Magasins de certificats de l'ordinateur (Personnel et Autorités de certification racines). */
+  certificates: z.array(CertificateSchema).default([]),
   eventLog: z.array(EventLogEntrySchema).default([])
 })
 
@@ -579,6 +602,7 @@ export type ComputerPolicyResult = z.infer<typeof ComputerPolicyResultSchema>
 export type UserPolicyResult = z.infer<typeof UserPolicyResultSchema>
 export type HostPolicy = z.infer<typeof HostPolicySchema>
 export type MappedDrive = z.infer<typeof MappedDriveSchema>
+export type Certificate = z.infer<typeof CertificateSchema>
 export type NtfsRight = (typeof NTFS_RIGHTS)[number]
 export type NtfsAce = z.infer<typeof NtfsAceSchema>
 export type FsNode = z.infer<typeof FsNodeSchema>

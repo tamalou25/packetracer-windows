@@ -38,6 +38,7 @@ import lab3 from '../../../labs/lab-03-dns.json'
 import lab4 from '../../../labs/lab-04-ad-gpo.json'
 import lab5 from '../../../labs/lab-05-ntfs.json'
 import lab6 from '../../../labs/lab-06-wsus.json'
+import lab7 from '../../../labs/lab-07-iis.json'
 import { run } from '../shell/helpers'
 
 function load(raw: unknown): LabDefinition {
@@ -190,11 +191,31 @@ const SOLUTIONS: Record<string, (s: LabState) => LabState> = {
       })
     ).state
     return run(s, id(s, 'PC1'), 'gpupdate /force', { shell: 'cmd' }).state
+  },
+  'lab-07-iis': (s) => {
+    const srv = id(s, 'SRV1')
+    const admin = domainToken(s.domains['lab.local'] as Domain, 'Administrateur')!
+    s = unwrap(installFeatures(s, srv, ['Web-Server'], { includeManagementTools: true })).state
+    s = unwrap(createItem(s, srv, 'C:\\Sites\\Intranet', 'folder', admin, { parents: true })).state
+    s = unwrap(createItem(s, srv, 'C:\\Sites\\Intranet\\index.html', 'file', admin)).state
+    for (const cmd of [
+      command('iis.addSite', srv, {
+        name: 'Intranet',
+        physicalPath: 'C:\\Sites\\Intranet',
+        binding: { port: 80, host: 'intranet.lab.local' }
+      }),
+      command('dns.addRecord', srv, 'lab.local', { name: 'intranet', type: 'CNAME', data: 'srv1.lab.local' })
+    ]) {
+      const r = dispatch(s, cmd)
+      if (!r.ok) throw new Error(r.error.message)
+      s = r.state
+    }
+    return s
   }
 }
 
 describe('Labs', () => {
-  const labs = [lab1, lab2, lab3, lab4, lab5, lab6].map(load)
+  const labs = [lab1, lab2, lab3, lab4, lab5, lab6, lab7].map(load)
 
   it('chaque lab a un identifiant unique, des critères uniques et des indices', () => {
     expect(new Set(labs.map((l) => l.id)).size).toBe(labs.length)

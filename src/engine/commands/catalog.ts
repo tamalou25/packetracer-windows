@@ -15,6 +15,7 @@ import { addStaticRoute, removeStaticRoute, setInterfaceIpv4 } from '../net/conf
 import { backgroundLabel, runBackgroundTasks } from '../roles/background'
 import { installFeatures, uninstallFeatures } from '../roles/features'
 import { roleModules, type RoleModules } from '../roles/registry'
+import { newSelfSignedCertificate } from '../services/certificates'
 import { renameComputer, restartComputer } from '../services/system'
 import { executeLine } from '../shell/exec'
 import type { ShellResult, ShellSession } from '../shell/types'
@@ -139,6 +140,10 @@ const CORE_COMMANDS = {
     (s, id, name) => `Renommer l’ordinateur ${deviceName(s, id)} en ${name}`
   ),
   'system.clearEventLog': def(clearEventLog, (s, id, log) => `Effacer le journal ${log}${on(s, id)}`),
+  'system.newSelfSignedCertificate': def(
+    newSelfSignedCertificate,
+    (s, id, names) => `Créer un certificat auto-signé pour ${names.join(', ')}${on(s, id)}`
+  ),
   'system.installFeatures': def(
     installFeatures,
     (s, id, names) => `Installer ${names.join(', ')}${on(s, id)}`

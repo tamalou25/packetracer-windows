@@ -57,6 +57,7 @@ export function createHost(kind: 'server' | 'client'): Host {
     bootedAt: 0,
     policy: { computer: null, user: null, attempt: null },
     drives: [],
+    certificates: [],
     eventLog: []
   }
 }
