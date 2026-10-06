@@ -12,8 +12,16 @@ import { EventLogView } from './config/EventLogView'
 import { HostInterfaceForm } from './config/HostInterfaceForm'
 import { RouterInterfaceForm } from './config/RouterInterfaceForm'
 import { RoutesPanel } from './config/RoutesPanel'
+import { SubinterfacesPanel } from './config/SubinterfacesPanel'
+import { VlanPanel } from './config/VlanPanel'
 
-type Page = { kind: 'general' } | { kind: 'iface'; ifaceId: string } | { kind: 'routes' } | { kind: 'events' }
+type Page =
+  | { kind: 'general' }
+  | { kind: 'iface'; ifaceId: string }
+  | { kind: 'routes' }
+  | { kind: 'events' }
+  | { kind: 'vlans' }
+  | { kind: 'subifs' }
 
 export function ConfigTab({ device }: { device: Device }) {
   const [page, setPage] = useState<Page>({ kind: 'general' })
@@ -45,6 +53,8 @@ export function ConfigTab({ device }: { device: Device }) {
         </div>
         {navItem('Paramètres généraux', { kind: 'general' })}
         {device.kind === 'router' && navItem('Routage statique', { kind: 'routes' }, 'nav-routes')}
+        {device.kind === 'router' && navItem('Sous-interfaces', { kind: 'subifs' }, 'nav-subifs')}
+        {device.kind === 'switch' && !device.hostedBy && navItem('VLAN', { kind: 'vlans' }, 'nav-vlans')}
         {isHostDevice(device) && navItem('Journal d’événements', { kind: 'events' }, 'nav-events')}
         {l3.length > 0 && (
           <div className="px-2 pt-2 pb-0.5 text-[10px] font-semibold tracking-wider text-fg-subtle uppercase">
@@ -102,6 +112,8 @@ export function ConfigTab({ device }: { device: Device }) {
             <RouterInterfaceForm device={device} iface={iface} />
           ))}
         {page.kind === 'routes' && device.kind === 'router' && <RoutesPanel device={device} />}
+        {page.kind === 'subifs' && device.kind === 'router' && <SubinterfacesPanel device={device} />}
+        {page.kind === 'vlans' && device.kind === 'switch' && <VlanPanel device={device} />}
         {page.kind === 'events' && isHostDevice(device) && <EventLogView device={device} />}
       </div>
     </div>

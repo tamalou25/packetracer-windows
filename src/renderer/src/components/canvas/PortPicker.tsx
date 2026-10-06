@@ -52,28 +52,32 @@ export function PortPicker({ picker, onPick, onClose }: PortPickerProps) {
       <div className="flex items-center gap-1.5 border-b border-line px-3 py-1.5 text-xs font-semibold text-fg-muted">
         <Cable size={13} /> {device.name} — choisir un port
       </div>
-      {device.interfaces.map((iface) => {
-        const link = linkOnInterface(lab, device.id, iface.id)
-        const peer = link
-          ? lab.devices[
-              link.a.deviceId === device.id && link.a.ifaceId === iface.id ? link.b.deviceId : link.a.deviceId
-            ]
-          : undefined
-        return (
-          <button
-            key={iface.id}
-            type="button"
-            role="menuitem"
-            disabled={!!link}
-            onClick={() => onPick(iface.id)}
-            data-testid={`port-${iface.name}`}
-            className="flex w-full items-center justify-between px-3 py-1.5 text-left text-[13px] text-fg hover:bg-accent-soft disabled:cursor-not-allowed disabled:text-fg-subtle disabled:hover:bg-transparent"
-          >
-            <span className="font-mono text-xs font-medium">{iface.name}</span>
-            <span className="text-xs text-fg-muted">{link ? `→ ${peer?.name ?? '?'}` : 'libre'}</span>
-          </button>
-        )
-      })}
+      {device.interfaces
+        .filter((iface) => !iface.subinterface)
+        .map((iface) => {
+          const link = linkOnInterface(lab, device.id, iface.id)
+          const peer = link
+            ? lab.devices[
+                link.a.deviceId === device.id && link.a.ifaceId === iface.id
+                  ? link.b.deviceId
+                  : link.a.deviceId
+              ]
+            : undefined
+          return (
+            <button
+              key={iface.id}
+              type="button"
+              role="menuitem"
+              disabled={!!link}
+              onClick={() => onPick(iface.id)}
+              data-testid={`port-${iface.name}`}
+              className="flex w-full items-center justify-between px-3 py-1.5 text-left text-[13px] text-fg hover:bg-accent-soft disabled:cursor-not-allowed disabled:text-fg-subtle disabled:hover:bg-transparent"
+            >
+              <span className="font-mono text-xs font-medium">{iface.name}</span>
+              <span className="text-xs text-fg-muted">{link ? `→ ${peer?.name ?? '?'}` : 'libre'}</span>
+            </button>
+          )
+        })}
     </div>
   )
 }

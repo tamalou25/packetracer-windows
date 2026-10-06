@@ -30,7 +30,13 @@ export function RouterInterfaceForm({ device, iface }: { device: Device; iface: 
   }
 
   return (
-    <Section title={`Interface ${iface.name}`}>
+    <Section
+      title={
+        iface.subinterface
+          ? `Sous-interface ${iface.name} (encapsulation dot1Q ${iface.subinterface.vlan})`
+          : `Interface ${iface.name}`
+      }
+    >
       <div className="flex max-w-lg flex-col gap-3">
         <label className="flex items-center gap-2 text-sm">
           <input
