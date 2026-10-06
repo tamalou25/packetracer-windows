@@ -7,7 +7,7 @@ import { Monitor } from 'lucide-react'
 import { command, controlledDomain, type HostDevice } from '@engine/index'
 import { launch } from '../../../lib/desktop'
 import { runDirectoryCommand } from '../../../lib/directory'
-import { runCommand } from '../../../lib/run'
+import { runCommand, runCommandOk } from '../../../lib/run'
 import { useLabStore } from '../../../store/lab'
 import { useAppWindow } from '../shell/AppWindow'
 import {
@@ -26,6 +26,7 @@ export function SystemProperties({ device }: { device: HostDevice }) {
   const win = useAppWindow()
   const [restart, setRestart] = useState(false)
   const dc = useLabStore((s) => !!controlledDomain(s.lab, device.id))
+  const [tab, setTab] = useState<'name' | 'remote'>('name')
   const fqdn = device.host.domain ? `${device.name}.${device.host.domain}` : device.name
   const close = () => {
     // Des modifications attendent un redémarrage : le système le propose à la fermeture
@@ -35,11 +36,15 @@ export function SystemProperties({ device }: { device: HostDevice }) {
   return (
     <div className="relative flex h-full flex-col" data-testid="sysdm">
       <TabStrip
-        tabs={[{ id: 'name', label: 'Nom de l’ordinateur' }]}
-        active="name"
-        onChange={() => undefined}
+        tabs={[
+          { id: 'name', label: 'Nom de l’ordinateur' },
+          { id: 'remote', label: 'Utilisation à distance' }
+        ]}
+        active={tab}
+        onChange={(id) => setTab(id as 'name' | 'remote')}
       />
-      <DialogBody className="flex flex-col gap-3 bg-white">
+      {tab === 'remote' && <RemoteTab device={device} />}
+      <DialogBody className={`flex flex-col gap-3 bg-white ${tab === 'name' ? '' : 'hidden'}`}>
         <div className="flex gap-3">
           <Monitor size={34} className="shrink-0 text-[#1e6fbf]" strokeWidth={1.4} />
           <p>Le système utilise les informations suivantes pour identifier votre ordinateur sur le réseau.</p>
@@ -282,5 +287,75 @@ export function ComputerNameDialog({ device }: { device: HostDevice }) {
       )}
       {box && <MessageBox title={box.title} icon={box.icon} message={box.message} buttons={box.buttons} />}
     </div>
+  )
+}
+
+/** Onglet « Utilisation à distance » : Bureau à distance et groupe Utilisateurs du Bureau à distance. */
+function RemoteTab({ device }: { device: HostDevice }) {
+  const [member, setMember] = useState('')
+  const rd = device.host.remoteDesktop
+  const set = (settings: { enabled?: boolean; users?: string[] }) =>
+    runCommandOk(command('rds.setRemoteDesktop', device.id, settings))
+  return (
+    <DialogBody className="flex flex-col gap-3 bg-white">
+      <div className="flex flex-col gap-3" data-testid="sysdm-remote">
+        <GroupBox label="Bureau à distance">
+          <p className="mb-2">Choisissez une option, puis spécifiez qui peut se connecter.</p>
+          <label className="flex items-center gap-1.5">
+            <input
+              type="radio"
+              checked={!rd.enabled}
+              onChange={() => set({ enabled: false })}
+              data-testid="rdp-deny"
+            />
+            Ne pas autoriser les connexions à distance à cet ordinateur
+          </label>
+          <label className="mt-1 flex items-center gap-1.5">
+            <input
+              type="radio"
+              checked={rd.enabled}
+              onChange={() => set({ enabled: true })}
+              data-testid="rdp-allow"
+            />
+            Autoriser les connexions à distance à cet ordinateur
+          </label>
+        </GroupBox>
+        <GroupBox label="Utilisateurs du Bureau à distance">
+          <p className="mb-2 text-[11px] text-[#555]">
+            Les membres du groupe Administrateurs peuvent se connecter même s’ils ne sont pas dans la liste.
+          </p>
+          <ul className="mb-2 min-h-12 border border-[#a0a0a0] bg-white p-1" data-testid="rdp-users">
+            {rd.users.map((u) => (
+              <li key={u} className="flex justify-between">
+                {u}
+                <button
+                  type="button"
+                  className="text-[#0066cc] hover:underline"
+                  onClick={() => set({ users: rd.users.filter((x) => x !== u) })}
+                >
+                  Supprimer
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="flex gap-2">
+            <WinInput
+              value={member}
+              onChange={(e) => setMember(e.target.value)}
+              placeholder="LAB\\GG_Compta"
+              data-testid="rdp-user-input"
+            />
+            <WinButton
+              onClick={() => {
+                if (member.trim() && set({ users: [...rd.users, member.trim()] })) setMember('')
+              }}
+              data-testid="rdp-user-add"
+            >
+              Ajouter
+            </WinButton>
+          </div>
+        </GroupBox>
+      </div>
+    </DialogBody>
   )
 }

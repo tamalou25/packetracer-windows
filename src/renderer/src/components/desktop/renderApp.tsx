@@ -10,6 +10,7 @@ import { DnsApp } from '../apps/DnsApp'
 import { GpmcApp } from '../apps/GpmcApp'
 import { GpoEditor } from '../apps/GpoEditor'
 import { IisApp } from '../apps/IisApp'
+import { RdsApp } from '../apps/RdsApp'
 import { WsusApp } from '../apps/WsusApp'
 import { Terminal } from '../console/Terminal'
 import { AddRolesWizard } from './apps/AddRolesWizard'
@@ -34,6 +35,7 @@ import { FileProperties } from './apps/FileProperties'
 import { NewShareDialog } from './apps/NewShareDialog'
 import { WindowsUpdate } from './apps/WindowsUpdate'
 import { Browser } from './apps/Browser'
+import { RemoteDesktop } from './apps/RemoteDesktop'
 
 function unavailable(): ReactNode {
   return <div className="p-6 text-sm text-slate-500">Application indisponible sur cet ordinateur.</div>
@@ -91,6 +93,10 @@ export function renderApp(win: DesktopWindow, device: HostDevice): ReactNode {
       return server ? <WsusApp device={server} /> : unavailable()
     case 'inetmgr':
       return server ? <IisApp device={server} /> : unavailable()
+    case 'rdsmgr':
+      return server ? <RdsApp device={server} /> : unavailable()
+    case 'mstsc':
+      return <RemoteDesktop device={device} />
     case 'browser':
       return <Browser device={device} />
     case 'wuclient':
