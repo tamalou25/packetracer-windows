@@ -86,7 +86,7 @@ npm run dist         # installeur local via electron-builder → dist/
 - Commits : Conventional Commits (`feat(engine): …`, `fix(renderer): …`, `test: …`, `ci: …`, `docs: …`).
 - Un commit par étape, tests verts avant d'enchaîner.
 
-## Règles de travail (roadmap v1.1 → v5.0)
+## Règles de travail (roadmap v1.1 → v2.4)
 
 La roadmap est dans `ROADMAP.md` ; ses milestones, labels et issues sont décrits dans
 `.github/roadmap/roadmap.json` et créés par le workflow « Roadmap sync » (ne crée que ce qui manque).

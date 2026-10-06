@@ -8,13 +8,15 @@ avec GitHub par le workflow **Roadmap sync** (ne crée que ce qui manque).
 | Version | Thème                                                         | Milestone                                                            |
 | ------- | ------------------------------------------------------------- | -------------------------------------------------------------------- |
 | v1.1    | Consolider (prérequis d'architecture, ergonomie, performance) | [v1.1](https://github.com/tamalou25/packetracer-windows/milestone/1) |
-| v2.0    | Nouveaux rôles serveur                                        | [v2.0](https://github.com/tamalou25/packetracer-windows/milestone/2) |
-| v3.0    | Réseau avancé                                                 | [v3.0](https://github.com/tamalou25/packetracer-windows/milestone/3) |
-| v4.0    | Cybersécurité défensive                                       | [v4.0](https://github.com/tamalou25/packetracer-windows/milestone/4) |
-| v5.0    | Pédagogie et communauté                                       | [v5.0](https://github.com/tamalou25/packetracer-windows/milestone/5) |
+| v2.1    | Nouveaux rôles serveur                                        | [v2.1](https://github.com/tamalou25/packetracer-windows/milestone/2) |
+| v2.2    | Réseau avancé                                                 | [v2.2](https://github.com/tamalou25/packetracer-windows/milestone/3) |
+| v2.3    | Cybersécurité défensive                                       | [v2.3](https://github.com/tamalou25/packetracer-windows/milestone/4) |
+| v2.4    | Pédagogie et communauté                                       | [v2.4](https://github.com/tamalou25/packetracer-windows/milestone/5) |
 
-> Le milestone v1.1 est sorti sous le numéro de version **2.0.0** (choix de Gary) ; les milestones
-> suivants seront numérotés à leur sortie.
+> Le milestone v1.1 est sorti sous le numéro de version **2.0.0** (choix de Gary), suivi de la 2.0.1
+> (stabilisation). Les milestones suivants ajoutent des fonctionnalités sans casser les fichiers
+> existants (migrations `.slab`) : ce sont des versions mineures (SemVer), de 2.1.0 à 2.4.0.
+> Corrections de la 2.0 : milestone `v2.0.x`.
 
 Règles : un milestone ne commence qu'une fois le précédent terminé et validé ; une issue = une
 branche `feat/<num>-<slug>` = une PR (`Closes #N`) ; fin de milestone = CHANGELOG, version, tag
@@ -45,7 +47,7 @@ branche `feat/<num>-<slug>` = une PR (`Closes #N`) ; fin de milestone = CHANGELO
 | Performance                      | 100 équipements fluides, mesuré par un test                         | —                                   |
 | Logique hors composants          | Règles NTFS et ports déplacées dans le moteur                       | Ajoutée par l'audit                 |
 
-## v2.0 — Nouveaux rôles serveur
+## v2.1 — Nouveaux rôles serveur
 
 **Objectif** : couvrir les rôles d'infrastructure courants, chacun sous forme de `RoleModule`.
 
@@ -59,7 +61,7 @@ branche `feat/<num>-<slug>` = une PR (`Closes #N`) ; fin de milestone = CHANGELO
 | DFS        | Espaces de noms, groupes de réplication                                   | Un fichier créé sur un serveur apparaît sur l'autre                          |
 | Sauvegarde | Planification, restauration, corbeille AD                                 | Un utilisateur AD supprimé est restaurable                                   |
 
-## v3.0 — Réseau avancé
+## v2.2 — Réseau avancé
 
 | Fonctionnalité                 | Critère d'acceptation                                        |
 | ------------------------------ | ------------------------------------------------------------ |
@@ -70,7 +72,7 @@ branche `feat/<num>-<slug>` = une PR (`Closes #N`) ; fin de milestone = CHANGELO
 | NPS / RADIUS                   | VPN autorisé uniquement pour un groupe AD                    |
 | Multi-sites AD                 | Sites, liens, réplication entre DC, transfert des rôles FSMO |
 
-## v4.0 — Cybersécurité (défensif)
+## v2.3 — Cybersécurité (défensif)
 
 | Fonctionnalité                | Critère d'acceptation                                                                                                |
 | ----------------------------- | -------------------------------------------------------------------------------------------------------------------- |
@@ -80,7 +82,7 @@ branche `feat/<num>-<slug>` = une PR (`Closes #N`) ; fin de milestone = CHANGELO
 | Verrouillage et audit par GPO | Effet visible dans les journaux                                                                                      |
 | Rapport PDF                   | Rapport d'audit exportable                                                                                           |
 
-## v5.0 — Pédagogie et communauté
+## v2.4 — Pédagogie et communauté
 
 | Fonctionnalité             | Critère d'acceptation                                                       |
 | -------------------------- | --------------------------------------------------------------------------- |
