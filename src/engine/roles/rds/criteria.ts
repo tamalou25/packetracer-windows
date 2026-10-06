@@ -52,7 +52,8 @@ export const rdsCriteria = [
     (state, check) => {
       const host = hostByName(state, check.server)
       if (!host) return false
-      if (check.opened !== false) return host.host.remoteSessions.some((s) => sameAccount(s.account, check.account))
+      if (check.opened !== false)
+        return host.host.remoteSessions.some((s) => sameAccount(s.account, check.account))
       return host.host.eventLog.some(
         (e) =>
           e.eventId === 4625 &&
