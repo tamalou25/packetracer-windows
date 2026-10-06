@@ -14,13 +14,15 @@ import { dhcpRole } from './dhcp'
 import { dnsRole } from './dns'
 import { filesRole } from './files'
 import { gpoRole } from './gpo'
+import { hypervRole } from './hyperv'
 import { iisRole } from './iis'
 import { rdsRole } from './rds'
 import { wsusRole } from './wsus'
 import type { BackgroundTask, CriterionType, FeatureInfo, RoleModule, RoleView } from './types'
 
 /** Modules dans l'ordre d'exécution (dépendances d'abord : DHCP avant les stratégies de groupe). */
-const load = () => [dnsRole, dhcpRole, addsRole, gpoRole, filesRole, wsusRole, iisRole, rdsRole] as const
+const load = () =>
+  [dnsRole, dhcpRole, addsRole, gpoRole, filesRole, wsusRole, iisRole, rdsRole, hypervRole] as const
 
 export type RoleModules = ReturnType<typeof load>
 

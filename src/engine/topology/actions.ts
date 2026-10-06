@@ -10,6 +10,10 @@ import type { DeviceKind } from '../model/kinds'
 import type { Device, LabState, LinkEnd, Position } from '../model/schema'
 import { linkOnInterface } from './queries'
 
+/** Refus d'une opération de topologie sur un équipement virtuel (géré par Hyper-V). */
+const HYPERV_MANAGED = (name: string) =>
+  `${name} est un équipement virtuel : gérez-le depuis le Gestionnaire Hyper-V de son hôte.`
+
 /** Récupère un équipement dans un brouillon, ou lève une erreur. */
 export function requireDevice(draft: Draft<LabState>, id: string): Draft<Device> {
   const device = draft.devices[id]
@@ -64,11 +68,19 @@ export function addDevice(state: LabState, params: AddDeviceParams): EngineResul
   })
 }
 
-/** Supprime des équipements et tous les câbles qui y sont branchés. */
+/**
+ * Supprime des équipements et tous les câbles qui y sont branchés. Supprimer un hôte Hyper-V
+ * supprime ses machines et commutateurs virtuels ; ceux-ci ne se suppriment que depuis Hyper-V.
+ */
 export function removeDevices(state: LabState, ids: string[]): EngineResult {
   return transact(state, (draft) => {
     const set = new Set(ids)
-    for (const id of ids) requireDevice(draft, id)
+    for (const id of ids) {
+      const device = requireDevice(draft, id)
+      if (device.hostedBy && !set.has(device.hostedBy)) raise('HyperVManaged', HYPERV_MANAGED(device.name))
+    }
+    for (const d of Object.values(draft.devices)) if (d.hostedBy && set.has(d.hostedBy)) set.add(d.id)
+    ids = [...set]
     for (const link of Object.values(draft.links)) {
       if (set.has(link.a.deviceId) || set.has(link.b.deviceId)) delete draft.links[link.id]
     }
@@ -102,6 +114,8 @@ export function setPower(state: LabState, id: string, powered: boolean): EngineR
   return transact(state, (draft) => {
     const device = requireDevice(draft, id)
     if (device.powered === powered) return undefined
+    if (powered && device.hostedBy && !draft.devices[device.hostedBy]?.powered)
+      raise('HostPoweredOff', `L’hôte Hyper-V de ${device.name} est éteint.`)
     if (!powered) {
       logEvent(draft, id, {
         level: 'information',
@@ -111,7 +125,12 @@ export function setPower(state: LabState, id: string, powered: boolean): EngineR
       })
     }
     device.powered = powered
+    // Hôte Hyper-V éteint : ses machines et commutateurs virtuels s'arrêtent avec lui
+    if (!powered)
+      for (const hosted of Object.values(draft.devices)) if (hosted.hostedBy === id) hosted.powered = false
     if (powered) {
+      for (const hosted of Object.values(draft.devices))
+        if (hosted.hostedBy === id && hosted.kind === 'switch') hosted.powered = true
       logEvent(draft, id, {
         level: 'information',
         source: 'EventLog',
@@ -157,6 +176,8 @@ export function removeServerInterface(state: LabState, id: string, ifaceId: stri
     const index = device.interfaces.findIndex((i) => i.id === ifaceId)
     if (index < 0) raise('InterfaceNotFound', 'Carte réseau introuvable.')
     const link = linkOnInterface(draft, id, ifaceId)
+    if (device.interfaces[index]?.bridge || link?.virtual)
+      raise('HyperVManaged', 'Cette carte réseau est utilisée par un commutateur virtuel Hyper-V.')
     if (link) delete draft.links[link.id]
     device.interfaces.splice(index, 1)
     return undefined
@@ -184,20 +205,27 @@ export function connect(state: LabState, a: LinkEnd, b: LinkEnd): EngineResult<s
     if (a.deviceId === b.deviceId) raise('SameDevice', 'Impossible de relier un équipement à lui-même.')
     for (const end of [a, b]) {
       const device = requireDevice(draft, end.deviceId)
+      if (device.hostedBy) raise('HyperVManaged', HYPERV_MANAGED(device.name))
       const iface = device.interfaces.find((i) => i.id === end.ifaceId)
       if (!iface) raise('InterfaceNotFound', `Port introuvable sur ${device.name}.`)
       if (linkOnInterface(draft, end.deviceId, end.ifaceId))
         raise('PortInUse', `Le port ${iface.name} de ${device.name} est déjà utilisé.`)
     }
     const id = `l${nextSeq(draft)}`
-    draft.links[id] = { id, a: { ...a }, b: { ...b } }
+    draft.links[id] = { id, a: { ...a }, b: { ...b }, virtual: false }
     return id
   })
 }
 
 export function disconnect(state: LabState, linkId: string): EngineResult {
   return transact(state, (draft) => {
-    if (!draft.links[linkId]) raise('LinkNotFound', 'Câble introuvable.')
+    const link = draft.links[linkId]
+    if (!link) raise('LinkNotFound', 'Câble introuvable.')
+    if (link.virtual)
+      raise(
+        'HyperVManaged',
+        'Cette liaison virtuelle se gère dans le Gestionnaire Hyper-V (carte réseau de la VM).'
+      )
     delete draft.links[linkId]
     return undefined
   })
@@ -233,7 +261,8 @@ export function duplicateDevices(
           mac: fresh.mac,
           dnsServers: [...iface.dnsServers],
           dhcpLease: null,
-          dhcpReleased: false
+          dhcpReleased: false,
+          bridge: null
         }
       })
       if (copy.kind === 'router' && original.kind === 'router')
@@ -255,7 +284,12 @@ export function duplicateDevices(
       const ib = ifaceMap.get(`${link.b.deviceId}/${link.b.ifaceId}`)
       if (da && db && ia && ib) {
         const id = `l${nextSeq(draft)}`
-        draft.links[id] = { id, a: { deviceId: da, ifaceId: ia }, b: { deviceId: db, ifaceId: ib } }
+        draft.links[id] = {
+          id,
+          a: { deviceId: da, ifaceId: ia },
+          b: { deviceId: db, ifaceId: ib },
+          virtual: false
+        }
       }
     }
     return created

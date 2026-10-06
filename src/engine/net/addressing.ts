@@ -16,7 +16,7 @@ export interface EffectiveIpv4 {
 
 /** Configuration IPv4 réellement utilisée par la carte, ou null si elle n'en a pas. */
 export function effectiveIpv4(iface: NetInterface): EffectiveIpv4 | null {
-  if (!iface.l3 || !iface.enabled) return null
+  if (!iface.l3 || !iface.enabled || iface.bridge) return null
   if (iface.addressing === 'static') {
     if (!iface.address || iface.prefixLength === null) return null
     return {

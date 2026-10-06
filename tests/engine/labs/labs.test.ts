@@ -40,6 +40,7 @@ import lab5 from '../../../labs/lab-05-ntfs.json'
 import lab6 from '../../../labs/lab-06-wsus.json'
 import lab7 from '../../../labs/lab-07-iis.json'
 import lab8 from '../../../labs/lab-08-rds.json'
+import lab9 from '../../../labs/lab-09-hyperv.json'
 import { run } from '../shell/helpers'
 
 function load(raw: unknown): LabDefinition {
@@ -239,11 +240,32 @@ const SOLUTIONS: Record<string, (s: LabState) => LabState> = {
       s = r.state
     }
     return s
+  },
+  'lab-09-hyperv': (s) => {
+    const srv = id(s, 'SRV1')
+    s = unwrap(installFeatures(s, srv, ['Hyper-V'], { includeManagementTools: true })).state
+    for (const cmd of [
+      command('hyperv.newSwitch', srv, { name: 'LAN-Test', type: 'Private' }),
+      command('hyperv.newVm', srv, { name: 'VMTEST1', switchName: 'LAN-Test' }),
+      command('hyperv.newVm', srv, { name: 'VMTEST2', switchName: 'LAN-Test' }),
+      command('hyperv.newSwitch', srv, { name: 'Externe', type: 'External', netAdapter: 'Ethernet0' }),
+      command('hyperv.newVm', srv, { name: 'VMWEB', switchName: 'Externe' }),
+      command('hyperv.setVmState', srv, 'VMTEST1', true),
+      command('hyperv.setVmState', srv, 'VMTEST2', true),
+      command('hyperv.setVmState', srv, 'VMWEB', true)
+    ]) {
+      const r = dispatch(s, cmd)
+      if (!r.ok) throw new Error(r.error.message)
+      s = r.state
+    }
+    s = ip(s, 'VMTEST1', null, '192.168.50.1/24')
+    s = ip(s, 'VMTEST2', null, '192.168.50.2/24')
+    return ip(s, 'VMWEB', null, '192.168.10.50/24')
   }
 }
 
 describe('Labs', () => {
-  const labs = [lab1, lab2, lab3, lab4, lab5, lab6, lab7, lab8].map(load)
+  const labs = [lab1, lab2, lab3, lab4, lab5, lab6, lab7, lab8, lab9].map(load)
 
   it('chaque lab a un identifiant unique, des critères uniques et des indices', () => {
     expect(new Set(labs.map((l) => l.id)).size).toBe(labs.length)

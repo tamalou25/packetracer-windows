@@ -424,6 +424,23 @@ describe('catalogue des commandes', () => {
     done(r)
   })
 
+  it('Hyper-V : commutateurs, machines virtuelles, cartes réseau, démarrage et suppression', () => {
+    const r = runner()
+    const srv = r.id('SRV1')
+    r.run(command('system.installFeatures', srv, ['Hyper-V'], { includeManagementTools: true }))
+    r.run(command('hyperv.newSwitch', srv, { name: 'Externe', type: 'External', netAdapter: 'Ethernet0' }))
+    r.run(command('hyperv.newSwitch', srv, { name: 'Privé', type: 'Private' }))
+    r.run(command('hyperv.newVm', srv, { name: 'VM1', switchName: 'Privé', memoryMB: 2048 }))
+    r.run(command('hyperv.addAdapter', srv, 'VM1', 'Externe'))
+    r.run(command('hyperv.setMemory', srv, 'VM1', 4096))
+    r.run(command('hyperv.connectAdapter', srv, 'VM1', null))
+    r.run(command('hyperv.setVmState', srv, 'VM1', true))
+    r.run(command('hyperv.setVmState', srv, 'VM1', false))
+    r.run(command('hyperv.removeVm', srv, 'VM1'))
+    r.run(command('hyperv.removeSwitch', srv, 'Externe'))
+    done(r)
+  })
+
   it('toute commande du catalogue est couverte par ce fichier', () => {
     const missing = Object.keys(commandDefinitions()).filter((t) => !covered.has(t))
     expect(missing).toEqual([])

@@ -83,7 +83,8 @@ export function createInterface(draft: Draft<LabState>, name: string, kind: Devi
     dnsMode: isHost ? 'dhcp' : 'static',
     dnsServers: [],
     dhcpLease: null,
-    dhcpReleased: false
+    dhcpReleased: false,
+    bridge: null
   }
 }
 
@@ -125,7 +126,7 @@ export function buildDevice(
   const id = `d${nextSeq(draft)}`
   const deviceName = name ?? nextDeviceName(draft, kind)
   const interfaces = defaultInterfaceNames(kind).map((n) => createInterface(draft, n, kind))
-  const base = { id, name: deviceName, position: { ...position }, powered: true, interfaces }
+  const base = { id, name: deviceName, position: { ...position }, powered: true, interfaces, hostedBy: null }
   switch (kind) {
     case 'server':
       return {

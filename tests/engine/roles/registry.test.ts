@@ -31,7 +31,7 @@ const duplicates = (list: string[]) => list.filter((x, i) => list.indexOf(x) !==
 describe('registre des rôles', () => {
   it('déclare chaque rôle une fois, après les rôles dont il dépend', () => {
     const ids = roleModules().map((m) => m.id)
-    expect(ids).toEqual(['dns', 'dhcp', 'adds', 'gpo', 'files', 'wsus', 'iis', 'rds'])
+    expect(ids).toEqual(['dns', 'dhcp', 'adds', 'gpo', 'files', 'wsus', 'iis', 'rds', 'hyperv'])
     roleModules().forEach((m, index) => {
       for (const dep of m.dependencies) expect(ids.indexOf(dep), `${m.id} → ${dep}`).toBeLessThan(index)
       expect(
@@ -54,6 +54,7 @@ describe('registre des rôles', () => {
       'FileAndStorage-Services',
       'FS-FileServer',
       'GPMC',
+      'Hyper-V',
       'PowerShell',
       'Remote-Desktop-Services',
       'RDS-RD-Server',
@@ -64,6 +65,9 @@ describe('registre des rôles', () => {
       'RSAT-ADDS',
       'RSAT-DHCP',
       'RSAT-DNS-Server',
+      'RSAT-Hyper-V-Tools',
+      'Hyper-V-Tools',
+      'Hyper-V-PowerShell',
       'RSAT-RDS-Tools',
       'UpdateServices',
       'UpdateServices-WidDB',
@@ -112,7 +116,14 @@ describe('registre des rôles', () => {
   it('installer un rôle crée son état initial déclaré par le module', () => {
     const { state, ids } = build([['server', 'SRV1']])
     const s = unwrap(
-      installFeatures(state, ids.SRV1!, ['DHCP', 'DNS', 'UpdateServices', 'Web-Server', 'RDS-RD-Server'])
+      installFeatures(state, ids.SRV1!, [
+        'DHCP',
+        'DNS',
+        'UpdateServices',
+        'Web-Server',
+        'RDS-RD-Server',
+        'Hyper-V'
+      ])
     ).state
     const srv = s.devices[ids.SRV1!] as ServerDevice
     for (const m of roleModules().filter((r) => r.state)) {
@@ -174,7 +185,7 @@ describe('registre des rôles', () => {
   })
 
   it('tout module chargé en premier laisse le registre complet (imports circulaires)', async () => {
-    for (const entry of ['dhcp', 'dns', 'adds', 'gpo', 'files', 'wsus', 'iis', 'rds']) {
+    for (const entry of ['dhcp', 'dns', 'adds', 'gpo', 'files', 'wsus', 'iis', 'rds', 'hyperv']) {
       vi.resetModules()
       await import(`../../../src/engine/roles/${entry}/index.ts`)
       const registry = await import('../../../src/engine/roles/registry')
