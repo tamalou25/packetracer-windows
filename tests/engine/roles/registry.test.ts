@@ -42,7 +42,8 @@ describe('registre des rôles', () => {
       'rds',
       'hyperv',
       'adcs',
-      'dfs'
+      'dfs',
+      'backup'
     ])
     roleModules().forEach((m, index) => {
       for (const dep of m.dependencies) expect(ids.indexOf(dep), `${m.id} → ${dep}`).toBeLessThan(index)
@@ -97,7 +98,8 @@ describe('registre des rôles', () => {
       'Web-Server',
       'Web-WebServer',
       'Web-Mgmt-Tools',
-      'Web-Mgmt-Console'
+      'Web-Mgmt-Console',
+      'Windows-Server-Backup'
     ])
     for (const f of allFeatures()) {
       for (const ref of [
@@ -208,7 +210,8 @@ describe('registre des rôles', () => {
       'rds',
       'hyperv',
       'adcs',
-      'dfs'
+      'dfs',
+      'backup'
     ]) {
       vi.resetModules()
       await import(`../../../src/engine/roles/${entry}/index.ts`)

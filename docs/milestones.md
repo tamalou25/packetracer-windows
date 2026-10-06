@@ -21,8 +21,8 @@ Ce journal permet à une nouvelle session de reprendre le travail là où il s'e
 | #17   | Rôle RDS                 | `feat/17-rds`    | #76 | fusionné |
 | #18   | Rôle Hyper-V             | `feat/18-hyperv` | #77 | fusionné |
 | #19   | Rôle AD CS               | `feat/19-adcs`   | #78 | fusionné |
-| #20   | Rôle DFS                 | `feat/20-dfs`    |     | en cours |
-| #21   | Sauvegarde, corbeille AD |                  |     | à faire  |
+| #20   | Rôle DFS                 | `feat/20-dfs`    | #79 | fusionné |
+| #21   | Sauvegarde, corbeille AD | `feat/21-backup` |     | en cours |
 
 ### #15 WSUS
 
@@ -103,6 +103,21 @@ Ce journal permet à une nouvelle session de reprendre le travail là où il s'e
   DfsReplicationGroup, Add-DfsrMember, New-DfsReplicatedFolder, Set/Get-DfsrMembership,
   Sync-DfsReplicationGroup) ; console « Gestion DFS » ; critères `dfsNamespace`, `uncReachable`,
   `dfsReplicated` ; lab `lab-11-dfs`.
+
+### #21 Sauvegarde et Corbeille AD
+
+- Format : domaine `recycleBin` et `deletedObjects` (objet copié, groupes d'appartenance, date de
+  suppression), valeurs par défaut sans nouvelle version (v5 = milestone v2.1).
+- Corbeille AD (module AD DS) : activation irréversible, objets supprimés conservés avec leurs attributs et
+  appartenances, restauration à l'emplacement d'origine (parent supprimé → restaurer le parent d'abord) ou
+  dans un autre conteneur ; cmdlets `Enable-ADOptionalFeature`, `Get-ADOptionalFeature`,
+  `Get-ADObject -IncludeDeletedObjects`, `Restore-ADObject` ; console « Centre d'administration Active
+  Directory » (`dsac.exe`), limitée à la Corbeille.
+- Moteur `roles/backup/` : fonctionnalité Windows-Server-Backup, planification quotidienne (éléments, état du
+  système, destination hors du volume sauvegardé), sauvegarde unique, versions, récupération (créer une
+  copie, remplacer, ignorer) avec ACL et propriétaire ; `wbadmin` (start backup, enable backup, get versions,
+  start recovery) ; console « Sauvegarde Windows Server » ; critères `backupPolicy`, `backupSet`,
+  `adRecycleBin` ; lab `lab-12-sauvegarde`.
 
 ## v2.2 — Réseau d'entreprise
 

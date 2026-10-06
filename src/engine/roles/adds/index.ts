@@ -3,6 +3,7 @@
  * Les données de l'annuaire sont propres à la forêt (`state.domains`), pas à un serveur.
  */
 import { defineRole } from '../types'
+import { recycleBinCmdlets } from './recycle'
 import { adCmdlets } from './cmdlets'
 import { addsCommands } from './commands'
 import { addsCriteria } from './criteria'
@@ -32,13 +33,20 @@ export const addsRole = defineRole({
     { name: 'RSAT-ADDS', displayName: 'Outils AD DS', role: false, parent: 'RSAT-AD-Tools' }
   ],
   commands: addsCommands,
-  cmdlets: adCmdlets,
+  cmdlets: [...adCmdlets, ...recycleBinCmdlets],
   tools: [],
   views: [
     {
       app: 'aduc',
       label: 'Utilisateurs et ordinateurs Active Directory',
       run: ['dsa.msc'],
+      tool: true,
+      requires: { feature: 'RSAT-ADDS', domain: true }
+    },
+    {
+      app: 'dsac',
+      label: 'Centre d’administration Active Directory',
+      run: ['dsac.exe', 'dsac'],
       tool: true,
       requires: { feature: 'RSAT-ADDS', domain: true }
     },

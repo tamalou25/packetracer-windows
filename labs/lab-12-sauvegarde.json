@@ -1,0 +1,109 @@
+{
+  "formatVersion": 1,
+  "id": "lab-12-sauvegarde",
+  "title": "Sauvegarde du serveur et Corbeille AD",
+  "difficulty": "Intermédiaire",
+  "duration": "35 min",
+  "summary": "Planifier la sauvegarde d’un serveur, récupérer un fichier et restaurer un compte AD supprimé.",
+  "statement": "# Contexte\n\nUn fichier comptable a été écrasé la semaine dernière et un compte supprimé par erreur a dû être recréé à la main. Vous mettez en place la sauvegarde de **SRV1** et la Corbeille Active Directory.\n\nCompte d’administration : `LAB\\Administrateur` / `P@ssw0rd`.\n\n## Travail demandé\n\n1. Sur SRV1, créez le dossier `C:\\Compta` et le fichier `C:\\Compta\\rapport.txt`.\n2. Installez la fonctionnalité **Sauvegarde Windows Server**.\n3. Planifiez une sauvegarde quotidienne à **21:00** vers le volume `E:` incluant `C:\\Compta` et l’**état du système**.\n4. Lancez une **sauvegarde unique** avec les options planifiées, supprimez `rapport.txt` puis récupérez-le depuis la sauvegarde.\n5. Activez la **Corbeille Active Directory** du domaine (Centre d’administration Active Directory ou PowerShell).\n6. Supprimez le compte **Marc Petit**, puis restaurez-le : vérifiez qu’il est toujours membre de **GG_Compta**.",
+  "start": {
+    "devices": [
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 260,
+        "y": 120,
+        "ip": "192.168.10.1/24",
+        "dns": ["127.0.0.1"]
+      },
+      {
+        "kind": "switch",
+        "name": "SW1",
+        "x": 260,
+        "y": 300
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 260,
+        "y": 460,
+        "ip": "192.168.10.10/24",
+        "dns": ["192.168.10.1"]
+      }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/2"]
+    ],
+    "domain": {
+      "name": "lab.local",
+      "netbios": "LAB",
+      "dc": "SRV1",
+      "ous": ["Compta"],
+      "groups": [{ "name": "GG_Compta", "ou": "Compta", "members": ["mpetit"] }],
+      "users": [
+        {
+          "name": "Marc Petit",
+          "sam": "mpetit",
+          "ou": "Compta",
+          "password": "Azerty123!"
+        }
+      ],
+      "join": ["PC1"]
+    }
+  },
+  "criteria": [
+    {
+      "id": "feature",
+      "label": "La Sauvegarde Windows Server est installée sur SRV1",
+      "hint": "Ce n’est pas un rôle : cherchez-la dans la liste des fonctionnalités de l’assistant d’ajout.",
+      "check": {
+        "type": "featureInstalled",
+        "device": "SRV1",
+        "feature": "Windows-Server-Backup"
+      }
+    },
+    {
+      "id": "policy",
+      "label": "La sauvegarde planifiée couvre le dossier comptable et l’état du système",
+      "hint": "Choisissez une configuration personnalisée : les éléments à inclure et l’état du système se cochent séparément ; la destination ne peut pas être le volume sauvegardé.",
+      "check": {
+        "type": "backupPolicy",
+        "server": "SRV1",
+        "item": "C:\\Compta",
+        "systemState": true
+      }
+    },
+    {
+      "id": "set",
+      "label": "Une sauvegarde contient le fichier du dossier comptable",
+      "hint": "Une planification ne s’exécute qu’à l’heure prévue : lancez une sauvegarde unique après avoir créé le fichier.",
+      "check": {
+        "type": "backupSet",
+        "server": "SRV1",
+        "item": "C:\\Compta\\rapport.txt"
+      }
+    },
+    {
+      "id": "recycle",
+      "label": "La Corbeille Active Directory est activée",
+      "hint": "Elle s’active une seule fois pour toute la forêt et ne se désactive plus ; seuls les objets supprimés après son activation sont restaurables.",
+      "check": {
+        "type": "adRecycleBin",
+        "domain": "lab.local"
+      }
+    },
+    {
+      "id": "restored",
+      "label": "Le compte de Marc Petit est dans son OU et membre de son groupe",
+      "hint": "La Corbeille restaure l’objet avec ses attributs et ses appartenances ; un compte recréé à la main perd ses groupes.",
+      "check": {
+        "type": "adObject",
+        "kind": "user",
+        "name": "mpetit",
+        "parent": "Compta",
+        "memberOf": "GG_Compta"
+      }
+    }
+  ]
+}

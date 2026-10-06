@@ -497,6 +497,23 @@ describe('catalogue des commandes', () => {
     done(r)
   })
 
+  it('Corbeille AD et Sauvegarde Windows Server', () => {
+    const r = runner()
+    const srv = r.id('SRV1')
+    r.run(command('adds.enableRecycleBin', DOMAIN))
+    const jd = r.state.domains[DOMAIN]!.users.find((u) => u.sam === 'jdupont')!.id
+    r.run(command('adds.removeObject', DOMAIN, jd))
+    r.run(command('adds.restoreDeleted', DOMAIN, jd))
+    r.run(command('system.installFeatures', srv, ['Windows-Server-Backup'], {}))
+    r.run(command('files.createItem', srv, 'C:\\Compta', 'folder', r.admin(), {}))
+    r.run(command('backup.setPolicy', srv, { items: ['C:\\Compta'], target: 'E:', time: '21:00' }))
+    const version = r.run<string>(command('backup.start', srv, null))
+    r.run(command('backup.removePolicy', srv))
+    r.run(command('files.removeItem', srv, 'C:\\Compta', r.admin(), {}))
+    r.run(command('backup.recover', srv, version, 'C:\\Compta', 'Overwrite'))
+    done(r)
+  })
+
   it('toute commande du catalogue est couverte par ce fichier', () => {
     const missing = Object.keys(commandDefinitions()).filter((t) => !covered.has(t))
     expect(missing).toEqual([])

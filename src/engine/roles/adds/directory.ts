@@ -400,7 +400,9 @@ export function buildDomain(
     ],
     computers: [dcComputer],
     gpos: defaultDomainGpos(draft.clock),
-    gpLinks: [{ gpoId: DEFAULT_DOMAIN_POLICY_ID, enabled: true, enforced: false }]
+    gpLinks: [{ gpoId: DEFAULT_DOMAIN_POLICY_ID, enabled: true, enforced: false }],
+    recycleBin: false,
+    deletedObjects: []
   }
 }
 
