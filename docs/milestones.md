@@ -22,7 +22,9 @@ Ce journal permet à une nouvelle session de reprendre le travail là où il s'e
 | #18   | Rôle Hyper-V             | `feat/18-hyperv` | #77 | fusionné |
 | #19   | Rôle AD CS               | `feat/19-adcs`   | #78 | fusionné |
 | #20   | Rôle DFS                 | `feat/20-dfs`    | #79 | fusionné |
-| #21   | Sauvegarde, corbeille AD | `feat/21-backup` |     | en cours |
+| #21   | Sauvegarde, corbeille AD | `feat/21-backup` | #80 | fusionné |
+
+Milestone terminé : `CHANGELOG.md` [2.1.0], `package.json` 2.1.0 ; tag `v2.1.0` à pousser par Gary.
 
 ### #15 WSUS
 
