@@ -11,6 +11,7 @@
  */
 import { adcsRole } from './adcs'
 import { addsRole } from './adds'
+import { backupRole } from './backup'
 import { dfsRole } from './dfs'
 import { dhcpRole } from './dhcp'
 import { dnsRole } from './dns'
@@ -35,7 +36,8 @@ const load = () =>
     rdsRole,
     hypervRole,
     adcsRole,
-    dfsRole
+    dfsRole,
+    backupRole
   ] as const
 
 export type RoleModules = ReturnType<typeof load>

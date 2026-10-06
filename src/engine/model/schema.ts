@@ -572,6 +572,34 @@ export const AdComputerSchema = z.object({
   dnsHostName: z.string().default('')
 })
 
+/** Objet supprimé conservé par la Corbeille Active Directory (attributs et appartenances). */
+export const DeletedAdObjectSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('user'),
+    obj: AdUserSchema,
+    memberOf: z.array(z.string()).default([]),
+    deletedAt: z.number().default(0)
+  }),
+  z.object({
+    kind: z.literal('group'),
+    obj: AdGroupSchema,
+    memberOf: z.array(z.string()).default([]),
+    deletedAt: z.number().default(0)
+  }),
+  z.object({
+    kind: z.literal('computer'),
+    obj: AdComputerSchema,
+    memberOf: z.array(z.string()).default([]),
+    deletedAt: z.number().default(0)
+  }),
+  z.object({
+    kind: z.literal('container'),
+    obj: AdContainerSchema,
+    memberOf: z.array(z.string()).default([]),
+    deletedAt: z.number().default(0)
+  })
+])
+
 export const DomainSchema = z.object({
   /** Nom DNS du domaine (lab.local). */
   name: z.string(),
@@ -586,7 +614,11 @@ export const DomainSchema = z.object({
   /** Objets de stratégie de groupe du domaine. */
   gpos: z.array(GpoSchema).default([]),
   /** GPO liées à la racine du domaine (ordre de liaison). */
-  gpLinks: z.array(GpLinkSchema).default([])
+  gpLinks: z.array(GpLinkSchema).default([]),
+  /** Corbeille Active Directory activée (irréversible). */
+  recycleBin: z.boolean().default(false),
+  /** Objets supprimés restaurables (Corbeille activée). */
+  deletedObjects: z.array(DeletedAdObjectSchema).default([])
 })
 
 /** État complet d'un lab : source de vérité unique de l'application. */
@@ -637,6 +669,7 @@ export type UserPolicyResult = z.infer<typeof UserPolicyResultSchema>
 export type HostPolicy = z.infer<typeof HostPolicySchema>
 export type MappedDrive = z.infer<typeof MappedDriveSchema>
 export type Certificate = z.infer<typeof CertificateSchema>
+export type DeletedAdObject = z.infer<typeof DeletedAdObjectSchema>
 export type RemoteSession = z.infer<typeof RemoteSessionSchema>
 export type NtfsRight = (typeof NTFS_RIGHTS)[number]
 export type NtfsAce = z.infer<typeof NtfsAceSchema>

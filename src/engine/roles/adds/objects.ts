@@ -406,6 +406,33 @@ export function removeObject(
           'Une sous-unité d’organisation est protégée contre les suppressions accidentelles.'
         )
     }
+    // Corbeille Active Directory : objets conservés avec leurs attributs et appartenances
+    if (domain.recycleBin) {
+      const memberOf = (id: string) => domain.groups.filter((g) => g.members.includes(id)).map((g) => g.id)
+      const at = draft.clock
+      for (const c of domain.containers)
+        if (toDelete.has(c.id))
+          domain.deletedObjects.push({ kind: 'container', obj: { ...c }, memberOf: [], deletedAt: at })
+      for (const u of domain.users)
+        if (toDelete.has(u.id))
+          domain.deletedObjects.push({ kind: 'user', obj: { ...u }, memberOf: memberOf(u.id), deletedAt: at })
+      for (const g of domain.groups)
+        if (toDelete.has(g.id))
+          domain.deletedObjects.push({
+            kind: 'group',
+            obj: { ...g },
+            memberOf: memberOf(g.id),
+            deletedAt: at
+          })
+      for (const c of domain.computers)
+        if (toDelete.has(c.id))
+          domain.deletedObjects.push({
+            kind: 'computer',
+            obj: { ...c },
+            memberOf: memberOf(c.id),
+            deletedAt: at
+          })
+    }
     domain.containers = domain.containers.filter((c) => !toDelete.has(c.id))
     domain.users = domain.users.filter((u) => !toDelete.has(u.id))
     domain.groups = domain.groups.filter((g) => !toDelete.has(g.id))
@@ -427,6 +454,59 @@ export function setOuProtection(
     const ou = domain.containers.find((c) => c.id === ouId && c.kind === 'ou')
     if (!ou) raise('NotFound', 'Unité d’organisation introuvable.')
     ou.protected = protectedFromDeletion
+    return undefined
+  })
+}
+
+/** Active la Corbeille Active Directory (Enable-ADOptionalFeature) : opération irréversible. */
+export function enableRecycleBin(state: LabState, domainName: string): EngineResult {
+  return transact(state, (draft) => {
+    const domain = requireDomain(draft, domainName)
+    if (domain.recycleBin)
+      raise('AlreadyEnabled', 'La fonctionnalité Corbeille est déjà activée pour cette forêt.')
+    domain.recycleBin = true
+    return undefined
+  })
+}
+
+/**
+ * Restaure un objet supprimé de la Corbeille (Restore-ADObject) avec ses attributs et ses
+ * appartenances aux groupes encore présents. `targetId` : conteneur de destination (par défaut le
+ * dernier parent connu, qui doit exister).
+ */
+export function restoreDeletedObject(
+  state: LabState,
+  domainName: string,
+  objectId: string,
+  targetId?: string | null
+): EngineResult {
+  return transact(state, (draft) => {
+    const domain = requireDomain(draft, domainName)
+    const index = domain.deletedObjects.findIndex((d) => d.obj.id === objectId)
+    const entry = domain.deletedObjects[index]
+    if (!entry) raise('NotFound', 'Objet supprimé introuvable dans la Corbeille Active Directory.')
+    const parent = targetId === undefined ? entry.obj.parentId : targetId
+    if (parent !== null && !domain.containers.some((c) => c.id === parent))
+      raise(
+        'ParentDeleted',
+        'L’opération n’a pas pu être effectuée, car le parent de l’objet est supprimé : restaurez d’abord le conteneur parent ou indiquez -TargetPath.'
+      )
+    const name = entry.obj.name.toLowerCase()
+    const taken = [...domain.users, ...domain.groups, ...domain.computers, ...domain.containers].some(
+      (o) => o.parentId === parent && o.name.toLowerCase() === name
+    )
+    if (taken) raise('AlreadyExists', `Un objet nommé « ${entry.obj.name} » existe déjà à cet emplacement.`)
+    if (entry.kind === 'container') domain.containers.push({ ...entry.obj, parentId: parent })
+    else {
+      // Utilisateurs, groupes et ordinateurs résident toujours dans un conteneur
+      if (parent === null) raise('ParentDeleted', 'Indiquez le conteneur de destination (-TargetPath).')
+      if (entry.kind === 'user') domain.users.push({ ...entry.obj, parentId: parent })
+      else if (entry.kind === 'group') domain.groups.push({ ...entry.obj, parentId: parent })
+      else domain.computers.push({ ...entry.obj, parentId: parent })
+    }
+    for (const g of domain.groups)
+      if (entry.memberOf.includes(g.id) && !g.members.includes(entry.obj.id)) g.members.push(entry.obj.id)
+    domain.deletedObjects.splice(index, 1)
     return undefined
   })
 }

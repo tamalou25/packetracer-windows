@@ -23,8 +23,10 @@ import {
   addUser,
   moveObject,
   removeGroupMembers,
+  enableRecycleBin,
   removeObject,
   resetPassword,
+  restoreDeletedObject,
   setAccountEnabled
 } from './objects'
 
@@ -75,6 +77,12 @@ export const addsCommands = {
   ),
   'adds.moveObject': def(moveObject, (s, d, id) => `Déplacer ${directoryObjectName(s, d, id)}`),
   'adds.removeObject': def(removeObject, (s, d, id) => `Supprimer ${directoryObjectName(s, d, id)}`),
+  'adds.enableRecycleBin': def(enableRecycleBin, (_s, d) => `Activer la Corbeille Active Directory (${d})`),
+  'adds.restoreDeleted': def(
+    restoreDeletedObject,
+    (s, d, id) =>
+      `Restaurer ${s.domains[d]?.deletedObjects.find((o) => o.obj.id === id)?.obj.name ?? 'un objet'} depuis la Corbeille`
+  ),
   'adds.setAccountEnabled': def(
     setAccountEnabled,
     (_s, _d, identity, enabled) => `${enabled ? 'Activer' : 'Désactiver'} le compte ${identity}`

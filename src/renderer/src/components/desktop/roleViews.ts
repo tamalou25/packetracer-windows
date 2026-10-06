@@ -5,6 +5,8 @@
  */
 import {
   AppWindow,
+  Archive,
+  ArchiveRestore,
   BadgeCheck,
   CloudDownload,
   FileCog,
@@ -33,6 +35,7 @@ const STYLES: Record<string, ViewStyle> = {
   dhcppost: { icon: Waypoints, color: 'text-teal-500', size: { w: 660, h: 470 } },
   dns: { icon: Globe, color: 'text-sky-500', size: { w: 920, h: 580 } },
   aduc: { icon: UsersRound, color: 'text-indigo-400', size: { w: 940, h: 600 } },
+  dsac: { icon: ArchiveRestore, color: 'text-indigo-500', size: { w: 900, h: 560 } },
   adpromote: { icon: ShieldCheck, color: 'text-indigo-400', size: { w: 800, h: 580 } },
   gpmc: { icon: ScrollText, color: 'text-amber-600', size: { w: 980, h: 620 } },
   gpme: { icon: FileCog, color: 'text-amber-600', size: { w: 980, h: 600 } },
@@ -44,6 +47,7 @@ const STYLES: Record<string, ViewStyle> = {
   },
   newshare: { icon: FolderSymlink, color: 'text-amber-500', size: { w: 520, h: 470 } },
   wsus: { icon: CloudDownload, color: 'text-emerald-600', size: { w: 980, h: 600 } },
+  wbadmin: { icon: Archive, color: 'text-emerald-700', size: { w: 900, h: 560 } },
   dfsmgmt: { icon: FolderTree, color: 'text-amber-600', size: { w: 980, h: 600 } },
   certsrv: { icon: BadgeCheck, color: 'text-emerald-700', size: { w: 960, h: 580 } },
   hypervmgr: { icon: Layers, color: 'text-sky-700', size: { w: 980, h: 600 } },
@@ -70,6 +74,7 @@ export function roleViewStyle(app: string): ViewStyle {
 const ROLE_ICONS: Record<string, LucideIcon> = {
   adcs: BadgeCheck,
   adds: UsersRound,
+  backup: Archive,
   dfs: FolderTree,
   dhcp: Waypoints,
   dns: Globe,
