@@ -18,6 +18,7 @@ import {
   logon,
   moveObject,
   parseSlab,
+  removeObject,
   restartComputer,
   serializeSlab,
   setGpoSecurityFilter,
@@ -183,6 +184,25 @@ describe('GPO : héritage et priorité', () => {
     expect(computerRsop(domainOf(s), pc).filtered.find((f) => f.gpo.id === c.id)?.reason).toBe(
       'Non appliqué (vide)'
     )
+  })
+
+  it('filtrage de sécurité : l’entrée d’un compte supprimé reste visible et peut être retirée', () => {
+    const { s: base } = lab()
+    const withGroup = unwrap(
+      addGroup(base, 'lab.local', { name: 'GG_Compta', scope: 'Global', path: COMPTA })
+    ).state
+    const gpo = unwrap(createGpo(withGroup, 'lab.local', { name: 'Filtrée' }))
+    let s = unwrap(setGpoSecurityFilter(gpo.state, 'lab.local', gpo.value, 'GG_Compta', true)).state
+    const group = s.domains['lab.local']!.groups.find((g) => g.name === 'GG_Compta')!
+    s = unwrap(removeObject(s, 'lab.local', group.id)).state
+    // Comme sous Windows, le droit d'un compte supprimé reste sur la GPO (SID inconnu)
+    const filter = () => s.domains['lab.local']!.gpos.find((g) => g.id === gpo.value)!.securityFilter
+    expect(filter()).toContain(group.id)
+    // La GPMC désigne l'entrée par son identifiant : elle doit pouvoir la retirer
+    s = unwrap(setGpoSecurityFilter(s, 'lab.local', gpo.value, group.id, false)).state
+    expect(filter()).not.toContain(group.id)
+    // Une identité inconnue absente du filtrage reste une erreur
+    expect(setGpoSecurityFilter(s, 'lab.local', gpo.value, 'personne', false).ok).toBe(false)
   })
 
   it('préférences de lecteurs : créer, remplacer, mettre à jour, supprimer', () => {
