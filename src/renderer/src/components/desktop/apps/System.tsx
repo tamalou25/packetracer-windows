@@ -4,7 +4,7 @@
  */
 import { useState } from 'react'
 import { Monitor } from 'lucide-react'
-import { type HostDevice, command } from '@engine/index'
+import { command, controlledDomain, type HostDevice } from '@engine/index'
 import { launch } from '../../../lib/desktop'
 import { runDirectoryCommand } from '../../../lib/directory'
 import { runCommand } from '../../../lib/run'
@@ -25,7 +25,7 @@ import {
 export function SystemProperties({ device }: { device: HostDevice }) {
   const win = useAppWindow()
   const [restart, setRestart] = useState(false)
-  const dc = useLabStore((s) => Object.values(s.lab.domains).some((d) => d.controllers.includes(device.id)))
+  const dc = useLabStore((s) => !!controlledDomain(s.lab, device.id))
   const fqdn = device.host.domain ? `${device.name}.${device.host.domain}` : device.name
   const close = () => {
     // Des modifications attendent un redémarrage : le système le propose à la fermeture

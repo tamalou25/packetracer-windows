@@ -151,6 +151,11 @@ export function isDomainAdmin(domain: Domain, userSam: string): boolean {
   )
 }
 
+/** Domaine dont l'équipement est contrôleur (undefined s'il ne l'est d'aucun). */
+export function controlledDomain(state: Pick<LabState, 'domains'>, deviceId: string): Domain | undefined {
+  return Object.values(state.domains).find((d) => d.controllers.includes(deviceId))
+}
+
 /** Domaine par nom DNS ou NetBIOS. */
 export function findDomain(state: LabState, name: string): Domain | undefined {
   const lower = name.trim().toLowerCase()

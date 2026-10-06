@@ -6,6 +6,7 @@ import { defineRole } from '../types'
 import { adCmdlets } from './cmdlets'
 import { addsCommands } from './commands'
 import { addsCriteria } from './criteria'
+import { controlledDomain } from './directory'
 
 export const addsRole = defineRole({
   id: 'adds',
@@ -57,8 +58,7 @@ export const addsRole = defineRole({
     { display: 'Réplication DFS', name: 'DFSR', when: 'domainController' }
   ],
   uninstallBlocked: (state, deviceId, feature) =>
-    feature === 'AD-Domain-Services' &&
-    Object.values(state.domains).some((d) => d.controllers.includes(deviceId))
+    feature === 'AD-Domain-Services' && controlledDomain(state, deviceId)
       ? {
           code: 'DcRoleRemoval',
           message:

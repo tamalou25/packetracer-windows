@@ -2,7 +2,7 @@
  * Chemins du volume C: d'un serveur (C:\Partages\Compta) et chemins réseau (\\SRV1\Compta\Budget).
  * Les noms ne tiennent pas compte de la casse, comme sur le système simulé.
  */
-import type { FsNode, Storage } from '../../model/schema'
+import type { FsNode, SmbShare, Storage } from '../../model/schema'
 
 export const ROOT_PATH = 'C:\\'
 
@@ -94,4 +94,17 @@ export function parseUnc(path: string): UncPath | null {
 
 export function formatUnc(unc: UncPath): string {
   return `\\\\${[unc.server, unc.share, ...unc.rest].filter((x) => x).join('\\')}`
+}
+
+/** Partages ouverts sur ce dossier précis (onglet Partage). */
+export function sharesOn(storage: Storage, nodeId: string | null): SmbShare[] {
+  return nodeId === null ? [] : storage.shares.filter((s) => s.folderId === nodeId)
+}
+
+/** Partages donnant accès à un élément : le dossier lui-même ou un dossier parent (Accès effectif). */
+export function sharesCovering(storage: Storage, nodeId: string | null): SmbShare[] {
+  const ancestors = new Set<string>()
+  for (let current = nodeId; current; current = storage.nodes.find((n) => n.id === current)?.parentId ?? null)
+    ancestors.add(current)
+  return storage.shares.filter((s) => ancestors.has(s.folderId))
 }

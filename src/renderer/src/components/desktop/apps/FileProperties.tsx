@@ -9,6 +9,7 @@ import {
   childrenOf,
   effectiveAccess,
   effectiveAcl,
+  expandNtfsRights,
   findNode,
   NTFS_RIGHT_LABELS,
   NTFS_RIGHTS,
@@ -16,6 +17,9 @@ import {
   principalName,
   principalToken,
   resolvePrincipal,
+  sharesCovering,
+  sharesOn,
+  toggleNtfsRight,
   SHARE_RIGHT_LABELS,
   formatShortDate,
   type FsNode,
@@ -45,29 +49,6 @@ import {
 } from '../shell/classic'
 
 type Tab = 'general' | 'sharing' | 'security' | 'effective'
-
-/** Droits inclus dans chaque autorisation de base (cases de l'onglet Sécurité). */
-const IMPLIES: Record<NtfsRight, NtfsRight[]> = {
-  FullControl: [...NTFS_RIGHTS],
-  Modify: ['Modify', 'ReadAndExecute', 'ListDirectory', 'Read', 'Write'],
-  ReadAndExecute: ['ReadAndExecute', 'ListDirectory', 'Read'],
-  ListDirectory: ['ListDirectory'],
-  Read: ['Read'],
-  Write: ['Write']
-}
-
-function expand(rights: NtfsRight[]): Set<NtfsRight> {
-  return new Set(rights.flatMap((r) => IMPLIES[r]))
-}
-
-/** Coche ou décoche une autorisation en respectant les inclusions (Modifier inclut Lecture…). */
-function toggle(current: Set<NtfsRight>, right: NtfsRight, on: boolean): NtfsRight[] {
-  const next = new Set(current)
-  if (on) for (const r of IMPLIES[right]) next.add(r)
-  else for (const r of NTFS_RIGHTS) if (IMPLIES[r].includes(right)) next.delete(r)
-  if (NTFS_RIGHTS.every((r) => next.has(r))) next.add('FullControl')
-  return [...next]
-}
 
 export function FileProperties({ device, path }: { device: HostDevice; path: string | undefined }) {
   const lab = useLabStore((s) => s.lab)
@@ -153,7 +134,7 @@ function Sharing({
   node: FsNode
   path: string
 }) {
-  const shares = server.storage.shares.filter((s) => s.folderId === node.id)
+  const shares = sharesOn(server.storage, node.id)
   const [advanced, setAdvanced] = useState(false)
   return (
     <div className="flex flex-col gap-3" data-testid="fileprops-sharing">
@@ -461,16 +442,16 @@ function Security({
   const [inheritance, setInheritance] = useState(false)
   const token = explorerToken(lab, server)
   const mine = entries.filter((e) => e.ace.principal === selected)
-  const explicitAllow = expand(
+  const explicitAllow = expandNtfsRights(
     mine.filter((e) => !e.inherited && e.ace.type === 'Allow').map((e) => e.ace.rights)
   )
-  const explicitDeny = expand(
+  const explicitDeny = expandNtfsRights(
     mine.filter((e) => !e.inherited && e.ace.type === 'Deny').map((e) => e.ace.rights)
   )
-  const inheritedAllow = expand(
+  const inheritedAllow = expandNtfsRights(
     mine.filter((e) => e.inherited && e.ace.type === 'Allow').map((e) => e.ace.rights)
   )
-  const inheritedDeny = expand(
+  const inheritedDeny = expandNtfsRights(
     mine.filter((e) => e.inherited && e.ace.type === 'Deny').map((e) => e.ace.rights)
   )
   const save = (allow: NtfsRight[], deny: NtfsRight[]) =>
@@ -574,7 +555,9 @@ function Security({
                     type="checkbox"
                     checked={explicitAllow.has(r) || inheritedAllow.has(r)}
                     disabled={inheritedAllow.has(r) && !explicitAllow.has(r)}
-                    onChange={(e) => save(toggle(explicitAllow, r, e.target.checked), [...explicitDeny])}
+                    onChange={(e) =>
+                      save(toggleNtfsRight(explicitAllow, r, e.target.checked), [...explicitDeny])
+                    }
                     data-testid={`security-allow-${r}`}
                   />
                 </td>
@@ -583,7 +566,9 @@ function Security({
                     type="checkbox"
                     checked={explicitDeny.has(r) || inheritedDeny.has(r)}
                     disabled={inheritedDeny.has(r) && !explicitDeny.has(r)}
-                    onChange={(e) => save([...explicitAllow], toggle(explicitDeny, r, e.target.checked))}
+                    onChange={(e) =>
+                      save([...explicitAllow], toggleNtfsRight(explicitDeny, r, e.target.checked))
+                    }
                     data-testid={`security-deny-${r}`}
                   />
                 </td>
@@ -673,14 +658,7 @@ function Effective({ lab, server, node }: { lab: LabState; server: ServerDevice;
   const [shareName, setShareName] = useState('')
   const [shown, setShown] = useState<{ account: string; share: string } | null>(null)
   // Partages donnant accès à cet élément (le dossier lui-même ou un dossier parent)
-  const shares = server.storage.shares.filter((s) => {
-    let current: string | null = node?.id ?? null
-    while (current) {
-      if (current === s.folderId) return true
-      current = server.storage.nodes.find((n) => n.id === current)?.parentId ?? null
-    }
-    return false
-  })
+  const shares = sharesCovering(server.storage, node?.id ?? null)
   const principal = shown ? resolvePrincipal(lab, server, shown.account) : undefined
   const token = principal ? principalToken(lab, server, principal) : null
   const share = shown?.share ? shares.find((s) => s.name === shown.share) : undefined

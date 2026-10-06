@@ -36,6 +36,16 @@ export function linksOfDevice(state: ReadState, deviceId: string): Link[] {
   return Object.values(state.links).filter((l) => l.a.deviceId === deviceId || l.b.deviceId === deviceId)
 }
 
+/** Ports d'un équipement raccordés par un câble (ex. « Ports utilisés 3 / 16 » d'un switch). */
+export function usedInterfaces(state: ReadState, deviceId: string): NetInterface[] {
+  const used = new Set<string>()
+  for (const link of linksOfDevice(state, deviceId)) {
+    if (link.a.deviceId === deviceId) used.add(link.a.ifaceId)
+    if (link.b.deviceId === deviceId) used.add(link.b.ifaceId)
+  }
+  return state.devices[deviceId]?.interfaces.filter((i) => used.has(i.id)) ?? []
+}
+
 /** Recherche un équipement par nom (insensible à la casse). */
 export function findDeviceByName(state: ReadState, name: string): Device | undefined {
   const upper = name.toUpperCase()
