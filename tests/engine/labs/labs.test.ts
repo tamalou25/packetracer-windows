@@ -41,6 +41,7 @@ import lab6 from '../../../labs/lab-06-wsus.json'
 import lab7 from '../../../labs/lab-07-iis.json'
 import lab8 from '../../../labs/lab-08-rds.json'
 import lab9 from '../../../labs/lab-09-hyperv.json'
+import lab10 from '../../../labs/lab-10-adcs.json'
 import { run } from '../shell/helpers'
 
 function load(raw: unknown): LabDefinition {
@@ -261,11 +262,36 @@ const SOLUTIONS: Record<string, (s: LabState) => LabState> = {
     s = ip(s, 'VMTEST1', null, '192.168.50.1/24')
     s = ip(s, 'VMTEST2', null, '192.168.50.2/24')
     return ip(s, 'VMWEB', null, '192.168.10.50/24')
+  },
+  'lab-10-adcs': (s) => {
+    const srv = id(s, 'SRV1')
+    const exec = (cmd: AnyCommand) => {
+      const r = dispatch(s, cmd)
+      if (!r.ok) throw new Error(r.error.message)
+      s = r.state
+      return r.value
+    }
+    s = unwrap(
+      installFeatures(s, srv, ['ADCS-Cert-Authority', 'Web-Server'], { includeManagementTools: true })
+    ).state
+    exec(command('adcs.install', srv, {}))
+    const thumbprint = exec(
+      command('adcs.request', srv, { template: 'WebServer', dnsNames: ['srv1.lab.local'] })
+    )
+    exec(
+      command('iis.addBinding', srv, 'Default Web Site', {
+        protocol: 'https',
+        certificate: thumbprint as string
+      })
+    )
+    const gpo = exec(command('gpo.createAndLink', 'lab.local', { name: 'PKI' }, null)) as string
+    s = unwrap(updateGpoSettings(s, 'lab.local', gpo, { computer: { autoEnrollment: 'Enabled' } })).state
+    return run(s, id(s, 'PC1'), 'gpupdate /force', { shell: 'cmd' }).state
   }
 }
 
 describe('Labs', () => {
-  const labs = [lab1, lab2, lab3, lab4, lab5, lab6, lab7, lab8, lab9].map(load)
+  const labs = [lab1, lab2, lab3, lab4, lab5, lab6, lab7, lab8, lab9, lab10].map(load)
 
   it('chaque lab a un identifiant unique, des critères uniques et des indices', () => {
     expect(new Set(labs.map((l) => l.id)).size).toBe(labs.length)

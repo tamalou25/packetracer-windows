@@ -18,7 +18,7 @@ import { Button, inputClass } from '../common/ui'
 import { FormDialog, type FormValues } from '../common/FormDialog'
 import { Mmc, MmcAction, MmcTable, type MmcNode } from '../mmc/Mmc'
 
-type Dialog = 'site' | 'binding' | 'cert' | null
+type Dialog = 'site' | 'binding' | 'cert' | 'domainCert' | null
 
 export function IisApp({ device }: { device: ServerDevice }) {
   const iis = iisServerOf(device)
@@ -126,9 +126,14 @@ export function IisApp({ device }: { device: ServerDevice }) {
         Ajouter un site Web…
       </MmcAction>
       {selected === 'certs' && (
-        <MmcAction onClick={() => setDialog('cert')} testId="iis-new-cert">
-          Créer un certificat auto-signé…
-        </MmcAction>
+        <>
+          <MmcAction onClick={() => setDialog('domainCert')} testId="iis-domain-cert">
+            Créer un certificat de domaine…
+          </MmcAction>
+          <MmcAction onClick={() => setDialog('cert')} testId="iis-new-cert">
+            Créer un certificat auto-signé…
+          </MmcAction>
+        </>
       )}
       {site && (
         <>
@@ -238,6 +243,20 @@ export function IisApp({ device }: { device: ServerDevice }) {
           }
           onClose={() => setDialog(null)}
           testId="iis-cert-dialog"
+        />
+      )}
+      {dialog === 'domainCert' && (
+        <FormDialog
+          title="Créer un certificat de domaine"
+          description="Demande un certificat (modèle Serveur Web) à l’autorité de certification d’entreprise du domaine."
+          fields={[{ key: 'dns', label: 'Nom commun (nom DNS du site)', placeholder: 'intranet.lab.local' }]}
+          onSubmit={(v) =>
+            runCommand(
+              command('adcs.request', device.id, { template: 'WebServer', dnsNames: [String(v['dns'])] })
+            ) !== undefined
+          }
+          onClose={() => setDialog(null)}
+          testId="iis-domain-cert-dialog"
         />
       )}
     </div>

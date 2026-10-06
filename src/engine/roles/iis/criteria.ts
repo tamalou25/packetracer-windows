@@ -46,7 +46,7 @@ export const iisCriteria = [
       const client = hostByName(state, check.from)
       if (!client) return false
       const r = httpGet(state, client.id, check.url)
-      if (r.kind !== 'response' || r.status !== check.status) return false
+      if (r.kind !== 'response' || r.status !== (check.status ?? 200)) return false
       return check.trusted === undefined || (r.certificateWarning === null) === check.trusted
     }
   )

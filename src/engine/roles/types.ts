@@ -8,7 +8,7 @@ import type { Draft } from 'immer'
 import type { z } from 'zod'
 import type { CommandDefs } from '../commands/define'
 import type { EngineError } from '../core/result'
-import type { HostDevice, LabState, ServerDevice } from '../model/schema'
+import type { Domain, HostDevice, LabState, ServerDevice } from '../model/schema'
 import type { CmdletDef } from '../shell/ps/registry'
 import type { ToolDef } from '../shell/tools/types'
 import type { PacketTrace } from '../sim/trace'
@@ -130,6 +130,11 @@ export interface RoleModule<C extends CommandDefs = CommandDefs> {
    * dans la transaction d'installation.
    */
   onInstall?(draft: Draft<LabState>, device: Draft<ServerDevice>): void
+  /**
+   * Traitement de la stratégie ordinateur d'un membre du domaine (démarrage, gpupdate), dans sa
+   * transaction : distribution de certificats racines, inscription automatique…
+   */
+  onComputerPolicy?(draft: Draft<LabState>, deviceId: string, domain: Domain): void
   /** Refus de désinstaller une fonctionnalité (ex. AD DS sur un contrôleur de domaine). */
   uninstallBlocked?(state: LabState, deviceId: string, feature: string): EngineError | null
 }

@@ -51,7 +51,7 @@ export const wsusCriteria = [
       const status = wsusClientStatus(state, client.id)
       if (status.kind !== 'ok') return false
       const id = catalogUpdate(check.update)?.id
-      return status.updates.some((u) => u.id === id) === check.received
+      return status.updates.some((u) => u.id === id) === (check.received !== false)
     }
   )
 ]

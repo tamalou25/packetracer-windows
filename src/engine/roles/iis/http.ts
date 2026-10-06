@@ -7,6 +7,7 @@ import type { Certificate, HostDevice, LabState, ServerDevice } from '../../mode
 import { effectiveIpv4 } from '../../net/addressing'
 import { certificateCovers, certificateTrusted } from '../../services/certificates'
 import { concatTraces, type PacketTrace } from '../../sim/trace'
+import { isRevoked } from '../adcs/actions'
 import { serverExchange } from '../adds/locator'
 import { firstAddress, resolveName } from '../dns/resolver'
 import { findNode } from '../files/paths'
@@ -198,7 +199,10 @@ export function httpGet(state: LabState, clientId: string, urlText: string): Htt
     const thumb = match.binding.certificate
     certificate = server.host.certificates.find((c) => c.store === 'My' && c.thumbprint === thumb) ?? null
     if (!certificate) return failure('SecureChannel', SECURE_CHANNEL, trace)
-    if (!certificateCovers(certificate, url.host))
+    if (isRevoked(state, certificate))
+      certificateWarning =
+        'Le certificat de sécurité de ce site a été révoqué par son autorité de certification.'
+    else if (!certificateCovers(certificate, url.host))
       certificateWarning = `Le certificat de sécurité présenté par ce site a été émis pour un autre nom (${certificate.dnsNames.join(', ')}).`
     else if (!certificateTrusted(client, certificate))
       certificateWarning =

@@ -18,7 +18,8 @@ export function emptyComputerSettings(): GpoComputerSettings {
     logonMessageTitle: null,
     logonMessageText: null,
     wuServer: { state: 'NotConfigured', url: '' },
-    wuTargetGroup: { state: 'NotConfigured', group: '' }
+    wuTargetGroup: { state: 'NotConfigured', group: '' },
+    autoEnrollment: 'NotConfigured'
   }
 }
 

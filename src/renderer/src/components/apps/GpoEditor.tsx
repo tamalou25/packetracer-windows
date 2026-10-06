@@ -295,6 +295,8 @@ function SettingDialog({
       case 'noControlPanel':
       case 'noCmd':
         return { user: { [info.key]: state } }
+      case 'autoEnrollment':
+        return { computer: { autoEnrollment: state } }
       case 'wuServer':
         return { computer: { wuServer: { state, url: state === 'Enabled' ? wuUrl.trim() : c.wuServer.url } } }
       case 'wuTargetGroup':

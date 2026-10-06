@@ -25,6 +25,7 @@ export type SettingKey =
   | 'logonMessageText'
   | 'wuServer'
   | 'wuTargetGroup'
+  | 'autoEnrollment'
   | 'wallpaper'
   | 'noRun'
   | 'noControlPanel'
@@ -71,7 +72,8 @@ export const EDITOR_TREE: PolicyNode[] = [
                     id: 'c-local',
                     label: 'Stratégies locales',
                     children: [{ id: 'c-secopts', label: 'Options de sécurité' }]
-                  }
+                  },
+                  { id: 'c-pki', label: 'Stratégies de clé publique' }
                 ]
               }
             ]
@@ -167,6 +169,15 @@ export const POLICY_SETTINGS: PolicySettingInfo[] = [
     kind: 'multiline',
     category: 'Stratégies locales / Options de sécurité',
     help: 'Texte affiché avant l’ouverture de session, par exemple un avertissement sur l’usage du système d’information. L’utilisateur doit le valider avant de saisir ses identifiants.'
+  },
+  {
+    key: 'autoEnrollment',
+    part: 'computer',
+    node: 'c-pki',
+    label: 'Client des services de certificats – Inscription automatique',
+    kind: 'template',
+    category: 'Paramètres de sécurité / Stratégies de clé publique',
+    help: 'Activé : l’ordinateur demande automatiquement à l’autorité de certification d’entreprise du domaine les certificats des modèles publiés pour lesquels il a l’autorisation d’inscription (modèle Ordinateur), puis les renouvelle. Appliqué au démarrage, par gpupdate ou par certutil -pulse.'
   },
   {
     key: 'wuServer',
@@ -267,6 +278,8 @@ export function templateState(
     case 'wuServer':
     case 'wuTargetGroup':
       return computer[key].state
+    case 'autoEnrollment':
+      return computer.autoEnrollment
     case 'wallpaper':
       return user.wallpaper.state
     case 'noRun':
@@ -297,6 +310,8 @@ export function settingValue(
       return computer.logonMessageTitle
     case 'logonMessageText':
       return computer.logonMessageText
+    case 'autoEnrollment':
+      return computer.autoEnrollment === 'NotConfigured' ? null : POLICY_STATE_LABELS[computer.autoEnrollment]
     case 'wuServer':
       if (computer.wuServer.state === 'NotConfigured') return null
       return computer.wuServer.state === 'Enabled'

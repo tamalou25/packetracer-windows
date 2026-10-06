@@ -5,6 +5,7 @@
  */
 import {
   AppWindow,
+  BadgeCheck,
   CloudDownload,
   FileCog,
   FolderCog,
@@ -42,6 +43,7 @@ const STYLES: Record<string, ViewStyle> = {
   },
   newshare: { icon: FolderSymlink, color: 'text-amber-500', size: { w: 520, h: 470 } },
   wsus: { icon: CloudDownload, color: 'text-emerald-600', size: { w: 980, h: 600 } },
+  certsrv: { icon: BadgeCheck, color: 'text-emerald-700', size: { w: 960, h: 580 } },
   hypervmgr: { icon: Layers, color: 'text-sky-700', size: { w: 980, h: 600 } },
   rdsmgr: { icon: MonitorSmartphone, color: 'text-violet-600', size: { w: 900, h: 560 } },
   mstsc: {
@@ -64,6 +66,7 @@ export function roleViewStyle(app: string): ViewStyle {
 
 /** Icône d'un rôle (vignettes et navigation du Gestionnaire de serveur), par identifiant de module. */
 const ROLE_ICONS: Record<string, LucideIcon> = {
+  adcs: BadgeCheck,
   adds: UsersRound,
   dhcp: Waypoints,
   dns: Globe,
