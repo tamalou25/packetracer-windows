@@ -1,28 +1,14 @@
 /**
- * Validation des messages IPC reçus du renderer.
+ * Validation des messages IPC reçus du renderer (schémas zod de shared/persisted.ts).
  * Le renderer est considéré comme non fiable : chaque argument est vérifié.
  */
 import type { MenuState } from '../shared/ipc'
-
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
+import { DocStateSchema, MenuStateSchema } from '../shared/persisted'
 
 export function isMenuState(value: unknown): value is MenuState {
-  return (
-    isRecord(value) &&
-    (value['mode'] === 'realtime' || value['mode'] === 'simulation') &&
-    typeof value['showPortLabels'] === 'boolean' &&
-    typeof value['showProperties'] === 'boolean' &&
-    typeof value['showMinimap'] === 'boolean'
-  )
+  return MenuStateSchema.safeParse(value).success
 }
 
 export function isDocState(value: unknown): value is { name: string; dirty: boolean } {
-  return (
-    isRecord(value) &&
-    typeof value['name'] === 'string' &&
-    value['name'].length <= 200 &&
-    typeof value['dirty'] === 'boolean'
-  )
+  return DocStateSchema.safeParse(value).success
 }

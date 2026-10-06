@@ -9,8 +9,8 @@ import { app, dialog, type BrowserWindow } from 'electron'
 import { existsSync, promises as fs } from 'node:fs'
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import { MAX_SLAB_BYTES, type FileResult, type OpenedFile, type RecentFile } from '../shared/ipc'
+import { MAX_RECENT, parseRecentFiles } from '../shared/persisted'
 
-const MAX_RECENT = 10
 const SLAB_FILTERS = [{ name: 'Lab ServerLab', extensions: ['slab'] }]
 
 /** Clé de comparaison d'un chemin (insensible à la casse sous Windows). */
@@ -70,19 +70,8 @@ export class FileService {
 
   async init(): Promise<void> {
     try {
-      const raw = JSON.parse(await fs.readFile(this.recentPath, 'utf8')) as unknown
-      if (Array.isArray(raw)) {
-        this.recent = raw
-          .filter(
-            (r): r is RecentFile =>
-              typeof r === 'object' &&
-              r !== null &&
-              typeof (r as RecentFile).path === 'string' &&
-              typeof (r as RecentFile).name === 'string' &&
-              typeof (r as RecentFile).openedAt === 'string'
-          )
-          .slice(0, MAX_RECENT)
-      }
+      // Entrées invalides écartées une à une (RecentFileSchema)
+      this.recent = parseRecentFiles(await fs.readFile(this.recentPath, 'utf8'))
     } catch {
       this.recent = []
     }
@@ -220,6 +209,8 @@ export class FileService {
 
   async recoverAutosave(): Promise<string | null> {
     try {
+      // Fichier de récupération aberrant (taille) : ignoré, comme un .slab ouvert par l'utilisateur
+      if ((await fs.stat(this.autosavePath)).size > MAX_SLAB_BYTES) return null
       return await fs.readFile(this.autosavePath, 'utf8')
     } catch {
       return null
