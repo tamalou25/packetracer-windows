@@ -21,7 +21,7 @@ import type {
 import { WELL_KNOWN_SIDS } from '../../model/schema'
 import { requireDevice } from '../../topology/actions'
 import { accessPerms, effectiveAcl, resolvePrincipal, type AccessToken, type Perm } from './acl'
-import { findNode, isWithin, splitLocalPath, validItemName } from './paths'
+import { findNode, isWithin, normalizeItemName, splitLocalPath, validItemName } from './paths'
 
 export const ACCESS_DENIED = 'Accès refusé.'
 export const PATH_NOT_FOUND = 'Le chemin d’accès spécifié est introuvable.'
@@ -123,7 +123,7 @@ export function createItem(
     const share = shareOf(server as ServerDevice, options.share)
     const parts = splitLocalPath(path)
     if (!parts || parts.length === 0) raise('InvalidPath', BAD_PATH)
-    const name = parts[parts.length - 1] as string
+    const name = normalizeItemName(parts[parts.length - 1] as string)
     if (!validItemName(name)) raise('InvalidName', BAD_PATH)
     let parentId: string | null = null
     for (const part of parts.slice(0, -1)) {
