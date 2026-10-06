@@ -37,9 +37,10 @@ const STEP_TITLES: Record<TutorialStepId, string> = {
 export function TutorialCoach() {
   const phase = useTutorialStore((s) => s.phase)
   if (phase === 'off') return null
+  // En haut à droite : colonne laissée libre par les fenêtres d'équipement (ouvertes à gauche)
   return (
     <aside
-      className="fixed bottom-10 left-4 z-[280] w-[340px] rounded-md border border-line bg-overlay p-4 text-[13px] text-fg shadow-lg"
+      className="fixed top-24 right-3 z-[280] w-[300px] rounded-md border border-line bg-overlay p-4 text-[13px] text-fg shadow-lg"
       aria-label="Tutoriel"
       data-testid="tutorial-card"
       data-phase={phase}
