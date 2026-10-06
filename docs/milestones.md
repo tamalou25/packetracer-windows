@@ -20,8 +20,8 @@ Ce journal permet à une nouvelle session de reprendre le travail là où il s'e
 | #16   | Rôle IIS                 | `feat/16-iis`    | #75 | fusionné |
 | #17   | Rôle RDS                 | `feat/17-rds`    | #76 | fusionné |
 | #18   | Rôle Hyper-V             | `feat/18-hyperv` | #77 | fusionné |
-| #19   | Rôle AD CS               | `feat/19-adcs`   |     | en cours |
-| #20   | Rôle DFS                 |                  |     | à faire  |
+| #19   | Rôle AD CS               | `feat/19-adcs`   | #78 | fusionné |
+| #20   | Rôle DFS                 | `feat/20-dfs`    |     | en cours |
 | #21   | Sauvegarde, corbeille AD |                  |     | à faire  |
 
 ### #15 WSUS
@@ -90,3 +90,16 @@ Ce journal permet à une nouvelle session de reprendre le travail là où il s'e
   (-revoke, -crl, -pulse, -store) ; console « Autorité de certification » ; critères `enterpriseCa`,
   `caTemplate`, `certificate` ; lab `lab-10-adcs`.
 - Critères : valeurs par défaut (`success`, `status`, `opened`, `received`) lues de façon robuste hors zod.
+
+### #20 DFS
+
+- Contrat des rôles : crochet `resolveUnc` (référence d'un chemin réseau) appelé par `openUnc`.
+- Moteur `roles/dfs/` : espaces de noms de domaine (`\\lab.local\Partages`, racine `C:\DFSRoots\<nom>`
+  partagée, dossiers et cibles, référence vers la première cible en ligne) ; réplication (groupes, membres,
+  dossiers répliqués, chemin local et membre principal). Synchronisation par instantané : ajouts copiés,
+  suppressions propagées (éléments vus par membre), version la plus récente gagnante ; tâche de fond
+  `dfs.replication` (immédiate en Temps réel, différée en Simulation) et `Sync-DfsReplicationGroup`.
+- Cmdlets DFSN (New/Get/Remove-DfsnRoot, -DfsnFolder, -DfsnFolderTarget) et DFSR (New/Get/Remove-
+  DfsReplicationGroup, Add-DfsrMember, New-DfsReplicatedFolder, Set/Get-DfsrMembership,
+  Sync-DfsReplicationGroup) ; console « Gestion DFS » ; critères `dfsNamespace`, `uncReachable`,
+  `dfsReplicated` ; lab `lab-11-dfs`.

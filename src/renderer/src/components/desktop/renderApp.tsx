@@ -6,6 +6,7 @@ import type { HostDevice } from '@engine/index'
 import type { DesktopWindow } from '../../store/desktop'
 import { AducApp } from '../apps/AducApp'
 import { CertSrvApp } from '../apps/CertSrvApp'
+import { DfsApp } from '../apps/DfsApp'
 import { DhcpApp } from '../apps/DhcpApp'
 import { DnsApp } from '../apps/DnsApp'
 import { GpmcApp } from '../apps/GpmcApp'
@@ -95,6 +96,8 @@ export function renderApp(win: DesktopWindow, device: HostDevice): ReactNode {
       return server ? <WsusApp device={server} /> : unavailable()
     case 'inetmgr':
       return server ? <IisApp device={server} /> : unavailable()
+    case 'dfsmgmt':
+      return server ? <DfsApp device={server} /> : unavailable()
     case 'certsrv':
       return server ? <CertSrvApp device={server} /> : unavailable()
     case 'hypervmgr':

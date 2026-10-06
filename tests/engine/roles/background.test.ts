@@ -7,6 +7,7 @@ import {
   connect,
   moveDevice,
   renameDevice,
+  roleBackgroundTasks,
   runBackgroundTasks,
   setPower,
   unwrap,
@@ -19,7 +20,9 @@ const lease = (s: LabState, id: string) => s.devices[id]?.interfaces[0]?.dhcpLea
 describe('tâches de fond incrémentales', () => {
   it('sans mémo, toutes les tâches passent', () => {
     const { state } = buildLargeLab()
-    expect(runBackgroundTasks(state).ran).toEqual(['dhcp.client', 'gpo.refresh'])
+    // Toutes les tâches déclarées par les modules, dans l'ordre du registre
+    expect(runBackgroundTasks(state).ran).toEqual(roleBackgroundTasks().map((t) => t.id))
+    expect(roleBackgroundTasks().map((t) => t.id)).toEqual(['dhcp.client', 'gpo.refresh', 'dfs.replication'])
   })
 
   it('déplacer ou renommer : aucune tâche relancée, état inchangé', () => {

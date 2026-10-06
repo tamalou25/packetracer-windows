@@ -20,6 +20,7 @@ import {
   parseSlab,
   removeNtfs,
   restartComputer,
+  runBackgroundTasks,
   setDhcpOptions,
   setInterfaceIpv4,
   setNtfsInheritance,
@@ -42,6 +43,7 @@ import lab7 from '../../../labs/lab-07-iis.json'
 import lab8 from '../../../labs/lab-08-rds.json'
 import lab9 from '../../../labs/lab-09-hyperv.json'
 import lab10 from '../../../labs/lab-10-adcs.json'
+import lab11 from '../../../labs/lab-11-dfs.json'
 import { run } from '../shell/helpers'
 
 function load(raw: unknown): LabDefinition {
@@ -287,11 +289,52 @@ const SOLUTIONS: Record<string, (s: LabState) => LabState> = {
     const gpo = exec(command('gpo.createAndLink', 'lab.local', { name: 'PKI' }, null)) as string
     s = unwrap(updateGpoSettings(s, 'lab.local', gpo, { computer: { autoEnrollment: 'Enabled' } })).state
     return run(s, id(s, 'PC1'), 'gpupdate /force', { shell: 'cmd' }).state
+  },
+  'lab-11-dfs': (s) => {
+    const admin = domainToken(s.domains['lab.local'] as Domain, 'Administrateur')!
+    const exec = (cmd: AnyCommand) => {
+      const r = dispatch(s, cmd)
+      if (!r.ok) throw new Error(r.error.message)
+      s = r.state
+    }
+    for (const name of ['SRV1', 'SRV2']) {
+      const srv = id(s, name)
+      s = unwrap(
+        installFeatures(s, srv, ['FS-DFS-Namespace', 'FS-DFS-Replication'], { includeManagementTools: true })
+      ).state
+      exec(command('files.createItem', srv, 'C:\\Compta', 'folder', admin, {}))
+      exec(
+        command(
+          'files.createShare',
+          srv,
+          { name: 'Compta', path: 'C:\\Compta', full: ['Tout le monde'] },
+          admin
+        )
+      )
+    }
+    const ns = '\\\\lab.local\\Partages\\Compta'
+    exec(command('dfs.newNamespace', id(s, 'SRV1'), { name: 'Partages', createShare: true }))
+    exec(command('dfs.newFolder', ns, '\\\\SRV1\\Compta'))
+    exec(command('dfs.addTarget', ns, '\\\\SRV2\\Compta'))
+    exec(command('dfs.newGroup', id(s, 'SRV1'), 'RG-Compta'))
+    exec(command('dfs.addMember', 'RG-Compta', 'SRV1'))
+    exec(command('dfs.addMember', 'RG-Compta', 'SRV2'))
+    exec(command('dfs.newReplicatedFolder', 'RG-Compta', 'Compta'))
+    exec(
+      command('dfs.setMembership', 'RG-Compta', 'Compta', 'SRV1', {
+        contentPath: 'C:\\Compta',
+        primary: true
+      })
+    )
+    exec(command('dfs.setMembership', 'RG-Compta', 'Compta', 'SRV2', { contentPath: 'C:\\Compta' }))
+    s = unwrap(createItem(s, id(s, 'SRV1'), 'C:\\Compta\\rapport.txt', 'file', admin)).state
+    s = runBackgroundTasks(s).state
+    return logon(s, id(s, 'PC1'), { user: 'jdupont', password: 'Azerty123!', domain: 'LAB' }).state
   }
 }
 
 describe('Labs', () => {
-  const labs = [lab1, lab2, lab3, lab4, lab5, lab6, lab7, lab8, lab9, lab10].map(load)
+  const labs = [lab1, lab2, lab3, lab4, lab5, lab6, lab7, lab8, lab9, lab10, lab11].map(load)
 
   it('chaque lab a un identifiant unique, des critères uniques et des indices', () => {
     expect(new Set(labs.map((l) => l.id)).size).toBe(labs.length)
