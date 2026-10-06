@@ -4,6 +4,7 @@
 import type { ReactNode } from 'react'
 import type { HostDevice } from '@engine/index'
 import type { DesktopWindow } from '../../store/desktop'
+import { AdacApp } from '../apps/AdacApp'
 import { AducApp } from '../apps/AducApp'
 import { CertSrvApp } from '../apps/CertSrvApp'
 import { DfsApp } from '../apps/DfsApp'
@@ -14,6 +15,7 @@ import { GpoEditor } from '../apps/GpoEditor'
 import { HyperVApp } from '../apps/HyperVApp'
 import { IisApp } from '../apps/IisApp'
 import { RdsApp } from '../apps/RdsApp'
+import { WbadminApp } from '../apps/WbadminApp'
 import { WsusApp } from '../apps/WsusApp'
 import { Terminal } from '../console/Terminal'
 import { AddRolesWizard } from './apps/AddRolesWizard'
@@ -82,6 +84,8 @@ export function renderApp(win: DesktopWindow, device: HostDevice): ReactNode {
       return server ? <DnsApp device={server} /> : unavailable()
     case 'aduc':
       return <AducApp device={device} />
+    case 'dsac':
+      return <AdacApp device={device} />
     case 'gpmc':
       return <GpmcApp device={device} />
     case 'gpme':
@@ -98,6 +102,8 @@ export function renderApp(win: DesktopWindow, device: HostDevice): ReactNode {
       return server ? <IisApp device={server} /> : unavailable()
     case 'dfsmgmt':
       return server ? <DfsApp device={server} /> : unavailable()
+    case 'wbadmin':
+      return server ? <WbadminApp device={server} /> : unavailable()
     case 'certsrv':
       return server ? <CertSrvApp device={server} /> : unavailable()
     case 'hypervmgr':
