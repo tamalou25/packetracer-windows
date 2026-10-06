@@ -47,3 +47,17 @@ Ce journal permet à une nouvelle session de reprendre le travail là où il s'e
 - Cmdlets WebAdministration (Get/New/Remove/Start/Stop-Website, Get/New/Remove-WebBinding) et
   Invoke-WebRequest (alias iwr, curl, wget) ; console « Gestionnaire IIS » (inetmgr), Navigateur Web.
 - Lab `lab-07-iis`, critères `iisSite` et `httpResponse`.
+
+### #17 RDS
+
+- Système de base : paramètre « Autoriser les connexions à distance » et groupe local Utilisateurs du
+  Bureau à distance (`host.remoteDesktop`), sessions distantes (`host.remoteSessions`), protocole `RDP`
+  dans les traces ; onglet « Utilisation à distance » des Propriétés système.
+- Moteur : `roles/rds/` (déploiement à serveur unique : collections, groupes d'utilisateurs — Utilisateurs
+  du domaine par défaut —, RemoteApp) et `rdpConnect` (DNS, TCP 3389 tracé, authentification,
+  autorisation : administrateurs, groupes de la collection sur un hôte de session, sinon groupe local ;
+  évènements 4624 / 4625 de type 10).
+- Cmdlets RemoteDesktop (New/Get/Remove-RDSessionCollection, Set-RDSessionCollectionConfiguration,
+  New/Get/Remove-RDRemoteApp, Get-RDUserSession) et Add/Remove/Get-LocalGroupMember (groupe
+  Utilisateurs du Bureau à distance) ; console « Services Bureau à distance », Connexion Bureau à distance (mstsc).
+- Lab `lab-08-rds`, critères `rdsCollection` et `rdpSession`.

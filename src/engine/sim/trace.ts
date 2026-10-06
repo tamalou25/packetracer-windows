@@ -2,9 +2,9 @@
  * Trace de paquets : suite d'événements « PDU » rejouable pas à pas en mode Simulation.
  */
 
-export type Protocol = 'ARP' | 'ICMP' | 'DHCP' | 'DNS' | 'LDAP' | 'KERBEROS' | 'SMB' | 'HTTP'
+export type Protocol = 'ARP' | 'ICMP' | 'DHCP' | 'DNS' | 'LDAP' | 'KERBEROS' | 'SMB' | 'HTTP' | 'RDP'
 
-export const PROTOCOLS: Protocol[] = ['ARP', 'ICMP', 'DHCP', 'DNS', 'LDAP', 'KERBEROS', 'SMB', 'HTTP']
+export const PROTOCOLS: Protocol[] = ['ARP', 'ICMP', 'DHCP', 'DNS', 'LDAP', 'KERBEROS', 'SMB', 'HTTP', 'RDP']
 
 /** Une couche du modèle OSI avec ses champs principaux. */
 export interface PduLayer {

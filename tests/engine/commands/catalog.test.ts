@@ -402,6 +402,28 @@ describe('catalogue des commandes', () => {
     done(r)
   })
 
+  it('Bureau à distance et RDS : paramètres, collection, RemoteApp, connexion, déconnexion', () => {
+    const r = runner()
+    const srv = r.id('SRV1')
+    r.run(command('rds.setRemoteDesktop', srv, { enabled: true, users: ['GG_Compta'] }))
+    r.run(command('system.installFeatures', srv, ['RDS-RD-Server'], { includeManagementTools: true }))
+    r.run(command('rds.addCollection', srv, { name: 'Bureautique', userGroups: ['GG_Compta'] }))
+    r.run(command('rds.setCollectionUserGroups', srv, 'Bureautique', ['GG_Compta', 'jdupont']))
+    r.run(
+      command('rds.addRemoteApp', srv, 'Bureautique', {
+        displayName: 'Bloc-notes',
+        filePath: 'C:\\Windows\\System32\\notepad.exe'
+      })
+    )
+    const session = r.run<{ sessionId: number }>(
+      command('rds.connect', r.id('PC1'), { computer: 'SRV1', user: 'LAB\\jdupont', password: 'Azerty123!' })
+    )
+    r.run(command('rds.disconnect', srv, session.sessionId))
+    r.run(command('rds.removeRemoteApp', srv, 'Bureautique', 'notepad'))
+    r.run(command('rds.removeCollection', srv, 'Bureautique'))
+    done(r)
+  })
+
   it('toute commande du catalogue est couverte par ce fichier', () => {
     const missing = Object.keys(commandDefinitions()).filter((t) => !covered.has(t))
     expect(missing).toEqual([])

@@ -12,6 +12,7 @@ import {
   Globe,
   Earth,
   HardDrive,
+  MonitorSmartphone,
   ScrollText,
   Server,
   RefreshCw,
@@ -40,6 +41,13 @@ const STYLES: Record<string, ViewStyle> = {
   },
   newshare: { icon: FolderSymlink, color: 'text-amber-500', size: { w: 520, h: 470 } },
   wsus: { icon: CloudDownload, color: 'text-emerald-600', size: { w: 980, h: 600 } },
+  rdsmgr: { icon: MonitorSmartphone, color: 'text-violet-600', size: { w: 900, h: 560 } },
+  mstsc: {
+    icon: MonitorSmartphone,
+    color: 'text-sky-600',
+    size: { w: 460, h: 470 },
+    start: 'system'
+  },
   inetmgr: { icon: Earth, color: 'text-sky-600', size: { w: 960, h: 600 } },
   browser: { icon: Globe, color: 'text-sky-500', size: { w: 820, h: 560 }, start: 'top' },
   wuclient: { icon: RefreshCw, color: 'text-sky-600', size: { w: 640, h: 520 }, start: 'system' }
@@ -60,6 +68,7 @@ const ROLE_ICONS: Record<string, LucideIcon> = {
   files: HardDrive,
   gpo: ScrollText,
   iis: Earth,
+  rds: MonitorSmartphone,
   wsus: CloudDownload
 }
 

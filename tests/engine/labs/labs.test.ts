@@ -39,6 +39,7 @@ import lab4 from '../../../labs/lab-04-ad-gpo.json'
 import lab5 from '../../../labs/lab-05-ntfs.json'
 import lab6 from '../../../labs/lab-06-wsus.json'
 import lab7 from '../../../labs/lab-07-iis.json'
+import lab8 from '../../../labs/lab-08-rds.json'
 import { run } from '../shell/helpers'
 
 function load(raw: unknown): LabDefinition {
@@ -211,11 +212,38 @@ const SOLUTIONS: Record<string, (s: LabState) => LabState> = {
       s = r.state
     }
     return s
+  },
+  'lab-08-rds': (s) => {
+    const srv = id(s, 'SRV1')
+    const pc1 = id(s, 'PC1')
+    s = unwrap(installFeatures(s, srv, ['RDS-RD-Server'], { includeManagementTools: true })).state
+    for (const cmd of [
+      command('rds.addCollection', srv, { name: 'Bureautique', userGroups: ['LAB\\GG_Compta'] }),
+      command('rds.addRemoteApp', srv, 'Bureautique', {
+        displayName: 'Bloc-notes',
+        filePath: 'C:\\Windows\\System32\\notepad.exe'
+      }),
+      command('rds.connect', pc1, {
+        computer: 'srv1.lab.local',
+        user: 'LAB\\jdupont',
+        password: 'Azerty123!'
+      }),
+      command('rds.connect', pc1, {
+        computer: 'srv1.lab.local',
+        user: 'LAB\\pdurand',
+        password: 'Azerty123!'
+      })
+    ]) {
+      const r = dispatch(s, cmd)
+      if (!r.ok) throw new Error(r.error.message)
+      s = r.state
+    }
+    return s
   }
 }
 
 describe('Labs', () => {
-  const labs = [lab1, lab2, lab3, lab4, lab5, lab6, lab7].map(load)
+  const labs = [lab1, lab2, lab3, lab4, lab5, lab6, lab7, lab8].map(load)
 
   it('chaque lab a un identifiant unique, des critères uniques et des indices', () => {
     expect(new Set(labs.map((l) => l.id)).size).toBe(labs.length)
