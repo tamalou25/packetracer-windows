@@ -1,5 +1,5 @@
 import { expect, test, type ElectronApplication } from '@playwright/test'
-import { clickMenu, launchApp, openConsole, placeDevice, typeCommand } from './helpers'
+import { clickMenu, configureHostIp, launchApp, openConsole, placeDevice, typeCommand } from './helpers'
 
 /** Éléments Annuler / Rétablir du menu Édition natif (libellé, actif). */
 async function editMenu(app: ElectronApplication): Promise<{ label: string; enabled: boolean }[]> {
@@ -89,6 +89,26 @@ test('Annuler / rétablir : ajout, glisser (une seule annulation) et commande co
         { label: 'Annuler', enabled: false },
         { label: 'Rétablir', enabled: false }
       ])
+    expect(consoleErrors).toEqual([])
+  } finally {
+    await close()
+  }
+})
+
+test('Annuler / rétablir : configuration IPv4 faite dans la fenêtre de l’équipement', async () => {
+  const { app, close, page, consoleErrors } = await launchApp()
+  try {
+    await placeDevice(page, 'client', 300, 200)
+    const pc = page.getByTestId('device-PC1')
+    await configureHostIp(page, 'PC1', '192.168.10.10', '255.255.255.0')
+    await expect(pc).toContainText('192.168.10.10')
+    await expect.poll(async () => (await editMenu(app))[0]?.label).toMatch(/^Annuler : Configurer IPv4 de /)
+    await page.locator('.react-flow__pane').click({ position: { x: 700, y: 60 } })
+    await page.keyboard.press('Control+z')
+    await expect(pc).not.toContainText('192.168.10.10')
+    await expect.poll(async () => (await editMenu(app))[1]?.label).toMatch(/^Rétablir : Configurer IPv4 de /)
+    await page.keyboard.press('Control+y')
+    await expect(pc).toContainText('192.168.10.10')
     expect(consoleErrors).toEqual([])
   } finally {
     await close()
