@@ -5,6 +5,7 @@
 import { app, dialog, Menu, type BrowserWindow, type MenuItemConstructorOptions } from 'electron'
 import { IPC, type MenuCommand, type MenuState, type RecentFile, type ThemePreference } from '../shared/ipc'
 import { accelerator } from '../shared/shortcuts'
+import { openBugReport } from './external'
 
 export interface MenuContext {
   window: BrowserWindow
@@ -182,6 +183,8 @@ export function buildMenu(ctx: MenuContext): Menu {
         { label: 'Guide de démarrage', accelerator: accelerator('guide'), click: cmd('help:guide') },
         { label: 'Tutoriel interactif', click: cmd('help:tutorial') },
         { label: 'Raccourcis clavier', click: cmd('help:shortcuts') },
+        { type: 'separator' },
+        { label: 'Signaler un bug…', click: () => void openBugReport() },
         ...(ctx.onCheckUpdates
           ? ([
               { label: 'Rechercher des mises à jour…', click: ctx.onCheckUpdates }

@@ -63,6 +63,8 @@ npm run dist         # installeur local via electron-builder → dist/
 3. **Erreurs métier** : `{ ok: false, error: { code, message } }` avec message **en français**, réaliste.
 4. **Sécurité Electron** : `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, CSP stricte,
    preload minimal, arguments IPC validés dans le main, aucun accès disque générique exposé.
+   Adresses externes ouvertes par le main uniquement, après liste blanche (`isAllowedExternalUrl`,
+   `src/shared/bugReport.ts`, ouverture par `src/main/external.ts`).
 5. **Fichiers `.slab`** : JSON versionné (`schemaVersion`), validé par zod, migrations dans
    `src/engine/serialization/migrations.ts`. Toute évolution du format = nouvelle migration
    - nouveau fichier de référence (recette « Faire évoluer le format .slab »).
