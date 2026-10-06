@@ -76,3 +76,17 @@ Ce journal permet à une nouvelle session de reprendre le travail là où il s'e
   (Get/Add/Connect/Disconnect-VMNetworkAdapter), MAC 00-15-5D ; critères `vmSwitch`, `virtualMachine`
   et option `success: false` du critère `ping` (isolement) ; lab `lab-09-hyperv`.
 - Format .slab : champs `hostedBy`, `virtual`, `bridge` avec valeurs par défaut (format 5 du milestone).
+
+### #19 AD CS
+
+- Contrat des rôles : crochet `onComputerPolicy` appelé au traitement de la stratégie ordinateur d'un
+  membre du domaine (démarrage, gpupdate).
+- Moteur `roles/adcs/` : autorité racine d'entreprise (nom par défaut `LAB-SRV1-CA`, certificat d'AC
+  5 ans), modèles publiés par défaut, demande/émission (modèles Ordinateur et Serveur Web), révocation
+  (motifs de certutil) ; côté client : certificat racine ajouté au magasin Root des membres, inscription
+  automatique (paramètre GPO « Client des services de certificats – Inscription automatique »).
+- HTTPS (IIS) : certificat révoqué signalé par le navigateur ; Gestionnaire IIS « Créer un certificat de domaine ».
+- Cmdlets Install-AdcsCertificationAuthority, Get/Add/Remove-CATemplate, Get-Certificate ; outil certutil
+  (-revoke, -crl, -pulse, -store) ; console « Autorité de certification » ; critères `enterpriseCa`,
+  `caTemplate`, `certificate` ; lab `lab-10-adcs`.
+- Critères : valeurs par défaut (`success`, `status`, `opened`, `received`) lues de façon robuste hors zod.
