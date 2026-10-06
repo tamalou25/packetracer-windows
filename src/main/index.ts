@@ -13,6 +13,7 @@ import {
   type Theme,
   type ThemePreference
 } from '../shared/ipc'
+import { DEFAULT_SETTINGS } from '../shared/persisted'
 import { resolveTheme } from '../shared/theme'
 import { FileService, findSlabArg } from './files'
 import { buildMenu } from './menu'
@@ -42,7 +43,7 @@ let menuState: MenuState = {
 }
 let docState = { name: 'Sans titre', dirty: false }
 /** Préférences chargées au démarrage (après le choix éventuel du dossier userData). */
-let settings: Settings = { theme: 'system' }
+let settings: Settings = { ...DEFAULT_SETTINGS }
 /** Vrai quand la fermeture a été confirmée (évite de redemander). */
 let closeConfirmed = false
 /**

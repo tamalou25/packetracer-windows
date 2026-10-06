@@ -93,6 +93,11 @@ export interface RecentFile {
   openedAt: string
 }
 
+/** Fichier récent tel qu'affiché par l'écran d'accueil : signalé s'il n'existe plus. */
+export interface RecentEntry extends RecentFile {
+  exists: boolean
+}
+
 /** Réponse à la question « Enregistrer les modifications ? ». */
 export type SaveChangesChoice = 'save' | 'discard' | 'cancel'
 
