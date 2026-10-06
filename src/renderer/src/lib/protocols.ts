@@ -10,7 +10,8 @@ export const PROTOCOL_COLORS: Record<Protocol, { fill: string; chip: string }> =
   DNS: { fill: 'fill-sky-500', chip: 'bg-sky-500' },
   LDAP: { fill: 'fill-indigo-500', chip: 'bg-indigo-500' },
   KERBEROS: { fill: 'fill-rose-500', chip: 'bg-rose-500' },
-  SMB: { fill: 'fill-teal-500', chip: 'bg-teal-500' }
+  SMB: { fill: 'fill-teal-500', chip: 'bg-teal-500' },
+  HTTP: { fill: 'fill-orange-500', chip: 'bg-orange-500' }
 }
 
 export const OUTCOME_LABELS = {

@@ -11,6 +11,7 @@ import {
   POLICY_SETTINGS,
   POLICY_STATE_LABELS,
   settingValue,
+  templateState,
   WALLPAPER_STYLE_LABELS,
   WALLPAPER_STYLES,
   type Domain,
@@ -67,11 +68,8 @@ function findNode(nodes: PolicyNode[], id: string): PolicyNode | undefined {
 
 /** État affiché dans la liste des paramètres. */
 function stateLabel(info: PolicySettingInfo, gpo: Gpo): string {
-  if (info.kind === 'template') {
-    const state: PolicyState =
-      info.key === 'wallpaper' ? gpo.user.wallpaper.state : (gpo.user[info.key as 'noRun'] as PolicyState)
-    return POLICY_STATE_LABELS[state]
-  }
+  const state = templateState(info.key, gpo.computer, gpo.user)
+  if (state) return POLICY_STATE_LABELS[state]
   return settingValue(info.key, gpo.computer, gpo.user) ?? 'Non défini'
 }
 
@@ -262,12 +260,7 @@ function SettingDialog({
 }) {
   const c = gpo.computer
   const u = gpo.user
-  const initialState: PolicyState =
-    info.key === 'wallpaper'
-      ? u.wallpaper.state
-      : info.key === 'noRun' || info.key === 'noControlPanel' || info.key === 'noCmd'
-        ? u[info.key]
-        : 'NotConfigured'
+  const initialState: PolicyState = templateState(info.key, c, u) ?? 'NotConfigured'
   const initialDefined =
     info.key === 'minPasswordLength'
       ? c.minPasswordLength !== null
@@ -282,6 +275,8 @@ function SettingDialog({
   const [defined, setDefined] = useState(initialDefined)
   const [path, setPath] = useState(u.wallpaper.path)
   const [style, setStyle] = useState<WallpaperStyle>(u.wallpaper.style)
+  const [wuUrl, setWuUrl] = useState(c.wuServer.url)
+  const [wuGroup, setWuGroup] = useState(c.wuTargetGroup.group)
   const [length, setLength] = useState(String(c.minPasswordLength ?? 7))
   const [complexity, setComplexity] = useState(c.passwordComplexity ?? true)
   const [text, setText] = useState(
@@ -300,6 +295,14 @@ function SettingDialog({
       case 'noControlPanel':
       case 'noCmd':
         return { user: { [info.key]: state } }
+      case 'wuServer':
+        return { computer: { wuServer: { state, url: state === 'Enabled' ? wuUrl.trim() : c.wuServer.url } } }
+      case 'wuTargetGroup':
+        return {
+          computer: {
+            wuTargetGroup: { state, group: state === 'Enabled' ? wuGroup.trim() : c.wuTargetGroup.group }
+          }
+        }
       case 'minPasswordLength':
         return { computer: { minPasswordLength: defined ? Number(length) : null } }
       case 'passwordComplexity':
@@ -364,6 +367,31 @@ function SettingDialog({
                       </option>
                     ))}
                   </select>
+                </GroupBox>
+              )}
+              {info.key === 'wuServer' && (
+                <GroupBox label="Options :" className="col-span-2">
+                  <label className="mb-1 block">
+                    Configurer le service intranet de mise à jour pour la détection des mises à jour :
+                  </label>
+                  <WinInput
+                    value={wuUrl}
+                    disabled={state !== 'Enabled'}
+                    onChange={(e) => setWuUrl(e.target.value)}
+                    placeholder="http://srv1.lab.local:8530"
+                    data-testid="policy-wu-url"
+                  />
+                </GroupBox>
+              )}
+              {info.key === 'wuTargetGroup' && (
+                <GroupBox label="Options :" className="col-span-2">
+                  <label className="mb-1 block">Nom du groupe cible pour cet ordinateur :</label>
+                  <WinInput
+                    value={wuGroup}
+                    disabled={state !== 'Enabled'}
+                    onChange={(e) => setWuGroup(e.target.value)}
+                    data-testid="policy-wu-group"
+                  />
                 </GroupBox>
               )}
             </div>
