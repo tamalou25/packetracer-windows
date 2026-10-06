@@ -35,3 +35,15 @@ Ce journal permet à une nouvelle session de reprendre le travail là où il s'e
   Approve-WsusUpdate, Deny-WsusUpdate, Get-WsusComputer, Add-WsusComputer.
 - Interface : console « Services WSUS » (wsus.msc), page Windows Update des postes (ms-settings:windowsupdate).
 - Lab `lab-06-wsus`, critères `wsusSynchronized`, `wsusApproval`, `wsusComputerGroup`, `wsusClientUpdate`.
+
+### #16 IIS
+
+- Système de base : magasin de certificats des ordinateurs (`host.certificates`, Personnel et Root),
+  `New-SelfSignedCertificate`, confiance par la chaîne (`services/certificates.ts`) — réutilisé par AD CS (#19).
+- Contrat des rôles : crochet `onInstall` (préparation du serveur : `C:\inetpub\wwwroot\iisstart.htm`).
+- Moteur : `roles/iis/` (sites, liaisons IP/port/en-tête d'hôte, certificat SSL, conflits de liaison) et
+  client HTTP `httpGet` (DNS avec CNAME, TCP tracé, choix du site comme http.sys, document par défaut,
+  403.14, 404.0, 400 nom d'hôte invalide, connexion refusée, avertissements de certificat).
+- Cmdlets WebAdministration (Get/New/Remove/Start/Stop-Website, Get/New/Remove-WebBinding) et
+  Invoke-WebRequest (alias iwr, curl, wget) ; console « Gestionnaire IIS » (inetmgr), Navigateur Web.
+- Lab `lab-07-iis`, critères `iisSite` et `httpResponse`.
