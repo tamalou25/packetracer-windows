@@ -311,3 +311,28 @@ export function tracert(
     value: { lines, trace: { title: `Tracert ${src.name} → ${dst}`, events: rec.events }, reached }
   }
 }
+
+/** Écho ICMP reçu : réponse remise à l'hôte `deviceId` par l'adresse `from`. */
+export interface EchoReceived {
+  deviceId: string
+  from: string
+}
+
+/**
+ * Réponses d'écho (« Echo Reply ») effectivement remises à un hôte dans une trace : preuve qu'un
+ * ping a réellement été exécuté et a abouti (le ping ne modifie pas l'état du lab).
+ */
+export function echoRepliesDelivered(trace: PacketTrace | null | undefined): EchoReceived[] {
+  if (!trace) return []
+  const field = (layer: PduLayer | undefined, name: string) => layer?.fields.find(([k]) => k === name)?.[1]
+  return trace.events.flatMap((event) => {
+    if (event.protocol !== 'ICMP' || event.outcome !== 'delivered') return []
+    const icmp = event.layers.find((l) => l.name === 'ICMP')
+    if (!field(icmp, 'Type')?.startsWith('0 ')) return []
+    const from = field(
+      event.layers.find((l) => l.name === 'IPv4'),
+      'IP source'
+    )
+    return from ? [{ deviceId: event.toDeviceId, from }] : []
+  })
+}
