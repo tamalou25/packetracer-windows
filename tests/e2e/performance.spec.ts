@@ -3,6 +3,21 @@ import { buildLargeLab } from '../support/large-lab'
 import { openLab } from './fixtures'
 import { launchApp } from './helpers'
 
+/**
+ * Seuils fixés après la première mesure (docs/performance.md). Mesures d'origine : ouverture
+ * 205–308 ms, glisser 22–46 ms par mouvement (piloté par Playwright, dépend de la machine), image
+ * p95 16,7–33 ms, 0 rendu des autres nœuds et câbles. Avant optimisation : 6 047 rendus des autres
+ * nœuds. Les rendus sont le contrôle strict ; les durées, avec une marge large (runners variables),
+ * détectent une régression grossière.
+ */
+const THRESHOLDS = {
+  openMs: 2000,
+  dragMsPerMove: 80,
+  frameP95Ms: 70,
+  otherNodeRenders: 0,
+  otherEdgeRenders: 0
+}
+
 test('topologie de 100 équipements : ouverture et glisser fluides', async () => {
   const { app, close, page, consoleErrors } = await launchApp()
   try {
@@ -76,6 +91,15 @@ test('topologie de 100 équipements : ouverture et glisser fluides', async () =>
     console.log(
       `[perf] ouverture ${openMs} ms · glisser ${dragMs.toFixed(1)} ms/mouvement · image p95 ${p95.toFixed(1)} ms · max ${Math.max(...frames).toFixed(1)} ms · rendus des autres nœuds ${otherNodeRenders} · des autres câbles ${otherEdgeRenders}`
     )
+    expect(otherNodeRenders, 'glisser un nœud ne redessine pas les autres').toBeLessThanOrEqual(
+      THRESHOLDS.otherNodeRenders
+    )
+    expect(otherEdgeRenders, 'ni les câbles qui ne lui sont pas raccordés').toBeLessThanOrEqual(
+      THRESHOLDS.otherEdgeRenders
+    )
+    expect(openMs, 'ouverture du lab de 100 équipements').toBeLessThan(THRESHOLDS.openMs)
+    expect(dragMs, 'glisser : durée par mouvement').toBeLessThan(THRESHOLDS.dragMsPerMove)
+    expect(p95, 'glisser : image p95').toBeLessThan(THRESHOLDS.frameP95Ms)
     expect(consoleErrors).toEqual([])
   } finally {
     await close()

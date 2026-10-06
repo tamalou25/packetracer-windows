@@ -67,3 +67,23 @@ Ce qui a changé :
 
 L'ouverture reste dominée par le premier rendu de React Flow (100 nœuds mesurés) ; la lecture et
 les tâches de fond du moteur n'en représentent que ~16 ms.
+
+Mesure en CI (GitHub Actions, `ubuntu-latest`, 2 passages) : ouverture 211 / 308 ms, glisser
+22,5 / 30,9 ms par mouvement, image p95 16,7 / 16,8 ms, 0 rendu des autres nœuds et câbles.
+
+## Seuils du test automatisé
+
+`tests/e2e/performance.spec.ts` échoue au-delà de ces seuils (constante `THRESHOLDS`) :
+
+| Contrôle                                        | Seuil      | Rôle                                     |
+| ----------------------------------------------- | ---------- | ---------------------------------------- |
+| Rendus des autres nœuds pendant le glisser      | 0          | strict : abonnements par équipement      |
+| Rendus des câbles non raccordés au nœud déplacé | 0          | strict                                   |
+| Ouverture jusqu'aux 100 nœuds affichés          | < 2 000 ms | régression grossière (runners variables) |
+| Glisser, durée par mouvement                    | < 80 ms    | régression grossière                     |
+| Image p95 pendant le glisser                    | < 70 ms    | régression grossière                     |
+
+Les durées dépendent de la machine (glisser mesuré de 22 à 46 ms par mouvement selon l'hôte, le
+pilotage Playwright en représente l'essentiel) : elles servent de garde-fou. Le contrôle précis est
+le nombre de rendus : sans la réutilisation des objets nœuds du canvas, le test relève 3 075 rendus
+des autres nœuds et échoue.
