@@ -7,12 +7,7 @@ import { LABS } from '../../lib/labCatalog'
 import { openLab } from '../../lib/labs'
 import { useLabsStore } from '../../store/labs'
 import { Button } from '../common/ui'
-
-const DIFFICULTY_CLASS: Record<string, string> = {
-  Débutant: 'bg-ok-soft text-ok',
-  Intermédiaire: 'bg-warn-soft text-warn',
-  Avancé: 'bg-danger-soft text-danger'
-}
+import { DifficultyBadge } from './DifficultyBadge'
 
 export function LabPicker() {
   const open = useLabsStore((s) => s.pickerOpen)
@@ -63,11 +58,7 @@ export function LabPicker() {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[13px] font-semibold text-fg">{lab.title}</span>
-                  <span
-                    className={`rounded-sm px-1.5 py-0.5 text-[11px] font-semibold ${DIFFICULTY_CLASS[lab.difficulty] ?? ''}`}
-                  >
-                    {lab.difficulty}
-                  </span>
+                  <DifficultyBadge difficulty={lab.difficulty} />
                   <span className="text-[11px] text-fg-subtle">{lab.duration}</span>
                 </div>
                 <p className="mt-1 text-[12px] text-fg-muted">{lab.summary}</p>

@@ -9,6 +9,7 @@ import { HelpPanel } from './components/common/HelpPanel'
 import { Modal } from './components/common/Modal'
 import { Toasts } from './components/common/Toasts'
 import { DeviceWindows } from './components/device-window/DeviceWindow'
+import { HomeScreen } from './components/home/HomeScreen'
 import { Palette } from './components/Palette'
 import { RightPanel } from './components/RightPanel'
 import { StatusBar } from './components/StatusBar'
@@ -30,6 +31,9 @@ function handleMenuCommand(msg: MenuCommandMessage): void {
   const ui = useUiStore.getState()
   const flow = getFlowInstance()
   switch (msg.command) {
+    case 'file:home':
+      ui.setHome(true)
+      break
     case 'file:new':
       void newDocument()
       break
@@ -135,6 +139,7 @@ export function App() {
         </div>
         <StatusBar />
       </div>
+      <HomeScreen />
       <DeviceWindows />
       <LabPicker />
       <Toasts />
