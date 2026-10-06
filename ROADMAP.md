@@ -13,6 +13,9 @@ avec GitHub par le workflow **Roadmap sync** (ne crée que ce qui manque).
 | v4.0    | Cybersécurité défensive                                       | [v4.0](https://github.com/tamalou25/packetracer-windows/milestone/4) |
 | v5.0    | Pédagogie et communauté                                       | [v5.0](https://github.com/tamalou25/packetracer-windows/milestone/5) |
 
+> Le milestone v1.1 est sorti sous le numéro de version **2.0.0** (choix de Gary) ; les milestones
+> suivants seront numérotés à leur sortie.
+
 Règles : un milestone ne commence qu'une fois le précédent terminé et validé ; une issue = une
 branche `feat/<num>-<slug>` = une PR (`Closes #N`) ; fin de milestone = CHANGELOG, version, tag
 `vX.Y.0` (voir [CLAUDE.md](CLAUDE.md)).
