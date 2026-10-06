@@ -20,6 +20,7 @@ import {
 import {
   allFeatures,
   command,
+  controlledDomain,
   deviceHealth,
   DEVICE_KIND_INFO,
   DEVICE_KINDS,
@@ -28,6 +29,7 @@ import {
   endStatus,
   isHostDevice,
   linkStatus,
+  usedInterfaces,
   type Device,
   type DeviceHealth,
   type HostDevice,
@@ -248,21 +250,11 @@ function generalRows(lab: LabState, device: Device): [string, ReactNode][] {
     if (host.pendingReboot) rows.push(['Redémarrage', <span className="text-warn">requis</span>])
   }
   if (device.kind === 'switch') {
-    const used = device.interfaces.filter((i) =>
-      Object.values(lab.links).some((l) => isEnd(l, device.id, i.id))
-    )
-    rows.push(['Ports utilisés', `${used.length} / ${device.interfaces.length}`])
+    rows.push(['Ports utilisés', `${usedInterfaces(lab, device.id).length} / ${device.interfaces.length}`])
   }
   if (device.kind === 'router') rows.push(['Routes statiques', String(device.routes.length)])
   rows.push(['État', device.powered ? 'allumé' : 'éteint'])
   return rows
-}
-
-function isEnd(link: Link, deviceId: string, ifaceId: string): boolean {
-  return (
-    (link.a.deviceId === deviceId && link.a.ifaceId === ifaceId) ||
-    (link.b.deviceId === deviceId && link.b.ifaceId === ifaceId)
-  )
 }
 
 function RolesSection({ device }: { device: HostDevice }) {
@@ -315,7 +307,7 @@ function ServicesSection({ lab, device }: { lab: LabState; device: HostDevice })
         `${zones} zone${zones > 1 ? 's' : ''}${dns.forwarders.length ? ' · redirecteurs' : ''}`
       ])
     }
-    const domain = Object.values(lab.domains).find((d) => d.controllers.includes(device.id))
+    const domain = controlledDomain(lab, device.id)
     if (domain) rows.push(['AD DS', `contrôleur de ${domain.name}`])
   }
   const dhcpClients = device.interfaces.filter((i) => i.l3 && i.addressing === 'dhcp')

@@ -15,6 +15,7 @@ import {
   type LucideIcon
 } from 'lucide-react'
 import {
+  controlledDomain,
   dhcpServerOf,
   effectiveIpv4,
   featureInfo,
@@ -173,7 +174,7 @@ export function ServerManager({ device }: { device: ServerDevice }) {
   const [welcome, setWelcome] = useState(true)
   const [about, setAbout] = useState(false)
   const domains = useLabStore((s) => s.lab.domains)
-  const dc = Object.values(domains).some((d) => d.controllers.includes(device.id))
+  const dc = !!controlledDomain({ domains }, device.id)
   const notifications = notificationsOf(device, dc)
   // Un rôle est affiché dès qu'un de ses services de rôle est installé (Serveur de fichiers par défaut)
   const installedRoles = ROLES.filter((r) => r.roleFeatures.some((f) => device.host.features.includes(f)))

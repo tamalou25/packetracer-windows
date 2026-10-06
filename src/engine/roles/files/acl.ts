@@ -18,7 +18,7 @@ import type {
   SmbShare,
   Storage
 } from '../../model/schema'
-import { WELL_KNOWN_SIDS } from '../../model/schema'
+import { NTFS_RIGHTS, WELL_KNOWN_SIDS } from '../../model/schema'
 import { AD_GROUPS, findPrincipal, groupsOf, isDomainAdmin, objectById } from '../adds/directory'
 import { nodePath } from './paths'
 
@@ -338,4 +338,31 @@ export function accessPerms(
   if (!share) return ntfs
   const viaShare = sharePerms(share, token)
   return new Set([...ntfs].filter((p) => viaShare.has(p)))
+}
+
+/** Droits inclus dans chaque autorisation de base (cases de l'onglet Sécurité). */
+export const NTFS_IMPLIES: Record<NtfsRight, NtfsRight[]> = {
+  FullControl: [...NTFS_RIGHTS],
+  Modify: ['Modify', 'ReadAndExecute', 'ListDirectory', 'Read', 'Write'],
+  ReadAndExecute: ['ReadAndExecute', 'ListDirectory', 'Read'],
+  ListDirectory: ['ListDirectory'],
+  Read: ['Read'],
+  Write: ['Write']
+}
+
+/** Autorisations de base cochées pour une liste de droits (inclusions comprises). */
+export function expandNtfsRights(rights: readonly NtfsRight[]): Set<NtfsRight> {
+  return new Set(rights.flatMap((r) => NTFS_IMPLIES[r]))
+}
+
+/**
+ * Coche ou décoche une autorisation en respectant les inclusions : cocher Modifier coche Lecture,
+ * décocher Lecture décoche Modifier et Contrôle total ; tout cocher revient à Contrôle total.
+ */
+export function toggleNtfsRight(current: ReadonlySet<NtfsRight>, right: NtfsRight, on: boolean): NtfsRight[] {
+  const next = new Set(current)
+  if (on) for (const r of NTFS_IMPLIES[right]) next.add(r)
+  else for (const r of NTFS_RIGHTS) if (NTFS_IMPLIES[r].includes(right)) next.delete(r)
+  if (NTFS_RIGHTS.every((r) => next.has(r))) next.add('FullControl')
+  return [...next]
 }
