@@ -49,6 +49,8 @@ export function buildMenu(ctx: MenuContext): Menu {
     {
       label: '&Fichier',
       submenu: [
+        { label: 'Accueil', click: cmd('file:home') },
+        { type: 'separator' },
         { label: 'Nouveau', accelerator: accelerator('newFile'), click: cmd('file:new') },
         { label: 'Ouvrir…', accelerator: accelerator('open'), click: cmd('file:open') },
         { label: 'Fichiers récents', submenu: recentItems },

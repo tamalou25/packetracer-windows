@@ -102,6 +102,8 @@ interface UiState {
   toasts: Toast[]
   modal: ModalState | null
   helpPanel: 'guide' | 'shortcuts' | null
+  /** Écran d'accueil affiché (lancement sans fichier, Fichier > Accueil). */
+  home: boolean
   clipboard: { devices: Device[]; links: Link[] } | null
   pasteCount: number
   appVersion: string
@@ -133,6 +135,7 @@ interface UiState {
   dismissToast: (id: number) => void
   showModal: (modal: ModalState | null) => void
   setHelpPanel: (panel: UiState['helpPanel']) => void
+  setHome: (home: boolean) => void
   setClipboard: (clip: UiState['clipboard']) => void
   nextPasteOffset: () => number
   setAppVersion: (version: string) => void
@@ -159,6 +162,7 @@ export const useUiStore = create<UiState>()((set, get) => ({
   toasts: [],
   modal: null,
   helpPanel: null,
+  home: false,
   clipboard: null,
   pasteCount: 0,
   appVersion: '0.0.0',
@@ -235,6 +239,7 @@ export const useUiStore = create<UiState>()((set, get) => ({
   dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
   showModal: (modal) => set({ modal }),
   setHelpPanel: (helpPanel) => set({ helpPanel }),
+  setHome: (home) => set({ home }),
   setClipboard: (clipboard) => set({ clipboard, pasteCount: 0 }),
   nextPasteOffset: () => {
     const count = get().pasteCount + 1

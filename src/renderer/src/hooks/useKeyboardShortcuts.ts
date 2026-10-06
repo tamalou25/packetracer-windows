@@ -25,6 +25,8 @@ export function useKeyboardShortcuts(): void {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (isEditableTarget(e.target)) return
+      // Écran d'accueil affiché : le canvas, masqué, ne reçoit aucun raccourci
+      if (useUiStore.getState().home) return
       const ctrl = e.ctrlKey || e.metaKey
       const key = e.key.toLowerCase()
       const plain = !ctrl && !e.altKey && !e.shiftKey

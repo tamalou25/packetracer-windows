@@ -25,14 +25,32 @@ const recent = (n: number) => ({
 
 describe('settings.json', () => {
   it('lit un thème valide et ignore les champs inconnus', () => {
-    expect(parseSettings('{"theme":"light","fenetre":{"x":1}}')).toEqual({ theme: 'light' })
+    expect(parseSettings('{"theme":"light","fenetre":{"x":1}}')).toEqual({
+      theme: 'light',
+      showHomeOnStartup: true
+    })
   })
 
   it('thème « Système » par défaut ; un choix explicite déjà enregistré est conservé', () => {
     expect(DEFAULT_SETTINGS.theme).toBe('system')
-    expect(parseSettings('{}')).toEqual({ theme: 'system' })
-    expect(parseSettings('{"theme":"system"}')).toEqual({ theme: 'system' })
-    expect(parseSettings('{"theme":"dark"}')).toEqual({ theme: 'dark' })
+    expect(parseSettings('{}').theme).toBe('system')
+    expect(parseSettings('{"theme":"system"}').theme).toBe('system')
+    expect(parseSettings('{"theme":"dark"}').theme).toBe('dark')
+  })
+
+  it('accueil au démarrage : affiché par défaut, choix enregistré conservé', () => {
+    expect(DEFAULT_SETTINGS.showHomeOnStartup).toBe(true)
+    // Fichier d'une version précédente (thème seul) : accueil affiché, thème conservé
+    expect(parseSettings('{"theme":"dark"}')).toEqual({ theme: 'dark', showHomeOnStartup: true })
+    expect(parseSettings('{"showHomeOnStartup":false}')).toEqual({
+      theme: 'system',
+      showHomeOnStartup: false
+    })
+    // Valeur invalide : défaut, sans perdre le thème
+    expect(parseSettings('{"theme":"light","showHomeOnStartup":"non"}')).toEqual({
+      theme: 'light',
+      showHomeOnStartup: true
+    })
   })
 
   it('corrompu, tronqué, trop gros ou de mauvais type : préférences par défaut', () => {

@@ -2,7 +2,7 @@
  * Utilitaires E2E : lancement de l'application Electron construite (out/) dans un profil isolé.
  */
 import { _electron as electron, expect, type ElectronApplication, type Page } from '@playwright/test'
-import { mkdtempSync } from 'node:fs'
+import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -16,9 +16,22 @@ export interface LaunchedApp {
   userData: string
 }
 
-export async function launchApp(options: { userData?: string } = {}): Promise<LaunchedApp> {
-  // Profil réutilisable pour vérifier la persistance des préférences entre deux lancements
-  const userData = options.userData ?? mkdtempSync(join(tmpdir(), 'serverlab-e2e-'))
+export interface LaunchOptions {
+  /** Profil existant, réutilisé pour vérifier la persistance entre deux lancements (jamais réécrit). */
+  userData?: string
+  /**
+   * Nouveau profil : écran d'accueil affiché au démarrage (comme pour un utilisateur). Par défaut,
+   * il est désactivé dans settings.json pour que chaque scénario démarre directement sur le canvas.
+   */
+  home?: boolean
+}
+
+export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedApp> {
+  let userData = options.userData
+  if (!userData) {
+    userData = mkdtempSync(join(tmpdir(), 'serverlab-e2e-'))
+    if (!options.home) writeFileSync(join(userData, 'settings.json'), '{ "showHomeOnStartup": false }')
+  }
   // SERVERLAB_E2E_EXECUTABLE : application empaquetée (ex. dist/linux-unpacked/serverlab) au lieu de out/
   const packaged = process.env['SERVERLAB_E2E_EXECUTABLE']
   const app = await electron.launch({

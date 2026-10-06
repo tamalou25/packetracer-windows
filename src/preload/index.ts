@@ -41,6 +41,11 @@ const api: ServerLabApi = {
   getPendingFile: () => ipcRenderer.invoke(IPC.filePending),
   onFileOpened: (cb) => subscribe<OpenedFile>(IPC.fileOpened, cb),
 
+  listRecent: () => ipcRenderer.invoke(IPC.recentList),
+  removeRecent: (path) => ipcRenderer.invoke(IPC.recentRemove, path),
+  homeAtStartup: () => ipcRenderer.invoke(IPC.homeAtStartup),
+  setHomeAtStartup: (show) => ipcRenderer.send(IPC.homeAtStartupSet, show),
+
   writeAutosave: (content) => ipcRenderer.invoke(IPC.autosaveWrite, content),
   clearAutosave: () => ipcRenderer.invoke(IPC.autosaveClear),
   recoverAutosave: () => ipcRenderer.invoke(IPC.autosaveRecover),

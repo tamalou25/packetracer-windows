@@ -139,7 +139,15 @@ export async function saveDocument(saveAs = false): Promise<boolean> {
   return true
 }
 
-/** Au démarrage : ouvre le fichier passé au lancement ou propose la récupération. */
+/** Lancement sans fichier : écran d'accueil, sauf si l'utilisateur l'a désactivé. */
+async function showHomeAtStartup(): Promise<void> {
+  if (await api().homeAtStartup()) useUiStore.getState().setHome(true)
+}
+
+/**
+ * Au démarrage : ouvre le fichier passé au lancement, sinon propose la récupération, sinon
+ * (ou si la récupération est refusée) affiche l'écran d'accueil.
+ */
 export async function startupDocument(): Promise<void> {
   const pending = await api().getPendingFile()
   if (pending) {
@@ -147,11 +155,11 @@ export async function startupDocument(): Promise<void> {
     return
   }
   const recovered = await api().recoverAutosave()
-  if (!recovered) return
+  if (!recovered) return showHomeAtStartup()
   const parsed = parseSlab(recovered)
   if (!parsed.ok) {
     await api().clearAutosave()
-    return
+    return showHomeAtStartup()
   }
   useUiStore.getState().showModal({
     title: 'Récupération',
@@ -165,6 +173,7 @@ export async function startupDocument(): Promise<void> {
     },
     onCancel: () => {
       void api().clearAutosave()
+      void showHomeAtStartup()
     }
   })
 }

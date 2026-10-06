@@ -5,6 +5,7 @@
 
 /** Commandes émises par la barre de menu native vers le renderer. */
 export type MenuCommand =
+  | 'file:home'
   | 'file:new'
   | 'file:open'
   | 'file:save'
@@ -93,6 +94,11 @@ export interface RecentFile {
   openedAt: string
 }
 
+/** Fichier récent tel qu'affiché par l'écran d'accueil : signalé s'il n'existe plus. */
+export interface RecentEntry extends RecentFile {
+  exists: boolean
+}
+
 /** Réponse à la question « Enregistrer les modifications ? ». */
 export type SaveChangesChoice = 'save' | 'discard' | 'cancel'
 
@@ -110,6 +116,9 @@ export const IPC = {
   filePending: 'file:pending',
   recentList: 'recent:list',
   recentClear: 'recent:clear',
+  recentRemove: 'recent:remove',
+  homeAtStartup: 'settings:homeAtStartup',
+  homeAtStartupSet: 'settings:setHomeAtStartup',
   autosaveWrite: 'autosave:write',
   autosaveClear: 'autosave:clear',
   autosaveRecover: 'autosave:recover',
@@ -144,6 +153,14 @@ export interface ServerLabApi {
   getPendingFile(): Promise<OpenedFile | null>
   /** Fichier ouvert depuis l'extérieur alors que l'application tourne déjà. */
   onFileOpened(cb: (file: OpenedFile) => void): () => void
+
+  /** Fichiers récents, du plus récent au plus ancien, chacun signalé s'il n'existe plus. */
+  listRecent(): Promise<RecentEntry[]>
+  /** Retire un fichier de la liste des récents (le fichier lui-même n'est pas touché). */
+  removeRecent(path: string): Promise<RecentEntry[]>
+  /** Préférence « Afficher l'accueil au démarrage ». */
+  homeAtStartup(): Promise<boolean>
+  setHomeAtStartup(show: boolean): void
 
   /** Écrit le fichier de récupération (autosave). */
   writeAutosave(content: string): Promise<void>

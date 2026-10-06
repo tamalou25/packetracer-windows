@@ -13,6 +13,7 @@ import {
   type Theme,
   type ThemePreference
 } from '../shared/ipc'
+import { DEFAULT_SETTINGS } from '../shared/persisted'
 import { resolveTheme } from '../shared/theme'
 import { FileService, findSlabArg } from './files'
 import { buildMenu } from './menu'
@@ -42,7 +43,7 @@ let menuState: MenuState = {
 }
 let docState = { name: 'Sans titre', dirty: false }
 /** Préférences chargées au démarrage (après le choix éventuel du dossier userData). */
-let settings: Settings = { theme: 'system' }
+let settings: Settings = { ...DEFAULT_SETTINGS }
 /** Vrai quand la fermeture a été confirmée (évite de redemander). */
 let closeConfirmed = false
 /**
@@ -201,6 +202,13 @@ function registerIpc(): void {
     if (isThemePreference(preference)) applyThemePreference(preference)
   })
 
+  ipcMain.handle(IPC.homeAtStartup, () => settings.showHomeOnStartup)
+  ipcMain.on(IPC.homeAtStartupSet, (_event, show: unknown) => {
+    if (typeof show !== 'boolean') return
+    settings = { ...settings, showHomeOnStartup: show }
+    saveSettings(settings)
+  })
+
   ipcMain.on(IPC.docState, (_event, state: unknown) => {
     if (isDocState(state)) docState = state
   })
@@ -210,7 +218,8 @@ function registerIpc(): void {
   ipcMain.handle(IPC.fileSave, (_e, path: unknown, content: unknown) => files.save(path, content))
   ipcMain.handle(IPC.fileSaveAs, (_e, content: unknown, name: unknown) => files.saveAs(win(), content, name))
   ipcMain.handle(IPC.filePending, () => files.takePending())
-  ipcMain.handle(IPC.recentList, () => files.recentFiles())
+  ipcMain.handle(IPC.recentList, () => files.recentEntries())
+  ipcMain.handle(IPC.recentRemove, (_e, path: unknown) => files.removeRecent(path))
   ipcMain.handle(IPC.recentClear, () => files.clearRecent())
 
   ipcMain.handle(IPC.autosaveWrite, (_e, content: unknown) => files.writeAutosave(content))
