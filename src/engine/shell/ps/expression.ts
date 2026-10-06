@@ -146,14 +146,26 @@ class ExprParser {
   }
 
   private comparison(): PsValue {
-    const left = this.operand(true)
+    const left = this.list(true)
     const t = this.peek()
     if (t.type === 'param' && COMPARATORS.has(t.value.toLowerCase())) {
       this.next()
-      const right = this.operand(false)
+      const right = this.list(false)
       return compare(t.value.toLowerCase(), left, right)
     }
     return left
+  }
+
+  /** Opérande ou liste séparée par des virgules ('a','b' : tableau, prioritaire sur les comparaisons). */
+  private list(leftSide: boolean): PsValue {
+    const first = this.operand(leftSide)
+    if (this.peek().type !== 'comma') return first
+    const items: PsValue[] = [first]
+    while (this.peek().type === 'comma') {
+      this.next()
+      items.push(this.operand(leftSide))
+    }
+    return items
   }
 
   private operand(leftSide: boolean): PsValue {
