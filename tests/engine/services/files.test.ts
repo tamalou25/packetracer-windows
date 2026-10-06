@@ -15,6 +15,9 @@ import {
   localToken,
   logon,
   openUnc,
+  removeObject,
+  removeNtfs,
+  principalName,
   removeItem,
   restartComputer,
   setNtfsInheritance,
@@ -162,6 +165,21 @@ describe('Fichiers : NTFS', () => {
   })
 })
 
+describe('Fichiers : compte supprimé', () => {
+  it('l’entrée NTFS d’un compte supprimé peut être retirée (bouton Supprimer de l’onglet Sécurité)', () => {
+    const { s: base, ids } = shared()
+    const group = domainOf(base).groups.find((g) => g.name === 'GG_Compta')!
+    const s = unwrap(removeObject(base, 'lab.local', group.id)).state
+    const acl = (state: LabState) => findNode(server(state, ids.SRV1!).storage, 'C:\\Partages\\Compta')!.acl
+    // L'entrée reste (SID inconnu sous Windows) ; l'interface la désigne par principalName
+    expect(acl(s).some((a) => a.principal === group.id)).toBe(true)
+    const name = principalName(s, server(s, ids.SRV1!), group.id)
+    const removed = unwrap(removeNtfs(s, ids.SRV1!, 'C:\\Partages\\Compta', name, 'all', admin(s))).state
+    expect(acl(removed).some((a) => a.principal === group.id)).toBe(false)
+    expect(acl(removed).length).toBe(acl(s).length - 1)
+  })
+})
+
 describe('Fichiers : partages et accès réseau', () => {
   it('droits effectifs = le plus restrictif du partage et du NTFS', () => {
     const fixture = shared()
@@ -296,6 +314,11 @@ describe('Fichiers : consoles', () => {
     expect(srv(r.state, 'icacls C:\\Partages\\Compta /grant LAB\\personne:R').errors).toContain(
       'Aucun mappage'
     )
+    // Compte inconnu : erreur système 1332 (ERROR_NONE_MAPPED), aucun partage créé
+    const unknown = srv(r.state, 'net share Inconnu=C:\\Partages /grant:personne,FULL')
+    expect(unknown.errors).toContain('Erreur système 1332.')
+    expect(unknown.errors).toContain('Aucun mappage entre les noms de compte et les ID de sécurité')
+    expect(unknown.state).toBe(r.state)
     const shares = srv(r.state, 'net share')
     expect(shares.text).toMatch(/Compta\s+C:\\Partages\\Compta/)
     expect(shares.text).toMatch(/C\$\s+C:\\\s+Partage par défaut/)

@@ -386,6 +386,9 @@ function systemError(ctx: ExecContext, code: number, message: string): void {
   ctx.writeLines([`Erreur système ${code}.`, '', message, ''], 'error')
 }
 
+/** Codes d'erreur système de « net share nom=chemin » (ERROR_NONE_MAPPED = 1332). */
+const NET_SHARE_ERRORS: Record<string, number> = { AccessDenied: 5, ShareExists: 2118, UnknownAccount: 1332 }
+
 function netShare(ctx: ExecContext, args: string[]): void {
   const server = ctx.device.kind === 'server' ? (ctx.device as ServerDevice) : null
   if (!server) {
@@ -427,11 +430,7 @@ function netShare(ctx: ExecContext, args: string[]): void {
     }
     const r = createShare(ctx.state, server.id, input, token)
     if (!r.ok) {
-      systemError(
-        ctx,
-        r.error.code === 'AccessDenied' ? 5 : r.error.code === 'ShareExists' ? 2118 : 2,
-        r.error.message
-      )
+      systemError(ctx, NET_SHARE_ERRORS[r.error.code] ?? 2, r.error.message)
       return
     }
     ctx.state = r.state

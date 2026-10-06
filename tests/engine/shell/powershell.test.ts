@@ -72,6 +72,20 @@ describe('PowerShell : erreurs réalistes', () => {
     expect(where("'Wi-Fi','Ethernet9' -notcontains $_.Name -and $_.Name -like 'Eth*'")).toBe(true)
   })
 
+  it('expression régulière invalide (-match, -notmatch) : erreur PowerShell, pas de plantage', () => {
+    const { s, ids } = lab()
+    for (const op of ['-match', '-notmatch']) {
+      const r = run(s, ids.SRV1!, `Get-NetAdapter | Where-Object { $_.Name ${op} '(' }`)
+      expect(r.errors).toContain('Le modèle d’expression régulière ( n’est pas valide.')
+      expect(r.errors).toContain('FullyQualifiedErrorId : InvalidRegularExpression')
+      expect(r.state).toBe(s)
+    }
+    // Une expression valide fonctionne toujours
+    expect(run(s, ids.SRV1!, "Get-NetAdapter | Where-Object { $_.Name -match '^eth' }").text).toContain(
+      'Ethernet0'
+    )
+  })
+
   it('demande les paramètres obligatoires manquants', () => {
     const { s, ids } = lab()
     const r = run(s, ids.SRV1!, 'Rename-Computer', { answers: ['SRV-AD'] })

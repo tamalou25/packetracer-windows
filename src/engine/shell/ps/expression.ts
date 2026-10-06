@@ -3,6 +3,7 @@
  *  - Where-Object { $_.Name -like 'J*' -and $_.Enabled }
  *  - les filtres Active Directory (-Filter "Name -like 'J*'")
  */
+import { psError } from './errors'
 import { PsSyntaxError, tokenize, type Token } from './lexer'
 import { getProp, psEquals, psLike, psToBool, psToString, type PsValue } from './values'
 
@@ -37,6 +38,22 @@ function compareNumbers(a: PsValue, b: PsValue): number {
   return psToString(a).localeCompare(psToString(b), 'fr', { sensitivity: 'base' })
 }
 
+/** Expression régulière de -match / -notmatch ; un modèle invalide est une erreur PowerShell. */
+function matchPattern(right: PsValue): RegExp {
+  const pattern = psToString(right)
+  try {
+    return new RegExp(pattern, 'i')
+  } catch {
+    throw psError(
+      `Le modèle d’expression régulière ${pattern} n’est pas valide.`,
+      'InvalidOperation',
+      'InvalidRegularExpression',
+      pattern,
+      'RuntimeException'
+    )
+  }
+}
+
 export function compare(op: string, left: PsValue, right: PsValue): boolean {
   switch (op) {
     case 'eq':
@@ -48,9 +65,9 @@ export function compare(op: string, left: PsValue, right: PsValue): boolean {
     case 'notlike':
       return !psLike(left, right)
     case 'match':
-      return new RegExp(psToString(right), 'i').test(psToString(left))
+      return matchPattern(right).test(psToString(left))
     case 'notmatch':
-      return !new RegExp(psToString(right), 'i').test(psToString(left))
+      return !matchPattern(right).test(psToString(left))
     case 'gt':
       return compareNumbers(left, right) > 0
     case 'ge':

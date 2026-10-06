@@ -243,7 +243,9 @@ export function setGpoSecurityFilter(
   return transact(state, (draft) => {
     const domain = requireDomain(draft, domainName)
     const gpo = requireGpo(domain, gpoId)
-    const principal = resolveFilterPrincipal(domain as Domain, identity)
+    // Entrée d'un compte supprimé (SID inconnu) : désignée par son identifiant, elle reste retirable
+    const orphan = !apply && gpo.securityFilter.includes(identity) ? identity : undefined
+    const principal = orphan ?? resolveFilterPrincipal(domain as Domain, identity)
     if (!principal)
       raise('PrincipalNotFound', `Le compte « ${identity} » est introuvable dans le domaine ${domain.name}.`)
     const present = gpo.securityFilter.includes(principal)
