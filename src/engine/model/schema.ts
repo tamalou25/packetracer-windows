@@ -9,6 +9,9 @@
 import { z } from 'zod'
 import { DEVICE_KINDS } from './kinds'
 
+// Messages de validation en français (fichiers .slab et labs importés) : locale fournie par zod
+z.config(z.locales.fr())
+
 /** Position d'un équipement sur le canvas (simple donnée, sans dépendance UI). */
 export const PositionSchema = z.object({ x: z.number(), y: z.number() })
 
