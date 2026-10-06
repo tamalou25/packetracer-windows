@@ -161,8 +161,9 @@ et se relance par **Aide > Tutoriel interactif**.
 
 ## Labs pédagogiques
 
-L'accueil et **Fichier > Ouvrir un lab…** (`Ctrl+L`) proposent cinq labs prêts à l'emploi, du plus simple au plus
-complet : adressage et routage, DHCP, DNS, Active Directory + GPO, partages et NTFS. Chaque lab
+L'accueil et **Fichier > Ouvrir un lab…** (`Ctrl+L`) proposent douze labs prêts à l'emploi, du plus simple au plus
+complet : adressage et routage, DHCP, DNS, Active Directory + GPO, partages et NTFS, puis un lab par rôle de la
+2.1 (WSUS, IIS, Bureau à distance, Hyper-V, AD CS, DFS, sauvegarde et Corbeille AD). Chaque lab
 construit sa topologie de départ ; l'onglet **Lab** affiche l'énoncé et les objectifs, et
 **Vérifier** valide chaque critère (✅ / ❌) avec un indice qui oriente sans donner la solution.
 Le lab en cours est conservé dans le fichier `.slab` enregistré.

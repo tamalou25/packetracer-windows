@@ -6,6 +6,28 @@ La planification des versions suivantes est dans [ROADMAP.md](ROADMAP.md).
 
 ## [Non publié]
 
+## [2.1.0] — 2026-10-06
+
+Milestone « v2.1 — Nouveaux rôles serveur » de la roadmap. Format `.slab` 5 (les labs 2.0 s'ouvrent ;
+une version 2.0 refuse les labs 2.1). Écarts connus avec Windows Server : `docs/fidelite.md` (F23 à F52).
+
+### Ajouté
+
+- **WSUS** : post-installation, synchronisation d'un catalogue fictif, classifications, groupes d'ordinateurs,
+  approbations ; ciblage par GPO (Windows Update), client « Paramètres > Windows Update » (#15).
+- **IIS** : sites, liaisons HTTP/HTTPS, document par défaut, certificats auto-signés, navigateur simulé avec
+  erreurs 403/404 et avertissements TLS (#16).
+- **Services Bureau à distance** : collections, RemoteApp, connexion Bureau à distance (mstsc), groupe
+  Utilisateurs du Bureau à distance, journaux 4624/4625 de type 10 (#17).
+- **Hyper-V** : commutateurs virtuels (externe, interne, privé), machines virtuelles visibles sur le canevas,
+  démarrage/arrêt, cartes réseau des VM (#18).
+- **AD CS** : autorité racine d'entreprise, modèles, demandes, révocation et liste de révocation,
+  inscription automatique par GPO, `certutil`, certificats de domaine pour IIS (#19).
+- **DFS** : espaces de noms de domaine (dossiers, cibles, bascule), réplication DFSR entre serveurs (#20).
+- **Sauvegarde Windows Server** (planification, sauvegarde unique, récupération, `wbadmin`) et **Corbeille
+  Active Directory** (restauration avec attributs et groupes, Centre d'administration Active Directory) (#21).
+- Sept nouveaux labs (6 à 12), un par rôle.
+
 ## [2.0.1] — 2026-10-06
 
 Version de stabilisation de la 2.0.0 : corrections uniquement, aucune fonctionnalité nouvelle.
@@ -97,7 +119,8 @@ Première release publique (installeur Windows NSIS et AppImage Linux).
 - Thèmes sombre et clair, interface compacte.
 - Mises à jour automatiques (electron-updater) et workflow de release sur tag.
 
-[Non publié]: https://github.com/tamalou25/packetracer-windows/compare/v2.0.1...HEAD
+[Non publié]: https://github.com/tamalou25/packetracer-windows/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/tamalou25/packetracer-windows/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/tamalou25/packetracer-windows/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/tamalou25/packetracer-windows/compare/dc9b76c...v2.0.0
 [1.0.0]: https://github.com/tamalou25/packetracer-windows/compare/v0.1.1...dc9b76c
