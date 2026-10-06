@@ -10,6 +10,13 @@ export default defineConfig({
   },
   test: {
     include: ['tests/engine/**/*.test.ts', 'tests/shared/**/*.test.ts'],
-    environment: 'node'
+    environment: 'node',
+    // npm run test:coverage : couverture du moteur (cible ≥ 80 % des lignes), rapport dans coverage/
+    coverage: {
+      provider: 'v8',
+      include: ['src/engine/**'],
+      reporter: ['text-summary', 'html'],
+      reportsDirectory: 'coverage'
+    }
   }
 })
