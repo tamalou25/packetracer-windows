@@ -112,8 +112,9 @@ describe('AD CS', () => {
   })
 
   it('révocation : le navigateur signale un certificat révoqué', () => {
-    let { state: s, thumbprint } = withHttps(caLab())
-    s = gpupdate(s, 'PC1')
+    const https = withHttps(caLab())
+    const thumbprint = https.thumbprint
+    let s = gpupdate(https.state, 'PC1')
     const srv = id(s, 'SRV1')
     const serial = adcsOf(s.devices[srv])!.issued.find((c) => c.thumbprint === thumbprint)!.serial
     s = exec(s, command('adcs.revoke', srv, serial, 'KeyCompromise'))
