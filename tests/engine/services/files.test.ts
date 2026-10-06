@@ -296,6 +296,11 @@ describe('Fichiers : consoles', () => {
     expect(srv(r.state, 'icacls C:\\Partages\\Compta /grant LAB\\personne:R').errors).toContain(
       'Aucun mappage'
     )
+    // Compte inconnu : erreur système 1332 (ERROR_NONE_MAPPED), aucun partage créé
+    const unknown = srv(r.state, 'net share Inconnu=C:\\Partages /grant:personne,FULL')
+    expect(unknown.errors).toContain('Erreur système 1332.')
+    expect(unknown.errors).toContain('Aucun mappage entre les noms de compte et les ID de sécurité')
+    expect(unknown.state).toBe(r.state)
     const shares = srv(r.state, 'net share')
     expect(shares.text).toMatch(/Compta\s+C:\\Partages\\Compta/)
     expect(shares.text).toMatch(/C\$\s+C:\\\s+Partage par défaut/)
