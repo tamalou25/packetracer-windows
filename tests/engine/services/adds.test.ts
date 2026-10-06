@@ -116,6 +116,23 @@ describe('AD DS : objets', () => {
     )
   })
 
+  it('Get-ADUser -Properties : propriétés demandées ajoutées à l’affichage, * pour toutes', () => {
+    const { s: base, ids } = forest()
+    let r = ps(base, ids.SRV1!, 'Set-ADUser -Identity Administrateur -Description "Compte intégré"')
+    expect(r.errors).toBe('')
+    const plain = ps(r.state, ids.SRV1!, 'Get-ADUser -Identity Administrateur').text
+    expect(plain).not.toContain('Description')
+    const one = ps(r.state, ids.SRV1!, 'Get-ADUser -Identity Administrateur -Properties Description').text
+    expect(one).toMatch(/Description\s+: Compte intégré/)
+    expect(one).toMatch(/SamAccountName\s+: Administrateur/)
+    r = ps(r.state, ids.SRV1!, 'Get-ADUser -Identity Administrateur -Properties *')
+    expect(r.text).toMatch(/Description\s+: Compte intégré/)
+    // Propriété inconnue du simulateur : ignorée, comme un attribut non défini
+    expect(ps(r.state, ids.SRV1!, 'Get-ADUser -Identity Administrateur -Properties Inexistante').errors).toBe(
+      ''
+    )
+  })
+
   it('mot de passe non conforme : compte créé mais désactivé', () => {
     const { s, ids } = forest()
     const r = ps(

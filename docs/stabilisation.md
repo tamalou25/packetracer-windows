@@ -5,26 +5,26 @@ Une nouvelle session reprend **uniquement** à partir de ce fichier (lire aussi 
 
 ## État
 
-| Clé              | Valeur                                                                                                                                       |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Étape en cours   | 4 — Chasse aux bugs par rôle (terminée, attente « OK étape 4 »)                                                                              |
-| Base de travail  | `main` @ `ee85a79` (merge PR #51), `package.json` = 2.0.0                                                                                    |
-| Prochaine action | Gary : relire et fusionner les PR #57 → #66 (une par bug, indépendantes, CI verte), A1 → A6. Après « OK étape 4 » : étape 5 (fichiers .slab) |
+| Clé              | Valeur                                                                                                                                               |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Étape en cours   | 9 — Release 2.0.1 (préparée, tag sur accord de Gary)                                                                                                 |
+| Base de travail  | `main` @ `ee85a79` (merge PR #51), `package.json` = 2.0.0                                                                                            |
+| Prochaine action | Gary : fusion de #68, #70, de la PR « étapes 5 → 8 » et de la PR de release 2.0.1 ; actions A2 → A6 (voir « Actions restantes ») ; puis tag `v2.0.1` |
 
 ## Étapes
 
-| #   | Étape                      | Statut                                            |
-| --- | -------------------------- | ------------------------------------------------- |
-| 0   | Hygiène du dépôt           | validée (OK le 2026-10-06), actions Gary en cours |
-| 1   | État des lieux             | validée (OK le 2026-10-06)                        |
-| 2   | Preuve des acquis 2.0.0    | validée (OK le 2026-10-06)                        |
-| 3   | Couverture                 | validée (OK le 2026-10-06)                        |
-| 4   | Chasse aux bugs par rôle   | terminée, attente OK                              |
-| 5   | Fichiers .slab             | à faire                                           |
-| 6   | Labs                       | à faire                                           |
-| 7   | Mises à jour automatiques  | à faire                                           |
-| 8   | Fidélité                   | à faire                                           |
-| 9   | Release 2.0.1 (sur accord) | à faire                                           |
+| #   | Étape                      | Statut                                                 |
+| --- | -------------------------- | ------------------------------------------------------ |
+| 0   | Hygiène du dépôt           | validée (OK le 2026-10-06), actions Gary en cours      |
+| 1   | État des lieux             | validée (OK le 2026-10-06)                             |
+| 2   | Preuve des acquis 2.0.0    | validée (OK le 2026-10-06)                             |
+| 3   | Couverture                 | validée (OK le 2026-10-06)                             |
+| 4   | Chasse aux bugs par rôle   | validée (OK le 2026-10-06)                             |
+| 5   | Fichiers .slab             | terminée (Gary : « continue sans t’arrêter »)          |
+| 6   | Labs                       | terminée                                               |
+| 7   | Mises à jour automatiques  | terminée : chaîne correcte, bloquée par le dépôt privé |
+| 8   | Fidélité                   | terminée (`docs/fidelite.md`)                          |
+| 9   | Release 2.0.1 (sur accord) | préparée, tag sur accord                               |
 
 ## Constats de l'étape 0 (2026-10-06)
 
@@ -117,19 +117,19 @@ Fichiers : `E` = `tests/engine/…`, `S` = `tests/shared/…`, `P` = `tests/e2e/
 
 ## Bugs
 
-| #   | Issue | Titre                                                                              | Gravité                    | Branche                     | PR  | Statut               |
-| --- | ----- | ---------------------------------------------------------------------------------- | -------------------------- | --------------------------- | --- | -------------------- |
-| B1  | #53   | `net share … /grant:Inconnu` : « Erreur système 2 » au lieu de 1332                | Mineure (fidélité sourcée) | `fix/53-net-share-1332`     | #60 | corrigé, PR en revue |
-| B2  | #54   | `-match` / `-notmatch` regex invalide : exception non rattrapée                    | Haute (plantage console)   | `fix/54-regex-invalide`     | #57 | corrigé, PR en revue |
-| B3  | #55   | `-in` / `-notin` / `-contains` : liste `'a','b'` refusée, opérateurs inutilisables | Moyenne                    | `fix/55-listes-expressions` | #59 | corrigé, PR en revue |
-| B4  | #56   | `Get-Command` / `Get-WindowsFeature -Name` : joker non échappé, plantage sur `(`   | Haute (plantage console)   | `fix/56-joker-name`         | #58 | corrigé, PR en revue |
+| #   | Issue | Titre                                                                    | Gravité                    | PR  | Statut               |
+| --- | ----- | ------------------------------------------------------------------------ | -------------------------- | --- | -------------------- |
+| B1  | #53   | `net share … /grant:Inconnu` : « Erreur système 2 » au lieu de 1332      | Mineure (fidélité sourcée) | #60 | corrigé, fusionné    |
+| B2  | #54   | `-match` / `-notmatch` regex invalide : exception non rattrapée          | Haute (plantage console)   | #57 | corrigé, fusionné    |
+| B3  | #55   | `-in` / `-notin` / `-contains` : liste `'a','b'` refusée                 | Moyenne                    | #59 | corrigé, fusionné    |
+| B4  | #56   | `Get-Command` / `Get-WindowsFeature -Name` : joker non échappé, plantage | Haute (plantage console)   | #58 | corrigé, fusionné    |
+| B5  | #61   | GPMC : entrée orpheline du filtrage de sécurité impossible à retirer     | Moyenne                    | #64 | corrigé, fusionné    |
+| B6  | #62   | Onglet Sécurité NTFS : « Supprimer » échoue sur un compte supprimé       | Moyenne                    | #65 | corrigé, fusionné    |
+| B7  | #63   | Noms réservés (CON, NUL…) acceptés ; « Data. » distinct de « Data »      | Mineure (fidélité sourcée) | #66 | corrigé, fusionné    |
+| B8  | #67   | Messages de validation `.slab` / lab en anglais (zod)                    | Moyenne (règle 3)          | #68 | corrigé, PR en revue |
+| B9  | #69   | `Get-ADUser -Properties` ignoré                                          | Mineure (fidélité sourcée) | #70 | corrigé, PR en revue |
 
-| B5 | #61 | GPMC : entrée orpheline du filtrage de sécurité impossible à retirer | Moyenne | `fix/61-filtre-gpo-orphelin` | #64 | corrigé, PR en revue |
-| B6 | #62 | Onglet Sécurité NTFS : « Supprimer » échoue sur un compte supprimé | Moyenne | `fix/62-ntfs-entree-orpheline` | #65 | corrigé, PR en revue |
-| B7 | #63 | Noms réservés (CON, NUL…) acceptés ; « Data. » distinct de « Data » | Mineure (fidélité sourcée) | `fix/63-noms-reserves` | #66 | corrigé, PR en revue |
-
-Milestone `v2.0.x` absent (A3) : rattacher #53 → #56 et #61 → #63 dès sa création. Les PR partent de `main`
-et sont indépendantes ; #57 et #59 modifient le même fichier (fonctions différentes, pas de conflit attendu).
+Milestone `v2.0.x` absent (A3) : rattacher les 9 issues dès sa création.
 
 ## Couverture
 
@@ -191,7 +191,65 @@ Méthode : banc d'essai (scripts jetables, hors dépôt) exécutant des dizaines
 | Annuler / rétablir, `.slab` | inverse et réouverture vérifiés pour chacune des 68 commandes                                                                                                      | OK                      |
 | GUI ⇔ PS ⇔ cmd              | 5 scénarios (AD, DHCP, DNS, GPO, fichiers)                                                                                                                         | OK                      |
 
-## Points de fidélité relevés (pour l'étape 8, non corrigés)
+## Étape 5 — Fichiers .slab
+
+- Un fichier de référence par version du format : v1, v2 (développement), **v3 = format de la 0.1.1/1.0.0
+  publiées**, v4 = 2.0.0 (`tests/engine/serialization/fixtures`, emplacement fixé par CLAUDE.md). Chacun
+  s'ouvre, migre et reste utilisable (`migrations.test.ts`). Aucune version antérieure : `v0.1.0` ne
+  contient pas de code.
+- Fichier corrompu : moteur (`robustness.test.ts`), récupération automatique (`e2e/recovery.spec.ts`),
+  **ouverture par Fichier > Ouvrir** (`e2e/open-invalid.spec.ts` : tronqué, autre application, format
+  futur, vide → message français, lab en cours conservé, aucune erreur).
+- B8 trouvé : messages zod en anglais → #67 / #68.
+- Point mineur non corrigé : un fichier invalide ouvert est ajouté aux récents avant validation
+  (`src/main/files.ts`, `read`), il reste retirable depuis l'accueil.
+
+## Étape 6 — Labs
+
+- Les 5 labs (`labs/*.json`) sont résolus à 100 % par `tests/engine/labs/labs.test.ts` (départ incomplet,
+  solution par actions du moteur et console) ; le lab 1 aussi par l'interface (`e2e/labs.spec.ts`).
+- Nouveau test : aucun indice ne contient une valeur attendue par son critère (adresses, plages, noms,
+  chemins…). Relecture manuelle : aucun indice ne donne la solution.
+
+## Étape 7 — Mises à jour automatiques
+
+Chaîne vérifiée et figée par `tests/shared/release-config.test.ts` : tag `vX.Y.Z` seul déclencheur
+(`release.yml`), version de l'application = tag, installeurs versionnés + `latest.yml` /
+`latest-linux.yml` envoyés par electron-builder, release publiée « latest », dépôt de publication =
+`tamalou25/packetracer-windows` (electron-updater, aucun jeton embarqué).
+
+Blocages (aucune correction de code possible) :
+
+1. **Dépôt privé** : `releases/latest` et `latest.yml` répondent 404 sans authentification → aucune
+   copie installée ne peut se mettre à jour. Options : rendre le dépôt public, ou publier les releases
+   dans un dépôt public dédié (`publish.repo` d'electron-builder) — décision de Gary.
+2. **Aucune release avec `latest.yml`** depuis la 0.1.1 : la release « V2 » est vide. Pousser `v2.0.0`
+   (sur `ee85a79`) **avant** `v2.0.1`, sinon la 2.0.0 deviendrait « latest » après la 2.0.1.
+3. Une 2.0.0 installée n'existe pas encore (aucun installeur 2.0.0) : les utilisateurs ont la 0.1.1, qui
+   détectera directement la 2.0.1 une fois les points 1 et 2 réglés.
+
+Le push de tags est refusé par le proxy git de la session : tags à pousser par Gary.
+
+## Étape 8 — Fidélité
+
+`docs/fidelite.md` : 5 écarts corrigés (sourcés), 1 sourcé à planifier (relation d'approbation), 22 à
+vérifier. learn.microsoft.com était bloqué depuis la session : sources trouvées par recherche (TechNet /
+pages archivées). B9 (#69 / #70) corrigé sur source.
+
+## Actions restantes pour Gary
+
+| #   | Action                                                                                               | État    |
+| --- | ---------------------------------------------------------------------------------------------------- | ------- |
+| A1  | Branche par défaut → `main`                                                                          | fait    |
+| A2  | Milestones : v2.0 → v2.1, v3.0 → v2.2, v4.0 → v2.3, v5.0 → v2.4                                      | à faire |
+| A3  | Créer le milestone `v2.0.x`                                                                          | à faire |
+| A4  | Supprimer la release « V2 » puis le tag `V2`                                                         | à faire |
+| A5  | `git push origin v2.0.0` (tag annoté local de la session, ou `git tag -a v2.0.0 ee85a79`)            | à faire |
+| A6  | Supprimer les branches fusionnées (`feat/*`, `claude/ui-v2-*`, `release/v2.0.0`, `fix/*` fusionnées) | à faire |
+| A7  | Décider : dépôt public ou dépôt public de releases (mises à jour automatiques)                       | à faire |
+| A8  | Fusionner #68, #70, la PR « étapes 5 → 8 », la PR release 2.0.1 ; puis `git push origin v2.0.1`      | à faire |
+
+## Points de fidélité relevés (historique ; état à jour : `docs/fidelite.md`)
 
 | Comportement simulé                                                                 | Doute                                               |
 | ----------------------------------------------------------------------------------- | --------------------------------------------------- |

@@ -95,6 +95,21 @@ function userObject(domain: Domain, u: AdUser): PsObject {
   )
 }
 
+/**
+ * -Properties : propriétés ajoutées au jeu affiché par défaut (« * » : toutes celles de l'objet).
+ * Une propriété que l'objet ne porte pas est ignorée, comme un attribut non défini.
+ */
+function withProperties(obj: PsObject, requested: PsValue | undefined): PsObject {
+  if (requested === undefined || !obj.view) return obj
+  const names = flatten([requested]).map(psToString)
+  const all = Object.keys(obj.props)
+  const extra = names.includes('*')
+    ? all
+    : names.flatMap((n) => all.filter((k) => k.toLowerCase() === n.trim().toLowerCase()))
+  const props = [...obj.view.props, ...extra.filter((k) => !obj.view?.props.includes(k))]
+  return { ...obj, view: { ...obj.view, props } }
+}
+
 function groupObject(domain: Domain, g: AdGroup): PsObject {
   return psObject(
     'ADGroup',
@@ -614,7 +629,7 @@ export const adCmdlets: CmdletDef[] = [
     params: [identityParam, ...filterParams],
     run(ctx, args) {
       const domain = adDomain(ctx)
-      return select(ctx, domain, args, 'user').map((o) => toPs(domain, o))
+      return select(ctx, domain, args, 'user').map((o) => withProperties(toPs(domain, o), args['Properties']))
     }
   },
   {
