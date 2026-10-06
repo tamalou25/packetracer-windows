@@ -10,6 +10,7 @@ import { effectiveIpv4 } from '../../net/addressing'
 import { l2Segment } from '../../net/segment'
 import { concatTraces, type PacketTrace } from '../../sim/trace'
 import { serverExchange } from '../adds/locator'
+import { roleModules } from '../registry'
 import { firstAddress, resolveName } from '../dns/resolver'
 import { accessPerms, sharePerms, type AccessToken, type Perm } from './acl'
 import { findShare, shareFolderId } from './actions'
@@ -100,8 +101,16 @@ export function openUnc(
   state: LabState,
   clientId: string,
   path: string,
-  token: AccessToken | null
+  token: AccessToken | null,
+  /** Références DFS déjà suivies (une seule redirection). */
+  referred = false
 ): UncResult {
+  // Espace de noms (\\lab.local\Partages\Compta) : redirection vers un dossier cible
+  if (!referred)
+    for (const module of roleModules()) {
+      const target = module.resolveUnc?.(state, clientId, path)
+      if (target) return openUnc(state, clientId, target, token, true)
+    }
   const traces: PacketTrace[] = []
   const title = `SMB ${path}`
   const fail = (code: number, error: string): UncResult => ({

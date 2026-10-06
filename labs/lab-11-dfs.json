@@ -1,0 +1,108 @@
+{
+  "formatVersion": 1,
+  "id": "lab-11-dfs",
+  "title": "Espace de noms et réplication DFS",
+  "difficulty": "Avancé",
+  "duration": "45 min",
+  "summary": "Publier un dossier sous un espace de noms de domaine et le répliquer entre deux serveurs.",
+  "statement": "# Contexte\n\nLe dossier de la comptabilité doit rester accessible même si un serveur tombe : il sera publié dans l’espace de noms `\\\\lab.local\\Partages` et répliqué entre **SRV1** et **SRV2**.\n\nCompte d’administration : `LAB\\Administrateur` / `P@ssw0rd`. Mot de passe des utilisateurs : `Azerty123!`.\n\n## Travail demandé\n\n1. Sur SRV1 et SRV2, installez **Espaces de noms DFS** et **Réplication DFS** avec les outils de gestion.\n2. Sur chaque serveur, créez le dossier `C:\\Compta` et partagez-le sous le nom `Compta` (Tout le monde : Contrôle total).\n3. Sur SRV1, créez l’espace de noms de domaine **Partages**, puis le dossier **Compta** avec deux cibles : `\\\\SRV1\\Compta` et `\\\\SRV2\\Compta`.\n4. Créez le groupe de réplication **RG-Compta** (membres SRV1 et SRV2) avec le dossier répliqué **Compta** sur `C:\\Compta` (SRV1 membre principal).\n5. Créez le fichier `C:\\Compta\\rapport.txt` sur SRV1 et vérifiez qu’il apparaît sur SRV2.\n6. Sur PC1, ouvrez une session `LAB\\jdupont` et accédez à `\\\\lab.local\\Partages\\Compta`.",
+  "start": {
+    "devices": [
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 220,
+        "y": 100,
+        "ip": "192.168.10.1/24",
+        "dns": ["127.0.0.1"]
+      },
+      {
+        "kind": "server",
+        "name": "SRV2",
+        "x": 460,
+        "y": 100,
+        "ip": "192.168.10.2/24",
+        "dns": ["192.168.10.1"]
+      },
+      {
+        "kind": "switch",
+        "name": "SW1",
+        "x": 330,
+        "y": 300
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 330,
+        "y": 470,
+        "ip": "192.168.10.10/24",
+        "dns": ["192.168.10.1"]
+      }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["SRV2:Ethernet0", "SW1:Fa0/2"],
+      ["PC1:Ethernet0", "SW1:Fa0/3"]
+    ],
+    "domain": {
+      "name": "lab.local",
+      "netbios": "LAB",
+      "dc": "SRV1",
+      "ous": ["Societe"],
+      "users": [
+        {
+          "name": "Jean Dupont",
+          "sam": "jdupont",
+          "ou": "Societe",
+          "password": "Azerty123!"
+        }
+      ],
+      "join": ["SRV2", "PC1"]
+    }
+  },
+  "criteria": [
+    {
+      "id": "roles",
+      "label": "La réplication DFS est installée sur SRV2",
+      "hint": "Les deux services DFS font partie des services de fichiers ; installez-les sur chaque serveur concerné.",
+      "check": {
+        "type": "featureInstalled",
+        "device": "SRV2",
+        "feature": "FS-DFS-Replication"
+      }
+    },
+    {
+      "id": "namespace",
+      "label": "Le dossier de la comptabilité de l’espace de noms a deux cibles",
+      "hint": "Chaque cible désigne un partage existant de la forme \\\\serveur\\partage ; ajoutez la seconde cible sur le dossier.",
+      "check": {
+        "type": "dfsNamespace",
+        "domain": "lab.local",
+        "name": "Partages",
+        "folder": "Compta",
+        "targets": 2
+      }
+    },
+    {
+      "id": "replicated",
+      "label": "Le fichier créé sur SRV1 est présent sur SRV2",
+      "hint": "Un groupe de réplication a besoin de ses membres, d’un dossier répliqué et du chemin local de ce dossier sur chaque membre.",
+      "check": {
+        "type": "dfsReplicated",
+        "group": "RG-Compta",
+        "server": "SRV2",
+        "path": "C:\\Compta\\rapport.txt"
+      }
+    },
+    {
+      "id": "access",
+      "label": "jdupont accède au dossier par l’espace de noms depuis PC1",
+      "hint": "L’accès se fait avec le compte de la session ouverte sur le poste ; les autorisations du partage cible s’appliquent.",
+      "check": {
+        "type": "uncReachable",
+        "from": "PC1",
+        "path": "\\\\lab.local\\Partages\\Compta"
+      }
+    }
+  ]
+}

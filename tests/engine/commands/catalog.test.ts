@@ -456,6 +456,34 @@ describe('catalogue des commandes', () => {
     done(r)
   })
 
+  it('DFS : espace de noms, dossiers et cibles, groupe de réplication', () => {
+    const r = runner()
+    const srv = r.id('SRV1')
+    const ns = '\\\\lab.local\\Partages\\Compta'
+    r.run(
+      command('system.installFeatures', srv, ['FS-DFS-Namespace', 'FS-DFS-Replication'], {
+        includeManagementTools: true
+      })
+    )
+    r.run(command('files.createItem', srv, 'C:\\Compta', 'folder', r.admin(), {}))
+    r.run(command('files.createShare', srv, { name: 'Compta', path: 'C:\\Compta' }, r.admin()))
+    r.run(command('dfs.newNamespace', srv, { name: 'Partages', createShare: true }))
+    r.run(command('dfs.newFolder', ns, '\\\\SRV1\\Compta'))
+    r.run(command('dfs.addTarget', ns, '\\\\SRV1\\Partages'))
+    r.run(command('dfs.removeTarget', ns, '\\\\SRV1\\Partages'))
+    r.run(command('dfs.removeFolder', ns))
+    r.run(command('dfs.removeNamespace', srv, 'Partages'))
+    r.run(command('dfs.newGroup', srv, 'Compta'))
+    r.run(command('dfs.addMember', 'Compta', 'SRV1'))
+    r.run(command('dfs.newReplicatedFolder', 'Compta', 'Compta'))
+    r.run(
+      command('dfs.setMembership', 'Compta', 'Compta', 'SRV1', { contentPath: 'C:\\Compta', primary: true })
+    )
+    r.run(command('dfs.sync', 'Compta'), false)
+    r.run(command('dfs.removeGroup', 'Compta'))
+    done(r)
+  })
+
   it('toute commande du catalogue est couverte par ce fichier', () => {
     const missing = Object.keys(commandDefinitions()).filter((t) => !covered.has(t))
     expect(missing).toEqual([])

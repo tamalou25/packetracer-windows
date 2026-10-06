@@ -135,6 +135,11 @@ export interface RoleModule<C extends CommandDefs = CommandDefs> {
    * transaction : distribution de certificats racines, inscription automatique…
    */
   onComputerPolicy?(draft: Draft<LabState>, deviceId: string, domain: Domain): void
+  /**
+   * Référence d'un chemin réseau (espace de noms DFS) : renvoie le chemin cible
+   * (\\SRV1\Compta\…) qui remplace `path`, ou null si le rôle ne le gère pas.
+   */
+  resolveUnc?(state: LabState, clientId: string, path: string): string | null
   /** Refus de désinstaller une fonctionnalité (ex. AD DS sur un contrôleur de domaine). */
   uninstallBlocked?(state: LabState, deviceId: string, feature: string): EngineError | null
 }

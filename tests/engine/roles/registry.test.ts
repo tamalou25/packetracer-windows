@@ -31,7 +31,19 @@ const duplicates = (list: string[]) => list.filter((x, i) => list.indexOf(x) !==
 describe('registre des rôles', () => {
   it('déclare chaque rôle une fois, après les rôles dont il dépend', () => {
     const ids = roleModules().map((m) => m.id)
-    expect(ids).toEqual(['dns', 'dhcp', 'adds', 'gpo', 'files', 'wsus', 'iis', 'rds', 'hyperv', 'adcs'])
+    expect(ids).toEqual([
+      'dns',
+      'dhcp',
+      'adds',
+      'gpo',
+      'files',
+      'wsus',
+      'iis',
+      'rds',
+      'hyperv',
+      'adcs',
+      'dfs'
+    ])
     roleModules().forEach((m, index) => {
       for (const dep of m.dependencies) expect(ids.indexOf(dep), `${m.id} → ${dep}`).toBeLessThan(index)
       expect(
@@ -55,6 +67,8 @@ describe('registre des rôles', () => {
       'DNS',
       'FileAndStorage-Services',
       'FS-FileServer',
+      'FS-DFS-Namespace',
+      'FS-DFS-Replication',
       'GPMC',
       'Hyper-V',
       'PowerShell',
@@ -67,6 +81,7 @@ describe('registre des rôles', () => {
       'RSAT-ADDS',
       'RSAT-ADCS',
       'RSAT-ADCS-Mgmt',
+      'RSAT-DFS-Mgmt-Con',
       'RSAT-DHCP',
       'RSAT-DNS-Server',
       'RSAT-Hyper-V-Tools',
@@ -182,7 +197,19 @@ describe('registre des rôles', () => {
   })
 
   it('tout module chargé en premier laisse le registre complet (imports circulaires)', async () => {
-    for (const entry of ['dhcp', 'dns', 'adds', 'gpo', 'files', 'wsus', 'iis', 'rds', 'hyperv', 'adcs']) {
+    for (const entry of [
+      'dhcp',
+      'dns',
+      'adds',
+      'gpo',
+      'files',
+      'wsus',
+      'iis',
+      'rds',
+      'hyperv',
+      'adcs',
+      'dfs'
+    ]) {
       vi.resetModules()
       await import(`../../../src/engine/roles/${entry}/index.ts`)
       const registry = await import('../../../src/engine/roles/registry')
