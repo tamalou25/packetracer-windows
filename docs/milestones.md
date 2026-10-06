@@ -14,15 +14,15 @@ Ce journal permet à une nouvelle session de reprendre le travail là où il s'e
 
 ## v2.1 — Nouveaux rôles serveur
 
-| Issue | Sujet                    | Branche        | PR  | État     |
-| ----- | ------------------------ | -------------- | --- | -------- |
-| #15   | Rôle WSUS                | `feat/15-wsus` |     | en cours |
-| #16   | Rôle IIS                 |                |     | à faire  |
-| #17   | Rôle RDS                 |                |     | à faire  |
-| #18   | Rôle Hyper-V             |                |     | à faire  |
-| #19   | Rôle AD CS               |                |     | à faire  |
-| #20   | Rôle DFS                 |                |     | à faire  |
-| #21   | Sauvegarde, corbeille AD |                |     | à faire  |
+| Issue | Sujet                    | Branche          | PR  | État     |
+| ----- | ------------------------ | ---------------- | --- | -------- |
+| #15   | Rôle WSUS                | `feat/15-wsus`   | #74 | fusionné |
+| #16   | Rôle IIS                 | `feat/16-iis`    | #75 | fusionné |
+| #17   | Rôle RDS                 | `feat/17-rds`    | #76 | fusionné |
+| #18   | Rôle Hyper-V             | `feat/18-hyperv` | #77 | fusionné |
+| #19   | Rôle AD CS               | `feat/19-adcs`   |     | en cours |
+| #20   | Rôle DFS                 |                  |     | à faire  |
+| #21   | Sauvegarde, corbeille AD |                  |     | à faire  |
 
 ### #15 WSUS
 
