@@ -180,6 +180,7 @@ export function buildMenu(ctx: MenuContext): Menu {
       label: 'Aid&e',
       submenu: [
         { label: 'Guide de démarrage', accelerator: accelerator('guide'), click: cmd('help:guide') },
+        { label: 'Tutoriel interactif', click: cmd('help:tutorial') },
         { label: 'Raccourcis clavier', click: cmd('help:shortcuts') },
         ...(ctx.onCheckUpdates
           ? ([

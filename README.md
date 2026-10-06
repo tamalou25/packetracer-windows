@@ -143,6 +143,15 @@ la liste) et les labs fournis avec leur difficulté et leur durée. Il reste acc
 **Fichier > Accueil** ; la case « Afficher l'accueil au démarrage » permet de démarrer directement
 sur le canvas.
 
+## Tutoriel interactif
+
+Au premier lancement, un tutoriel guide jusqu'au premier ping : placer un serveur et un poste,
+les câbler, leur donner une adresse IP fixe dans le même réseau, puis tester avec `ping` (console
+ou outil PDU simple). La zone à utiliser est entourée et chaque étape se valide d'elle-même dès
+que le lab est dans le bon état (pas de bouton « Suivant »). Le tutoriel peut être passé, n'est
+plus proposé une fois réussi (ou si la case « Proposer le tutoriel au démarrage » est décochée)
+et se relance par **Aide > Tutoriel interactif**.
+
 ## Labs pédagogiques
 
 L'accueil et **Fichier > Ouvrir un lab…** (`Ctrl+L`) proposent cinq labs prêts à l'emploi, du plus simple au plus

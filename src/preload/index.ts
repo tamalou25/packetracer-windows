@@ -45,6 +45,8 @@ const api: ServerLabApi = {
   removeRecent: (path) => ipcRenderer.invoke(IPC.recentRemove, path),
   homeAtStartup: () => ipcRenderer.invoke(IPC.homeAtStartup),
   setHomeAtStartup: (show) => ipcRenderer.send(IPC.homeAtStartupSet, show),
+  tutorialAtStartup: () => ipcRenderer.invoke(IPC.tutorialAtStartup),
+  setTutorialAtStartup: (show) => ipcRenderer.send(IPC.tutorialAtStartupSet, show),
 
   writeAutosave: (content) => ipcRenderer.invoke(IPC.autosaveWrite, content),
   clearAutosave: () => ipcRenderer.invoke(IPC.autosaveClear),

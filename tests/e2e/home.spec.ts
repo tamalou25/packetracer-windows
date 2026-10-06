@@ -69,6 +69,8 @@ test('récents : fichier introuvable signalé puis retiré, fichier existant ouv
   const existing = join(folder, 'revision-dhcp.slab')
   const missing = join(folder, 'disparu.slab')
   writeLab(existing)
+  // Tutoriel désactivé : seul l'écran d'accueil est vérifié ici
+  writeFileSync(join(userData, 'settings.json'), '{ "showTutorialOnStartup": false }')
   const now = Date.now()
   writeFileSync(
     join(userData, 'recent.json'),
@@ -80,7 +82,7 @@ test('récents : fichier introuvable signalé puis retiré, fichier existant ouv
   const recentPaths = () =>
     (JSON.parse(readFileSync(join(userData, 'recent.json'), 'utf8')) as { path: string }[]).map((r) => r.path)
 
-  // Profil sans préférence enregistrée : accueil affiché, comme pour un nouvel utilisateur
+  // Accueil non désactivé : affiché, comme pour un nouvel utilisateur
   const first = await launchApp({ userData })
   try {
     const rows = first.page.getByTestId('home-recent')

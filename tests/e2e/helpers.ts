@@ -20,17 +20,23 @@ export interface LaunchOptions {
   /** Profil existant, réutilisé pour vérifier la persistance entre deux lancements (jamais réécrit). */
   userData?: string
   /**
-   * Nouveau profil : écran d'accueil affiché au démarrage (comme pour un utilisateur). Par défaut,
-   * il est désactivé dans settings.json pour que chaque scénario démarre directement sur le canvas.
+   * Nouveau profil : écran d'accueil et tutoriel proposés au démarrage (comme pour un nouvel
+   * utilisateur). Par défaut, ils sont désactivés dans settings.json pour que chaque scénario
+   * démarre directement sur le canvas.
    */
   home?: boolean
+  tutorial?: boolean
 }
 
 export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedApp> {
   let userData = options.userData
   if (!userData) {
     userData = mkdtempSync(join(tmpdir(), 'serverlab-e2e-'))
-    if (!options.home) writeFileSync(join(userData, 'settings.json'), '{ "showHomeOnStartup": false }')
+    const disabled: Record<string, boolean> = {}
+    if (!options.home) disabled['showHomeOnStartup'] = false
+    if (!options.tutorial) disabled['showTutorialOnStartup'] = false
+    if (Object.keys(disabled).length > 0)
+      writeFileSync(join(userData, 'settings.json'), JSON.stringify(disabled))
   }
   // SERVERLAB_E2E_EXECUTABLE : application empaquetée (ex. dist/linux-unpacked/serverlab) au lieu de out/
   const packaged = process.env['SERVERLAB_E2E_EXECUTABLE']

@@ -27,7 +27,8 @@ describe('settings.json', () => {
   it('lit un thème valide et ignore les champs inconnus', () => {
     expect(parseSettings('{"theme":"light","fenetre":{"x":1}}')).toEqual({
       theme: 'light',
-      showHomeOnStartup: true
+      showHomeOnStartup: true,
+      showTutorialOnStartup: true
     })
   })
 
@@ -41,16 +42,28 @@ describe('settings.json', () => {
   it('accueil au démarrage : affiché par défaut, choix enregistré conservé', () => {
     expect(DEFAULT_SETTINGS.showHomeOnStartup).toBe(true)
     // Fichier d'une version précédente (thème seul) : accueil affiché, thème conservé
-    expect(parseSettings('{"theme":"dark"}')).toEqual({ theme: 'dark', showHomeOnStartup: true })
-    expect(parseSettings('{"showHomeOnStartup":false}')).toEqual({
+    expect(parseSettings('{"theme":"dark"}')).toMatchObject({ theme: 'dark', showHomeOnStartup: true })
+    expect(parseSettings('{"showHomeOnStartup":false}')).toMatchObject({
       theme: 'system',
       showHomeOnStartup: false
     })
     // Valeur invalide : défaut, sans perdre le thème
-    expect(parseSettings('{"theme":"light","showHomeOnStartup":"non"}')).toEqual({
+    expect(parseSettings('{"theme":"light","showHomeOnStartup":"non"}')).toMatchObject({
       theme: 'light',
       showHomeOnStartup: true
     })
+  })
+
+  it('tutoriel au démarrage : proposé par défaut, choix enregistré conservé', () => {
+    expect(DEFAULT_SETTINGS.showTutorialOnStartup).toBe(true)
+    // Fichier d'une version précédente : tutoriel proposé, autres préférences conservées
+    expect(parseSettings('{"theme":"dark","showHomeOnStartup":false}')).toEqual({
+      theme: 'dark',
+      showHomeOnStartup: false,
+      showTutorialOnStartup: true
+    })
+    expect(parseSettings('{"showTutorialOnStartup":false}').showTutorialOnStartup).toBe(false)
+    expect(parseSettings('{"showTutorialOnStartup":0}').showTutorialOnStartup).toBe(true)
   })
 
   it('corrompu, tronqué, trop gros ou de mauvais type : préférences par défaut', () => {

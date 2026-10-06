@@ -30,16 +30,21 @@ const ThemePreferenceSchema = z.enum(['system', 'dark', 'light'] satisfies Theme
 /**
  * Valeur invalide → valeur par défaut (les autres préférences sont conservées). Thème : « Système »
  * par défaut ; un choix explicite déjà enregistré (sombre ou clair) est conservé. Écran d'accueil
- * affiché au démarrage par défaut.
+ * et tutoriel proposés au démarrage par défaut.
  */
 export const SettingsSchema = z.object({
   theme: ThemePreferenceSchema.catch('system'),
-  showHomeOnStartup: z.boolean().catch(true)
+  showHomeOnStartup: z.boolean().catch(true),
+  showTutorialOnStartup: z.boolean().catch(true)
 })
 
 export type Settings = z.infer<typeof SettingsSchema>
 
-export const DEFAULT_SETTINGS: Settings = { theme: 'system', showHomeOnStartup: true }
+export const DEFAULT_SETTINGS: Settings = {
+  theme: 'system',
+  showHomeOnStartup: true,
+  showTutorialOnStartup: true
+}
 
 /** Préférences lues depuis le contenu de settings.json (défauts si absent ou invalide). */
 export function parseSettings(text: string): Settings {

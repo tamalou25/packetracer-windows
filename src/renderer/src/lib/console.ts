@@ -17,6 +17,7 @@ import {
 import { useConsoleStore, terminalKey } from '../store/console'
 import { useLabStore } from '../store/lab'
 import { runNetworkOperation } from './network'
+import { observeTrace } from './tutorial'
 
 /** Crée la console si nécessaire. */
 export function ensureTerminal(deviceId: string, kind: ShellKind): string {
@@ -94,6 +95,8 @@ function finalize(
     displayed = 0
     base = current
   }
+  // Tutoriel : un ping réussi depuis la console valide l'étape « ping »
+  observeTrace(final.trace)
   // La sortie est affichée avant d'appliquer l'état (qui peut rouvrir la session)
   if (final.clear) store.clear(key)
   store.append(key, final.output.slice(displayed))
