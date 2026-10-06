@@ -172,6 +172,42 @@ describe('Labs', () => {
     }
   })
 
+  it('aucun indice ne donne la solution (valeur attendue par le critère)', () => {
+    // Paramètres d'un critère qui sont la réponse attendue (les équipements visés restent nommables)
+    const SOLUTION_KEYS = new Set([
+      'address',
+      'gateway',
+      'start',
+      'end',
+      'router',
+      'dnsServer',
+      'data',
+      'zone',
+      'name',
+      'memberOf',
+      'parent',
+      'path',
+      'letter',
+      'value',
+      'setting',
+      'gpo',
+      'target',
+      'domain',
+      'to',
+      'account'
+    ])
+    for (const lab of labs)
+      for (const c of lab.criteria) {
+        const answers = Object.entries(c.check)
+          .filter(([key, value]) => SOLUTION_KEYS.has(key) && typeof value === 'string' && value.length >= 3)
+          .map(([, value]) => (value as string).toLowerCase())
+        for (const answer of answers)
+          expect(c.hint.toLowerCase(), `${lab.id} › ${c.id} : l'indice contient « ${answer} »`).not.toContain(
+            answer
+          )
+      }
+  })
+
   for (const lab of labs) {
     it(`${lab.id} : départ incomplet, solution validée à 100 %`, () => {
       const start = buildLabStart(lab.start)
