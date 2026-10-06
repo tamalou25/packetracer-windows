@@ -162,6 +162,33 @@ describe('Fichiers : NTFS', () => {
   })
 })
 
+describe('Fichiers : noms', () => {
+  it('noms de périphériques réservés refusés, avec ou sans extension', () => {
+    const { s, ids } = lab()
+    const create = (path: string) => createItem(s, ids.SRV1!, path, 'folder', admin(s))
+    for (const bad of ['C:\\CON', 'C:\\nul.txt', 'C:\\Com1', 'C:\\LPT9.log', 'C:\\AUX']) {
+      const r = create(bad)
+      expect(r.ok, bad).toBe(false)
+      if (!r.ok)
+        expect(r.error.message).toBe(
+          'La syntaxe du nom de fichier, de répertoire ou de volume est incorrecte.'
+        )
+    }
+    for (const good of ['C:\\CONSOLE', 'C:\\Data.txt', 'C:\\.config', 'C:\\COM10', 'C:\\prn-2026'])
+      expect(create(good).ok, good).toBe(true)
+  })
+
+  it('points et espaces finaux retirés : « Data. » désigne « Data »', () => {
+    const { s: base, ids } = lab()
+    const s = unwrap(createItem(base, ids.SRV1!, 'C:\\Data.', 'folder', admin(base))).state
+    expect(findNode(server(s, ids.SRV1!).storage, 'C:\\Data')?.name).toBe('Data')
+    const again = createItem(s, ids.SRV1!, 'C:\\Data', 'folder', admin(s))
+    expect(again.ok).toBe(false)
+    if (!again.ok) expect(again.error.message).toBe('Un élément nommé « Data » existe déjà.')
+    expect(createItem(s, ids.SRV1!, 'C:\\Data. .', 'folder', admin(s)).ok).toBe(false)
+  })
+})
+
 describe('Fichiers : partages et accès réseau', () => {
   it('droits effectifs = le plus restrictif du partage et du NTFS', () => {
     const fixture = shared()
