@@ -23,6 +23,8 @@ export type SettingKey =
   | 'passwordComplexity'
   | 'logonMessageTitle'
   | 'logonMessageText'
+  | 'wuServer'
+  | 'wuTargetGroup'
   | 'wallpaper'
   | 'noRun'
   | 'noControlPanel'
@@ -74,7 +76,17 @@ export const EDITOR_TREE: PolicyNode[] = [
               }
             ]
           },
-          { id: 'c-admx', label: 'Modèles d’administration' }
+          {
+            id: 'c-admx',
+            label: 'Modèles d’administration',
+            children: [
+              {
+                id: 'c-components',
+                label: 'Composants Windows',
+                children: [{ id: 'c-wu', label: 'Windows Update' }]
+              }
+            ]
+          }
         ]
       },
       { id: 'c-prefs', label: 'Préférences' }
@@ -157,6 +169,24 @@ export const POLICY_SETTINGS: PolicySettingInfo[] = [
     help: 'Texte affiché avant l’ouverture de session, par exemple un avertissement sur l’usage du système d’information. L’utilisateur doit le valider avant de saisir ses identifiants.'
   },
   {
+    key: 'wuServer',
+    part: 'computer',
+    node: 'c-wu',
+    label: 'Spécifier l’emplacement intranet du service de mise à jour Microsoft',
+    kind: 'template',
+    category: 'Modèles d’administration / Composants Windows / Windows Update',
+    help: 'Indique un serveur intranet (WSUS) qui héberge les mises à jour : les ordinateurs le contactent pour rechercher les mises à jour au lieu du service de mise à jour sur Internet. Indiquez l’URL du service, par exemple http://srv1.lab.local:8530 (port HTTP de WSUS). Paramètre de l’ordinateur : il est appliqué au démarrage ou par gpupdate.'
+  },
+  {
+    key: 'wuTargetGroup',
+    part: 'computer',
+    node: 'c-wu',
+    label: 'Autoriser le ciblage côté client',
+    kind: 'template',
+    category: 'Modèles d’administration / Composants Windows / Windows Update',
+    help: 'Indique le groupe d’ordinateurs WSUS auquel l’ordinateur demande à appartenir. Sans effet si le serveur WSUS utilise le ciblage côté serveur (console Update Services). Si le groupe n’existe pas sur le serveur, l’ordinateur est placé dans « Ordinateurs non attribués ».'
+  },
+  {
     key: 'wallpaper',
     part: 'user',
     node: 'u-desktop-desktop',
@@ -227,6 +257,27 @@ export function settingInfo(key: SettingKey): PolicySettingInfo {
   return POLICY_SETTINGS.find((s) => s.key === key) as PolicySettingInfo
 }
 
+/** État d'un paramètre de modèle d'administration (null : paramètre d'un autre type). */
+export function templateState(
+  key: SettingKey,
+  computer: GpoComputerSettings,
+  user: GpoUserSettings
+): PolicyState | null {
+  switch (key) {
+    case 'wuServer':
+    case 'wuTargetGroup':
+      return computer[key].state
+    case 'wallpaper':
+      return user.wallpaper.state
+    case 'noRun':
+    case 'noControlPanel':
+    case 'noCmd':
+      return user[key]
+    default:
+      return null
+  }
+}
+
 /** Valeur affichée d'un paramètre, ou null s'il n'est pas configuré. */
 export function settingValue(
   key: SettingKey,
@@ -246,6 +297,16 @@ export function settingValue(
       return computer.logonMessageTitle
     case 'logonMessageText':
       return computer.logonMessageText
+    case 'wuServer':
+      if (computer.wuServer.state === 'NotConfigured') return null
+      return computer.wuServer.state === 'Enabled'
+        ? `Activé — ${computer.wuServer.url || '(aucun)'}`
+        : 'Désactivé'
+    case 'wuTargetGroup':
+      if (computer.wuTargetGroup.state === 'NotConfigured') return null
+      return computer.wuTargetGroup.state === 'Enabled'
+        ? `Activé — ${computer.wuTargetGroup.group || '(aucun)'}`
+        : 'Désactivé'
     case 'wallpaper':
       if (user.wallpaper.state === 'NotConfigured') return null
       return user.wallpaper.state === 'Enabled'

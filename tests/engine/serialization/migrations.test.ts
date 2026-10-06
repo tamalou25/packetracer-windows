@@ -182,6 +182,18 @@ describe('migration 3 → 4 (données des rôles génériques)', () => {
   })
 })
 
+describe('migration 4 → 5 (rôles et stratégies de la v2.1)', () => {
+  it('change seulement la version ; les paramètres Windows Update reçoivent leurs valeurs par défaut', () => {
+    const doc = JSON.parse(readFixture(4)) as Record<string, unknown>
+    const migrated = migrations[4]!(doc)
+    expect(migrated).toEqual({ ...doc, schemaVersion: 5 })
+    const parsed = parseSlab(readFixture(4))
+    const gpo = parsed.ok ? Object.values(parsed.doc.lab.domains)[0]?.gpos[0] : undefined
+    expect(gpo?.computer.wuServer).toEqual({ state: 'NotConfigured', url: '' })
+    expect(gpo?.computer.wuTargetGroup).toEqual({ state: 'NotConfigured', group: '' })
+  })
+})
+
 describe('validation des données de rôles', () => {
   const withRoles = (roles: unknown) => {
     const doc = JSON.parse(readFixture(4)) as { lab: { devices: Record<string, RawDevice> } }
@@ -206,8 +218,8 @@ describe('validation des données de rôles', () => {
   it('refuse des données invalides ou un rôle inconnu, avec le champ en cause', () => {
     const invalid = parseSlab(withRoles({ dhcp: { scopes: 'x' } }))
     expect(invalid.ok === false && invalid.message).toMatch(/champ lab\.devices\.[^.]+\.roles\.dhcp\.scopes/)
-    const unknown = parseSlab(withRoles({ wsus: {} }))
-    expect(unknown.ok === false && unknown.message).toContain('rôle inconnu « wsus »')
+    const unknown = parseSlab(withRoles({ inconnu: {} }))
+    expect(unknown.ok === false && unknown.message).toContain('rôle inconnu « inconnu »')
   })
 })
 

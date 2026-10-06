@@ -5,6 +5,8 @@ import {
   addScope,
   autoConfigureDhcp,
   buildLabStart,
+  command,
+  dispatch,
   checkLab,
   createItem,
   createShare,
@@ -25,6 +27,7 @@ import {
   sessionToken,
   unwrap,
   updateGpoSettings,
+  type AnyCommand,
   type Domain,
   type LabDefinition,
   type LabState
@@ -34,6 +37,7 @@ import lab2 from '../../../labs/lab-02-dhcp.json'
 import lab3 from '../../../labs/lab-03-dns.json'
 import lab4 from '../../../labs/lab-04-ad-gpo.json'
 import lab5 from '../../../labs/lab-05-ntfs.json'
+import lab6 from '../../../labs/lab-06-wsus.json'
 import { run } from '../shell/helpers'
 
 function load(raw: unknown): LabDefinition {
@@ -158,11 +162,39 @@ const SOLUTIONS: Record<string, (s: LabState) => LabState> = {
     const drive = mapDrive(s, id(s, 'PC1'), 'S', '\\\\SRV1\\Compta', sessionToken(s, id(s, 'PC1')))
     expect(drive.message).toBe('')
     return drive.state
+  },
+  'lab-06-wsus': (s) => {
+    const srv = id(s, 'SRV1')
+    const exec = (state: LabState, cmd: AnyCommand) => {
+      const r = dispatch(state, cmd)
+      if (!r.ok) throw new Error(`${cmd.type} : ${r.error.message}`)
+      return r.state
+    }
+    s = unwrap(installFeatures(s, srv, ['UpdateServices'], { includeManagementTools: true })).state
+    for (const cmd of [
+      command('wsus.postInstall', srv, 'C:\\WSUS'),
+      command('wsus.synchronize', srv),
+      command('wsus.addGroup', srv, 'Postes'),
+      command('wsus.setTargeting', srv, 'client'),
+      command('wsus.approve', srv, 'KB9100102', 'Postes', true),
+      command('gpo.createAndLink', 'lab.local', { name: 'GPO-WSUS' }, null)
+    ])
+      s = exec(s, cmd)
+    const gpo = s.domains['lab.local']!.gpos.find((g) => g.name === 'GPO-WSUS')!
+    s = unwrap(
+      updateGpoSettings(s, 'lab.local', gpo.id, {
+        computer: {
+          wuServer: { state: 'Enabled', url: 'http://srv1.lab.local:8530' },
+          wuTargetGroup: { state: 'Enabled', group: 'Postes' }
+        }
+      })
+    ).state
+    return run(s, id(s, 'PC1'), 'gpupdate /force', { shell: 'cmd' }).state
   }
 }
 
 describe('Labs', () => {
-  const labs = [lab1, lab2, lab3, lab4, lab5].map(load)
+  const labs = [lab1, lab2, lab3, lab4, lab5, lab6].map(load)
 
   it('chaque lab a un identifiant unique, des critères uniques et des indices', () => {
     expect(new Set(labs.map((l) => l.id)).size).toBe(labs.length)
