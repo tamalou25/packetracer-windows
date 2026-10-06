@@ -2,7 +2,7 @@
  * Catalogue des commandes : chaque commande nommée (système de base et modules de rôles) est
  * exécutée par `dispatch` avec les arguments que lui passe l'interface, sur le lab de référence.
  * Pour chacune : succès, libellé français lisible (évalué sur l'état d'avant), entrée de journal
- * dont les patches inverses ramènent exactement à l'état d'avant. Un dernier test exige que toute
+ * dont les patches inverses ramènent exactement à l'état d'avant, .slab rouvert identique. Un dernier test exige que toute
  * commande du catalogue soit couverte ici : une commande ajoutée sans test le fait échouer.
  */
 import { describe, expect, it } from 'vitest'
@@ -16,6 +16,8 @@ import {
   dispatch,
   domainToken,
   localToken,
+  parseSlab,
+  serializeSlab,
   sessionToken,
   type AnyCommand,
   type AccessToken,
@@ -65,6 +67,12 @@ class Runner {
       const undone = applyStatePatches(r.state, entry.inversePatches)
       expect(undone, `${cmd.type} : annuler`).toEqual(before)
       expect(applyStatePatches(undone, entry.patches), `${cmd.type} : rétablir`).toEqual(r.state)
+      // Enregistrer puis rouvrir le .slab redonne exactement le même lab
+      const reopened = parseSlab(
+        serializeSlab(r.state, { savedAt: '2026-10-06T12:00:00.000Z', appVersion: '2.0.0' })
+      )
+      if (!reopened.ok) throw new Error(`${cmd.type} : réouverture impossible (${reopened.message})`)
+      expect(reopened.doc.lab, `${cmd.type} : réouverture`).toEqual(r.state)
     }
     this.state = r.state
     return r.value as T
