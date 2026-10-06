@@ -58,6 +58,8 @@ export function createHost(kind: 'server' | 'client'): Host {
     policy: { computer: null, user: null, attempt: null },
     drives: [],
     certificates: [],
+    remoteDesktop: { enabled: false, users: [] },
+    remoteSessions: [],
     eventLog: []
   }
 }

@@ -259,6 +259,26 @@ export const CertificateSchema = z.object({
   issuerThumbprint: z.string().nullable().default(null)
 })
 
+/** Bureau à distance (Propriétés système > Utilisation à distance). */
+export const RemoteDesktopSchema = z.object({
+  /** « Autoriser les connexions à distance à cet ordinateur ». */
+  enabled: z.boolean().default(false),
+  /** Groupe local « Utilisateurs du Bureau à distance » (comptes DOMAINE\nom). */
+  users: z.array(z.string()).default([])
+})
+
+/** Session Bureau à distance ouverte sur l'ordinateur (ouverture de session de type 10). */
+export const RemoteSessionSchema = z.object({
+  id: z.number().int(),
+  /** Compte DOMAINE\nom. */
+  account: z.string(),
+  /** Ordinateur client. */
+  from: z.string(),
+  /** Programme RemoteApp (null : bureau complet). */
+  app: z.string().nullable().default(null),
+  at: z.number().default(0)
+})
+
 /** Partie « système d'exploitation » commune aux serveurs et postes clients. */
 export const HostSchema = z.object({
   workgroup: z.string().default('WORKGROUP'),
@@ -283,6 +303,8 @@ export const HostSchema = z.object({
   drives: z.array(MappedDriveSchema).default([]),
   /** Magasins de certificats de l'ordinateur (Personnel et Autorités de certification racines). */
   certificates: z.array(CertificateSchema).default([]),
+  remoteDesktop: RemoteDesktopSchema.default(() => ({ enabled: false, users: [] })),
+  remoteSessions: z.array(RemoteSessionSchema).default([]),
   eventLog: z.array(EventLogEntrySchema).default([])
 })
 
@@ -603,6 +625,7 @@ export type UserPolicyResult = z.infer<typeof UserPolicyResultSchema>
 export type HostPolicy = z.infer<typeof HostPolicySchema>
 export type MappedDrive = z.infer<typeof MappedDriveSchema>
 export type Certificate = z.infer<typeof CertificateSchema>
+export type RemoteSession = z.infer<typeof RemoteSessionSchema>
 export type NtfsRight = (typeof NTFS_RIGHTS)[number]
 export type NtfsAce = z.infer<typeof NtfsAceSchema>
 export type FsNode = z.infer<typeof FsNodeSchema>

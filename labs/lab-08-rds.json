@@ -1,0 +1,123 @@
+{
+  "formatVersion": 1,
+  "id": "lab-08-rds",
+  "title": "Bureau à distance et RemoteApp",
+  "difficulty": "Avancé",
+  "duration": "35 min",
+  "summary": "Déployer un hôte de session, réserver l’accès aux comptables et publier un programme RemoteApp.",
+  "statement": "# Contexte\n\nLa comptabilité doit pouvoir travailler à distance sur **SRV1**. Seuls les membres de `GG_Compta` (dont **jdupont**) doivent pouvoir ouvrir une session à distance ; **pdurand**, qui n’est pas comptable, doit être refusé.\n\nCompte d’administration : `LAB\\Administrateur` / `P@ssw0rd`. Mot de passe des utilisateurs : `Azerty123!`.\n\n## Travail demandé\n\n1. Sur SRV1, installez le rôle **Hôte de session Bureau à distance** avec ses outils.\n2. Dans la console Services Bureau à distance, créez la collection de sessions **Bureautique** réservée au groupe `GG_Compta`.\n3. Publiez dans cette collection le programme RemoteApp **Bloc-notes** (`C:\\Windows\\System32\\notepad.exe`).\n4. Sur PC1, ouvrez **Connexion Bureau à distance** vers `srv1.lab.local` avec le compte de jdupont, puis essayez avec celui de pdurand.\n\n> Astuce : l’Observateur d’événements de SRV1 (journal Sécurité) montre les ouvertures de session de type 10.",
+  "start": {
+    "devices": [
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 330,
+        "y": 100,
+        "ip": "192.168.10.1/24",
+        "dns": ["127.0.0.1"]
+      },
+      {
+        "kind": "switch",
+        "name": "SW1",
+        "x": 330,
+        "y": 300
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 330,
+        "y": 470,
+        "ip": "192.168.10.10/24",
+        "dns": ["192.168.10.1"]
+      }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/2"]
+    ],
+    "domain": {
+      "name": "lab.local",
+      "netbios": "LAB",
+      "dc": "SRV1",
+      "ous": ["Societe"],
+      "users": [
+        {
+          "name": "Jean Dupont",
+          "sam": "jdupont",
+          "ou": "Societe",
+          "password": "Azerty123!"
+        },
+        {
+          "name": "Paul Durand",
+          "sam": "pdurand",
+          "ou": "Societe",
+          "password": "Azerty123!"
+        }
+      ],
+      "groups": [
+        {
+          "name": "GG_Compta",
+          "ou": "Societe",
+          "members": ["jdupont"]
+        }
+      ],
+      "join": ["PC1"]
+    }
+  },
+  "criteria": [
+    {
+      "id": "role",
+      "label": "Le rôle Hôte de session Bureau à distance est installé sur SRV1",
+      "hint": "Le rôle fait partie des Services Bureau à distance ; son nom technique apparaît dans Get-WindowsFeature.",
+      "check": {
+        "type": "featureInstalled",
+        "device": "SRV1",
+        "feature": "RDS-RD-Server"
+      }
+    },
+    {
+      "id": "collection",
+      "label": "La collection de sessions est réservée au groupe des comptables",
+      "hint": "Par défaut, une nouvelle collection est ouverte à tous les utilisateurs du domaine : modifiez ses groupes d’utilisateurs.",
+      "check": {
+        "type": "rdsCollection",
+        "server": "SRV1",
+        "name": "Bureautique",
+        "group": "GG_Compta"
+      }
+    },
+    {
+      "id": "app",
+      "label": "Le Bloc-notes est publié en RemoteApp dans la collection",
+      "hint": "Un programme RemoteApp se publie depuis la collection, en indiquant le chemin de l’exécutable sur l’hôte de session.",
+      "check": {
+        "type": "rdsCollection",
+        "server": "SRV1",
+        "name": "Bureautique",
+        "app": "notepad"
+      }
+    },
+    {
+      "id": "allowed",
+      "label": "jdupont a ouvert une session Bureau à distance sur SRV1",
+      "hint": "Le compte se saisit sous la forme DOMAINE\\utilisateur ; vérifiez que le poste résout bien le nom du serveur.",
+      "check": {
+        "type": "rdpSession",
+        "server": "SRV1",
+        "account": "LAB\\jdupont",
+        "opened": true
+      }
+    },
+    {
+      "id": "denied",
+      "label": "La connexion de pdurand a été refusée",
+      "hint": "Un refus d’autorisation est journalisé sur le serveur (évènement 4625) ; essayez la connexion avec ce compte.",
+      "check": {
+        "type": "rdpSession",
+        "server": "SRV1",
+        "account": "LAB\\pdurand",
+        "opened": false
+      }
+    }
+  ]
+}
