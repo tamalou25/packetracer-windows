@@ -278,14 +278,15 @@ export function removeNtfs(
     const storage = server.storage
     const node = requireNode(storage as Storage, path)
     demand(storage as Storage, node?.id ?? null, token, 'changePermissions')
-    const principal = resolvePrincipal(draft as LabState, server as ServerDevice, account)
+    const acl = aclOf(storage, node) as NtfsAce[]
+    // Entrée d'un compte supprimé (SID inconnu) : désignée par son identifiant, elle reste retirable
+    const orphan = acl.some((a) => a.principal === account) ? account : undefined
+    const principal = orphan ?? resolvePrincipal(draft as LabState, server as ServerDevice, account)
     if (!principal) raise('UnknownAccount', UNKNOWN_ACCOUNT)
     setAcl(
       storage,
       node,
-      (aclOf(storage, node) as NtfsAce[]).filter(
-        (a) => !(a.principal === principal && (type === 'all' || a.type === type))
-      )
+      acl.filter((a) => !(a.principal === principal && (type === 'all' || a.type === type)))
     )
     return undefined
   })
