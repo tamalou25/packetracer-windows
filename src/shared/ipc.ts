@@ -38,10 +38,15 @@ export interface MenuCommandMessage {
   arg?: string
 }
 
-/** Thème de l'interface (sombre par défaut). */
+/** Thème appliqué à l'interface. */
 export type Theme = 'dark' | 'light'
 
 export const THEMES: readonly Theme[] = ['dark', 'light']
+
+/** Préférence enregistrée : suivre le système (par défaut) ou forcer un thème. */
+export type ThemePreference = 'system' | Theme
+
+export const THEME_PREFERENCES: readonly ThemePreference[] = ['system', 'dark', 'light']
 
 /** Argument de ligne de commande transmis au preload pour appliquer le thème dès le chargement. */
 export const THEME_ARG_PREFIX = '--serverlab-theme='
@@ -122,8 +127,8 @@ export interface ServerLabApi {
   appInfo(): Promise<AppInfo>
   /** Thème enregistré, connu dès le chargement (évite un flash de couleurs). */
   readonly initialTheme: Theme
-  /** Demande un changement de thème : le main l'enregistre puis renvoie la commande `view:theme`. */
-  setTheme(theme: Theme): void
+  /** Choisit le thème (Système, Sombre, Clair) : le main l'enregistre puis renvoie `view:theme`. */
+  setTheme(preference: ThemePreference): void
   setMenuState(state: MenuState): void
   onMenuCommand(cb: (msg: MenuCommandMessage) => void): () => void
 

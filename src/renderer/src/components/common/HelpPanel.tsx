@@ -1,22 +1,16 @@
 /**
- * Aide intégrée : guide de démarrage et raccourcis clavier.
+ * Aide intégrée : guide de démarrage et raccourcis clavier (générés depuis le catalogue partagé
+ * `shared/shortcuts.ts`, d'où le menu natif tire aussi ses accélérateurs).
  */
 import { X } from 'lucide-react'
+import { formatShortcut, SHORTCUT_GROUPS, SHORTCUTS, type Shortcut } from '@shared/shortcuts'
 import { useUiStore } from '../../store/ui'
 
-const SHORTCUTS: [string, string][] = [
-  ['Ctrl+N / Ctrl+O / Ctrl+S', 'Nouveau / Ouvrir / Enregistrer'],
-  ['Ctrl+Maj+S', 'Enregistrer sous'],
-  ['Ctrl+Z / Ctrl+Y (ou Ctrl+Maj+Z)', 'Annuler / Rétablir (aussi dans une console, ligne vide)'],
-  ['Ctrl+C / Ctrl+V', 'Copier / Coller des équipements'],
-  ['V / C / P', 'Outils Sélection / Câble / PDU simple'],
-  ['Suppr', 'Supprimer la sélection (sans sélection : outil Supprimer)'],
-  ['Ctrl+A', 'Tout sélectionner'],
-  ['Échap', 'Annuler le câblage, revenir à l’outil Sélection'],
-  ['Ctrl+1 / Ctrl+2', 'Mode Temps réel / Mode Simulation'],
-  ['F6 / F7 / F8', 'Simulation : avancer / lecture / réinitialiser'],
-  ['Ctrl+= / Ctrl+- / Ctrl+0', 'Zoom avant / arrière / ajuster']
-]
+/** Raccourcis groupés, dans l'ordre de l'aide (catalogue partagé avec le menu natif). */
+const SHORTCUT_ROWS = SHORTCUT_GROUPS.map((group) => ({
+  group,
+  rows: (Object.values(SHORTCUTS) as Shortcut[]).filter((s) => s.group === group)
+}))
 
 export function HelpPanel() {
   const panel = useUiStore((s) => s.helpPanel)
@@ -42,15 +36,27 @@ export function HelpPanel() {
           </button>
         </div>
         {panel === 'shortcuts' ? (
-          <table className="w-full text-sm">
-            <tbody>
-              {SHORTCUTS.map(([keys, label]) => (
-                <tr key={keys} className="border-b border-line">
-                  <td className="py-1.5 pr-4 font-mono text-xs text-fg-muted">{keys}</td>
-                  <td className="py-1.5 text-fg">{label}</td>
+          <table className="w-full text-sm" data-testid="shortcuts-table">
+            {SHORTCUT_ROWS.map(({ group, rows }) => (
+              <tbody key={group}>
+                <tr>
+                  <th
+                    colSpan={2}
+                    className="pt-3 pb-1 text-left text-xs font-semibold text-fg-subtle uppercase"
+                  >
+                    {group}
+                  </th>
                 </tr>
-              ))}
-            </tbody>
+                {rows.map((shortcut) => (
+                  <tr key={shortcut.label} className="border-b border-line">
+                    <td className="py-1.5 pr-4 font-mono text-xs whitespace-nowrap text-fg-muted">
+                      {shortcut.keys.map(formatShortcut).join(' ou ')}
+                    </td>
+                    <td className="py-1.5 text-fg">{shortcut.label}</td>
+                  </tr>
+                ))}
+              </tbody>
+            ))}
           </table>
         ) : (
           <ol className="flex list-decimal flex-col gap-2 pl-5 text-[13px] text-fg">

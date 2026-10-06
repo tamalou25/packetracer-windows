@@ -3,14 +3,16 @@
  * Les actions métier sont déléguées au renderer via le canal IPC `menu:command`.
  */
 import { app, dialog, Menu, type BrowserWindow, type MenuItemConstructorOptions } from 'electron'
-import { IPC, type MenuCommand, type MenuState, type RecentFile, type Theme } from '../shared/ipc'
+import { IPC, type MenuCommand, type MenuState, type RecentFile, type ThemePreference } from '../shared/ipc'
+import { accelerator } from '../shared/shortcuts'
 
 export interface MenuContext {
   window: BrowserWindow
   state: MenuState
   recent: RecentFile[]
-  theme: Theme
-  onTheme: (theme: Theme) => void
+  /** Préférence de thème (bouton radio coché dans Affichage > Thème). */
+  theme: ThemePreference
+  onTheme: (preference: ThemePreference) => void
   onCheckUpdates?: () => void
 }
 
@@ -47,16 +49,16 @@ export function buildMenu(ctx: MenuContext): Menu {
     {
       label: '&Fichier',
       submenu: [
-        { label: 'Nouveau', accelerator: 'CmdOrCtrl+N', click: cmd('file:new') },
-        { label: 'Ouvrir…', accelerator: 'CmdOrCtrl+O', click: cmd('file:open') },
+        { label: 'Nouveau', accelerator: accelerator('newFile'), click: cmd('file:new') },
+        { label: 'Ouvrir…', accelerator: accelerator('open'), click: cmd('file:open') },
         { label: 'Fichiers récents', submenu: recentItems },
         { type: 'separator' },
-        { label: 'Enregistrer', accelerator: 'CmdOrCtrl+S', click: cmd('file:save') },
-        { label: 'Enregistrer sous…', accelerator: 'CmdOrCtrl+Shift+S', click: cmd('file:saveAs') },
+        { label: 'Enregistrer', accelerator: accelerator('save'), click: cmd('file:save') },
+        { label: 'Enregistrer sous…', accelerator: accelerator('saveAs'), click: cmd('file:saveAs') },
         { type: 'separator' },
-        { label: 'Ouvrir un lab…', accelerator: 'CmdOrCtrl+L', click: cmd('file:openLab') },
+        { label: 'Ouvrir un lab…', accelerator: accelerator('openLab'), click: cmd('file:openLab') },
         { type: 'separator' },
-        { label: 'Quitter', accelerator: 'CmdOrCtrl+Q', click: () => win.close() }
+        { label: 'Quitter', accelerator: accelerator('quit'), click: () => win.close() }
       ]
     },
     {
@@ -65,29 +67,29 @@ export function buildMenu(ctx: MenuContext): Menu {
         {
           label: state.undoLabel ?? 'Annuler',
           enabled: state.undoLabel !== null,
-          ...displayOnly('CmdOrCtrl+Z'),
+          ...displayOnly(accelerator('undo')),
           click: cmd('edit:undo')
         },
         {
           label: state.redoLabel ?? 'Rétablir',
           enabled: state.redoLabel !== null,
-          ...displayOnly('CmdOrCtrl+Y'),
+          ...displayOnly(accelerator('redo')),
           click: cmd('edit:redo')
         },
         { type: 'separator' },
-        { label: 'Copier', ...displayOnly('CmdOrCtrl+C'), click: cmd('edit:copy') },
-        { label: 'Coller', ...displayOnly('CmdOrCtrl+V'), click: cmd('edit:paste') },
-        { label: 'Supprimer', ...displayOnly('Delete'), click: cmd('edit:delete') },
+        { label: 'Copier', ...displayOnly(accelerator('copy')), click: cmd('edit:copy') },
+        { label: 'Coller', ...displayOnly(accelerator('paste')), click: cmd('edit:paste') },
+        { label: 'Supprimer', ...displayOnly(accelerator('delete')), click: cmd('edit:delete') },
         { type: 'separator' },
-        { label: 'Tout sélectionner', ...displayOnly('CmdOrCtrl+A'), click: cmd('edit:selectAll') }
+        { label: 'Tout sélectionner', ...displayOnly(accelerator('selectAll')), click: cmd('edit:selectAll') }
       ]
     },
     {
       label: '&Affichage',
       submenu: [
-        { label: 'Zoom avant', accelerator: 'CmdOrCtrl+=', click: cmd('view:zoomIn') },
-        { label: 'Zoom arrière', accelerator: 'CmdOrCtrl+-', click: cmd('view:zoomOut') },
-        { label: 'Ajuster à la fenêtre', accelerator: 'CmdOrCtrl+0', click: cmd('view:fit') },
+        { label: 'Zoom avant', accelerator: accelerator('zoomIn'), click: cmd('view:zoomIn') },
+        { label: 'Zoom arrière', accelerator: accelerator('zoomOut'), click: cmd('view:zoomOut') },
+        { label: 'Ajuster à la fenêtre', accelerator: accelerator('fit'), click: cmd('view:fit') },
         { type: 'separator' },
         {
           label: 'Afficher les noms de ports',
@@ -109,19 +111,22 @@ export function buildMenu(ctx: MenuContext): Menu {
         },
         { type: 'separator' },
         {
-          label: 'Thème sombre',
-          type: 'radio',
-          checked: ctx.theme === 'dark',
-          click: () => ctx.onTheme('dark')
-        },
-        {
-          label: 'Thème clair',
-          type: 'radio',
-          checked: ctx.theme === 'light',
-          click: () => ctx.onTheme('light')
+          label: 'Thème',
+          submenu: (
+            [
+              ['system', 'Système'],
+              ['dark', 'Sombre'],
+              ['light', 'Clair']
+            ] as const
+          ).map(([preference, label]) => ({
+            label,
+            type: 'radio' as const,
+            checked: ctx.theme === preference,
+            click: () => ctx.onTheme(preference)
+          }))
         },
         { type: 'separator' },
-        { label: 'Plein écran', role: 'togglefullscreen' },
+        { label: 'Plein écran', role: 'togglefullscreen', accelerator: accelerator('fullScreen') },
         ...(app.isPackaged
           ? []
           : ([
@@ -138,32 +143,32 @@ export function buildMenu(ctx: MenuContext): Menu {
           label: 'Mode Temps réel',
           type: 'radio',
           checked: state.mode === 'realtime',
-          accelerator: 'CmdOrCtrl+1',
+          accelerator: accelerator('realtime'),
           click: cmd('sim:realtime')
         },
         {
           label: 'Mode Simulation',
           type: 'radio',
           checked: state.mode === 'simulation',
-          accelerator: 'CmdOrCtrl+2',
+          accelerator: accelerator('simulation'),
           click: cmd('sim:simulation')
         },
         { type: 'separator' },
         {
           label: 'Avancer d’un pas',
-          accelerator: 'F6',
+          accelerator: accelerator('step'),
           enabled: state.mode === 'simulation',
           click: cmd('sim:step')
         },
         {
           label: 'Lecture automatique',
-          accelerator: 'F7',
+          accelerator: accelerator('play'),
           enabled: state.mode === 'simulation',
           click: cmd('sim:play')
         },
         {
           label: 'Réinitialiser la simulation',
-          accelerator: 'F8',
+          accelerator: accelerator('reset'),
           enabled: state.mode === 'simulation',
           click: cmd('sim:reset')
         }
@@ -172,7 +177,7 @@ export function buildMenu(ctx: MenuContext): Menu {
     {
       label: 'Aid&e',
       submenu: [
-        { label: 'Guide de démarrage', accelerator: 'F1', click: cmd('help:guide') },
+        { label: 'Guide de démarrage', accelerator: accelerator('guide'), click: cmd('help:guide') },
         { label: 'Raccourcis clavier', click: cmd('help:shortcuts') },
         ...(ctx.onCheckUpdates
           ? ([

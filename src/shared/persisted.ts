@@ -5,7 +5,7 @@
  * (Fichier séparé de ipc.ts : le preload n'embarque pas zod.)
  */
 import { z } from 'zod'
-import type { MenuState, RecentFile, Theme } from './ipc'
+import type { MenuState, RecentFile, ThemePreference } from './ipc'
 
 /** Nombre maximal de fichiers récents mémorisés. */
 export const MAX_RECENT = 10
@@ -25,16 +25,19 @@ export function readJson(text: string, maxLength: number): unknown {
 
 // --- Préférences ------------------------------------------------------------------------------
 
-const ThemeSchema = z.enum(['dark', 'light'] satisfies Theme[])
+const ThemePreferenceSchema = z.enum(['system', 'dark', 'light'] satisfies ThemePreference[])
 
-/** Valeur invalide → valeur par défaut (les autres préférences sont conservées). */
+/**
+ * Valeur invalide → valeur par défaut (les autres préférences sont conservées). Thème : « Système »
+ * par défaut ; un choix explicite déjà enregistré (sombre ou clair) est conservé.
+ */
 export const SettingsSchema = z.object({
-  theme: ThemeSchema.catch('dark')
+  theme: ThemePreferenceSchema.catch('system')
 })
 
 export type Settings = z.infer<typeof SettingsSchema>
 
-export const DEFAULT_SETTINGS: Settings = { theme: 'dark' }
+export const DEFAULT_SETTINGS: Settings = { theme: 'system' }
 
 /** Préférences lues depuis le contenu de settings.json (défauts si absent ou invalide). */
 export function parseSettings(text: string): Settings {

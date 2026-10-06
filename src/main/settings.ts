@@ -1,11 +1,11 @@
 /**
- * Préférences de l'application (userData/settings.json) : thème de l'interface.
+ * Préférences de l'application (userData/settings.json) : thème de l'interface (Système par défaut).
  * Lues de façon synchrone au démarrage pour créer la fenêtre avec les bonnes couleurs.
  */
 import { app } from 'electron'
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { THEMES, type Theme } from '../shared/ipc'
+import { THEME_PREFERENCES, type Theme, type ThemePreference } from '../shared/ipc'
 import { DEFAULT_SETTINGS, parseSettings, type Settings } from '../shared/persisted'
 
 export type { Settings }
@@ -13,8 +13,9 @@ export type { Settings }
 /** Couleur de fond de la fenêtre avant le premier rendu (identique au fond de l'application). */
 export const THEME_BACKGROUND: Record<Theme, string> = { dark: '#0d0f13', light: '#eceef2' }
 
-export function isTheme(value: unknown): value is Theme {
-  return typeof value === 'string' && (THEMES as readonly string[]).includes(value)
+/** Préférence de thème reçue du renderer (Système, Sombre ou Clair). */
+export function isThemePreference(value: unknown): value is ThemePreference {
+  return typeof value === 'string' && (THEME_PREFERENCES as readonly string[]).includes(value)
 }
 
 function settingsPath(): string {

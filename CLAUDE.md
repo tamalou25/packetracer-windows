@@ -75,9 +75,12 @@ npm run dist         # installeur local via electron-builder → dist/
   « Packet Tracer » ni « Windows » dans le nom ou le logo de l'application.
 - Interface : couleurs via les **design tokens** de `src/renderer/src/styles.css` (`bg-panel`, `bg-surface`,
   `text-fg-muted`, `border-line`, `bg-accent`, `text-ok`…), jamais de couleur Tailwind brute dans l'application.
-  Thème sombre par défaut + thème clair (Affichage > Thème). Le Bureau simulé reste en `data-theme="light"`
+  Thèmes sombre et clair ; Affichage > Thème : Système (par défaut, suit l'OS), Sombre, Clair
+  (`shared/theme.ts`). Le Bureau simulé reste en `data-theme="light"`
   et garde sa propre palette « système » (couleurs fixes dans `components/desktop`, `components/apps`, `mmc`).
   Polices : Inter (UI, 13 px) et JetBrains Mono (IP, MAC, consoles), embarquées.
+- Raccourcis clavier : catalogue unique `src/shared/shortcuts.ts` (accélérateurs du menu natif et
+  aide « Raccourcis clavier ») ; tout nouveau raccourci y est déclaré.
 - Commits : Conventional Commits (`feat(engine): …`, `fix(renderer): …`, `test: …`, `ci: …`, `docs: …`).
 - Un commit par étape, tests verts avant d'enchaîner.
 
