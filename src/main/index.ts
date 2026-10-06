@@ -208,6 +208,12 @@ function registerIpc(): void {
     settings = { ...settings, showHomeOnStartup: show }
     saveSettings(settings)
   })
+  ipcMain.handle(IPC.tutorialAtStartup, () => settings.showTutorialOnStartup)
+  ipcMain.on(IPC.tutorialAtStartupSet, (_event, show: unknown) => {
+    if (typeof show !== 'boolean') return
+    settings = { ...settings, showTutorialOnStartup: show }
+    saveSettings(settings)
+  })
 
   ipcMain.on(IPC.docState, (_event, state: unknown) => {
     if (isDocState(state)) docState = state

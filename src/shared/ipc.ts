@@ -32,6 +32,7 @@ export type MenuCommand =
   | 'sim:reset'
   | 'help:shortcuts'
   | 'help:guide'
+  | 'help:tutorial'
 
 export interface MenuCommandMessage {
   command: MenuCommand
@@ -119,6 +120,8 @@ export const IPC = {
   recentRemove: 'recent:remove',
   homeAtStartup: 'settings:homeAtStartup',
   homeAtStartupSet: 'settings:setHomeAtStartup',
+  tutorialAtStartup: 'settings:tutorialAtStartup',
+  tutorialAtStartupSet: 'settings:setTutorialAtStartup',
   autosaveWrite: 'autosave:write',
   autosaveClear: 'autosave:clear',
   autosaveRecover: 'autosave:recover',
@@ -161,6 +164,9 @@ export interface ServerLabApi {
   /** Préférence « Afficher l'accueil au démarrage ». */
   homeAtStartup(): Promise<boolean>
   setHomeAtStartup(show: boolean): void
+  /** Préférence « Proposer le tutoriel au démarrage » (passée à faux une fois le tutoriel réussi). */
+  tutorialAtStartup(): Promise<boolean>
+  setTutorialAtStartup(show: boolean): void
 
   /** Écrit le fichier de récupération (autosave). */
   writeAutosave(content: string): Promise<void>
