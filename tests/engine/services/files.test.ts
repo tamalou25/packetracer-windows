@@ -15,6 +15,9 @@ import {
   localToken,
   logon,
   openUnc,
+  removeObject,
+  removeNtfs,
+  principalName,
   removeItem,
   restartComputer,
   setNtfsInheritance,
@@ -159,6 +162,21 @@ describe('Fichiers : NTFS', () => {
     expect(
       accessPerms(st(), findNode(st(), `${path}\\Brouillons`)!.id, token(s, 'jdupont')).has('write')
     ).toBe(true)
+  })
+})
+
+describe('Fichiers : compte supprimé', () => {
+  it('l’entrée NTFS d’un compte supprimé peut être retirée (bouton Supprimer de l’onglet Sécurité)', () => {
+    const { s: base, ids } = shared()
+    const group = domainOf(base).groups.find((g) => g.name === 'GG_Compta')!
+    const s = unwrap(removeObject(base, 'lab.local', group.id)).state
+    const acl = (state: LabState) => findNode(server(state, ids.SRV1!).storage, 'C:\\Partages\\Compta')!.acl
+    // L'entrée reste (SID inconnu sous Windows) ; l'interface la désigne par principalName
+    expect(acl(s).some((a) => a.principal === group.id)).toBe(true)
+    const name = principalName(s, server(s, ids.SRV1!), group.id)
+    const removed = unwrap(removeNtfs(s, ids.SRV1!, 'C:\\Partages\\Compta', name, 'all', admin(s))).state
+    expect(acl(removed).some((a) => a.principal === group.id)).toBe(false)
+    expect(acl(removed).length).toBe(acl(s).length - 1)
   })
 })
 
