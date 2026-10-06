@@ -202,6 +202,13 @@ function registerIpc(): void {
     if (isThemePreference(preference)) applyThemePreference(preference)
   })
 
+  ipcMain.handle(IPC.homeAtStartup, () => settings.showHomeOnStartup)
+  ipcMain.on(IPC.homeAtStartupSet, (_event, show: unknown) => {
+    if (typeof show !== 'boolean') return
+    settings = { ...settings, showHomeOnStartup: show }
+    saveSettings(settings)
+  })
+
   ipcMain.on(IPC.docState, (_event, state: unknown) => {
     if (isDocState(state)) docState = state
   })
@@ -211,7 +218,8 @@ function registerIpc(): void {
   ipcMain.handle(IPC.fileSave, (_e, path: unknown, content: unknown) => files.save(path, content))
   ipcMain.handle(IPC.fileSaveAs, (_e, content: unknown, name: unknown) => files.saveAs(win(), content, name))
   ipcMain.handle(IPC.filePending, () => files.takePending())
-  ipcMain.handle(IPC.recentList, () => files.recentFiles())
+  ipcMain.handle(IPC.recentList, () => files.recentEntries())
+  ipcMain.handle(IPC.recentRemove, (_e, path: unknown) => files.removeRecent(path))
   ipcMain.handle(IPC.recentClear, () => files.clearRecent())
 
   ipcMain.handle(IPC.autosaveWrite, (_e, content: unknown) => files.writeAutosave(content))

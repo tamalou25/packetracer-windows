@@ -8,8 +8,15 @@
 import { app, dialog, type BrowserWindow } from 'electron'
 import { existsSync, promises as fs } from 'node:fs'
 import { basename, dirname, extname, join, resolve } from 'node:path'
-import { MAX_SLAB_BYTES, type FileResult, type OpenedFile, type RecentFile } from '../shared/ipc'
-import { MAX_RECENT, parseRecentFiles } from '../shared/persisted'
+import {
+  MAX_SLAB_BYTES,
+  type FileResult,
+  type OpenedFile,
+  type RecentEntry,
+  type RecentFile
+} from '../shared/ipc'
+import { parseRecentFiles } from '../shared/persisted'
+import { forgetRecent, rememberRecent } from '../shared/recent'
 
 const SLAB_FILTERS = [{ name: 'Lab ServerLab', extensions: ['slab'] }]
 
@@ -77,9 +84,29 @@ export class FileService {
     }
   }
 
-  /** Récents dont le fichier existe encore. */
+  /** Récents dont le fichier existe encore (menu Fichier > Fichiers récents). */
   recentFiles(): RecentFile[] {
     return this.recent.filter((r) => existsSync(r.path))
+  }
+
+  /** Tous les récents, ceux dont le fichier a disparu signalés (écran d'accueil). */
+  recentEntries(): RecentEntry[] {
+    return this.recent.map((r) => ({ ...r, exists: existsSync(r.path) }))
+  }
+
+  /**
+   * Retire une entrée de la liste (le fichier n'est pas touché). Seul un chemin déjà présent dans
+   * la liste peut être retiré : aucun autre accès au disque.
+   */
+  async removeRecent(path: unknown): Promise<RecentEntry[]> {
+    if (typeof path === 'string') {
+      const next = forgetRecent(this.recent, path, pathKey)
+      if (next.length !== this.recent.length) {
+        this.recent = next
+        await this.persistRecent()
+      }
+    }
+    return this.recentEntries()
   }
 
   async clearRecent(): Promise<void> {
@@ -100,11 +127,11 @@ export class FileService {
   private async remember(path: string): Promise<void> {
     const abs = resolve(path)
     this.authorized.add(pathKey(abs))
-    const key = pathKey(abs)
-    this.recent = [
+    this.recent = rememberRecent(
+      this.recent,
       { path: abs, name: basename(abs), openedAt: new Date().toISOString() },
-      ...this.recent.filter((r) => pathKey(r.path) !== key)
-    ].slice(0, MAX_RECENT)
+      pathKey
+    )
     app.addRecentDocument(abs)
     await this.persistRecent()
   }
