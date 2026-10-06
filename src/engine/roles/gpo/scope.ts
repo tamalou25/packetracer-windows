@@ -216,6 +216,7 @@ function mergeComputer(target: GpoComputerSettings, s: GpoComputerSettings): voi
   if (s.logonMessageText !== null) target.logonMessageText = s.logonMessageText
   if (s.wuServer.state !== 'NotConfigured') target.wuServer = { ...s.wuServer }
   if (s.wuTargetGroup.state !== 'NotConfigured') target.wuTargetGroup = { ...s.wuTargetGroup }
+  if (s.autoEnrollment !== 'NotConfigured') target.autoEnrollment = s.autoEnrollment
 }
 
 function mergeUser(target: GpoUserSettings, s: GpoUserSettings): void {

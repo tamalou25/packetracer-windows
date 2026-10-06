@@ -31,7 +31,7 @@ const duplicates = (list: string[]) => list.filter((x, i) => list.indexOf(x) !==
 describe('registre des rôles', () => {
   it('déclare chaque rôle une fois, après les rôles dont il dépend', () => {
     const ids = roleModules().map((m) => m.id)
-    expect(ids).toEqual(['dns', 'dhcp', 'adds', 'gpo', 'files', 'wsus', 'iis', 'rds', 'hyperv'])
+    expect(ids).toEqual(['dns', 'dhcp', 'adds', 'gpo', 'files', 'wsus', 'iis', 'rds', 'hyperv', 'adcs'])
     roleModules().forEach((m, index) => {
       for (const dep of m.dependencies) expect(ids.indexOf(dep), `${m.id} → ${dep}`).toBeLessThan(index)
       expect(
@@ -48,6 +48,8 @@ describe('registre des rôles', () => {
 
   it('catalogue des fonctionnalités : ordre de Get-WindowsFeature, références valides', () => {
     expect(allFeatures().map((f) => f.name)).toEqual([
+      'AD-Certificate',
+      'ADCS-Cert-Authority',
       'AD-Domain-Services',
       'DHCP',
       'DNS',
@@ -63,6 +65,8 @@ describe('registre des rôles', () => {
       'RSAT-AD-Tools',
       'RSAT-AD-PowerShell',
       'RSAT-ADDS',
+      'RSAT-ADCS',
+      'RSAT-ADCS-Mgmt',
       'RSAT-DHCP',
       'RSAT-DNS-Server',
       'RSAT-Hyper-V-Tools',
@@ -115,16 +119,9 @@ describe('registre des rôles', () => {
 
   it('installer un rôle crée son état initial déclaré par le module', () => {
     const { state, ids } = build([['server', 'SRV1']])
-    const s = unwrap(
-      installFeatures(state, ids.SRV1!, [
-        'DHCP',
-        'DNS',
-        'UpdateServices',
-        'Web-Server',
-        'RDS-RD-Server',
-        'Hyper-V'
-      ])
-    ).state
+    // Fonctionnalité de chaque module qui déclare un état
+    const features = roleModules().flatMap((m) => (m.state ? [m.state.feature] : []))
+    const s = unwrap(installFeatures(state, ids.SRV1!, features)).state
     const srv = s.devices[ids.SRV1!] as ServerDevice
     for (const m of roleModules().filter((r) => r.state)) {
       expect(srv.roles[m.state!.key]).toEqual(m.state!.create())
@@ -185,7 +182,7 @@ describe('registre des rôles', () => {
   })
 
   it('tout module chargé en premier laisse le registre complet (imports circulaires)', async () => {
-    for (const entry of ['dhcp', 'dns', 'adds', 'gpo', 'files', 'wsus', 'iis', 'rds', 'hyperv']) {
+    for (const entry of ['dhcp', 'dns', 'adds', 'gpo', 'files', 'wsus', 'iis', 'rds', 'hyperv', 'adcs']) {
       vi.resetModules()
       await import(`../../../src/engine/roles/${entry}/index.ts`)
       const registry = await import('../../../src/engine/roles/registry')

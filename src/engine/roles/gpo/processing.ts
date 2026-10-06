@@ -19,6 +19,7 @@ import type {
 import { concatTraces, type PacketTrace } from '../../sim/trace'
 import { domainDn, objectDn } from '../adds/directory'
 import { locateDc, serverExchange, type LocatedDc } from '../adds/locator'
+import { roleModules } from '../registry'
 import { computerRsop, userRsop, type Rsop, type RsopEntry, type RsopFiltered } from './scope'
 
 /** Issue du traitement d'une partie (null = partie non demandée). */
@@ -206,6 +207,8 @@ export function processGroupPolicy(
       const changed = fingerprint(policy.computer) !== fingerprint(result)
       policy.computer = result
       logSuccess(draft, deviceId, 'computer', computer, changed)
+      // Extensions côté client des autres rôles (certificats…)
+      for (const module of roleModules()) module.onComputerPolicy?.(draft, deviceId, domain)
     }
     if (options.user) {
       if (user && userObj) {

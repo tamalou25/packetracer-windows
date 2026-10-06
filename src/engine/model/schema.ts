@@ -160,7 +160,9 @@ export const GpoComputerSettingsSchema = z.object({
   /** Windows Update : serveur WSUS intranet. */
   wuServer: WuServerPolicySchema.default(() => ({ state: 'NotConfigured' as const, url: '' })),
   /** Windows Update : ciblage côté client (groupe WSUS). */
-  wuTargetGroup: WuTargetGroupPolicySchema.default(() => ({ state: 'NotConfigured' as const, group: '' }))
+  wuTargetGroup: WuTargetGroupPolicySchema.default(() => ({ state: 'NotConfigured' as const, group: '' })),
+  /** Client des services de certificats – Inscription automatique. */
+  autoEnrollment: PolicyStateSchema.default('NotConfigured')
 })
 
 /** Partie « Configuration utilisateur » d'une GPO (sous-ensemble simulé). */
@@ -186,7 +188,8 @@ const noComputerSettings = (): z.infer<typeof GpoComputerSettingsSchema> => ({
   logonMessageTitle: null,
   logonMessageText: null,
   wuServer: { state: 'NotConfigured', url: '' },
-  wuTargetGroup: { state: 'NotConfigured', group: '' }
+  wuTargetGroup: { state: 'NotConfigured', group: '' },
+  autoEnrollment: 'NotConfigured'
 })
 const noUserSettings = (): z.infer<typeof GpoUserSettingsSchema> => ({
   wallpaper: { state: 'NotConfigured', path: '', style: 'Fill' },

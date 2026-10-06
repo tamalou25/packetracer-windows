@@ -7,6 +7,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import {
+  adcsOf,
   applyStatePatches,
   batch,
   command,
@@ -438,6 +439,20 @@ describe('catalogue des commandes', () => {
     r.run(command('hyperv.setVmState', srv, 'VM1', false))
     r.run(command('hyperv.removeVm', srv, 'VM1'))
     r.run(command('hyperv.removeSwitch', srv, 'Externe'))
+    done(r)
+  })
+
+  it('AD CS : autorité, modèles, demande, révocation, inscription automatique', () => {
+    const r = runner()
+    const srv = r.id('SRV1')
+    r.run(command('system.installFeatures', srv, ['ADCS-Cert-Authority'], { includeManagementTools: true }))
+    r.run(command('adcs.install', srv, {}))
+    r.run(command('adcs.removeTemplate', srv, 'Administrator'))
+    r.run(command('adcs.addTemplate', srv, 'Workstation'))
+    r.run(command('adcs.request', srv, { template: 'WebServer', dnsNames: ['intranet.lab.local'] }))
+    r.run(command('adcs.pulse', r.id('PC1')))
+    const serial = adcsOf(r.state.devices[srv])!.issued[0]!.serial
+    r.run(command('adcs.revoke', srv, serial, 'Superseded'))
     done(r)
   })
 

@@ -1,0 +1,101 @@
+{
+  "formatVersion": 1,
+  "id": "lab-10-adcs",
+  "title": "Autorité de certification et HTTPS",
+  "difficulty": "Avancé",
+  "duration": "45 min",
+  "summary": "Déployer une AC racine d’entreprise, sécuriser un site IIS en HTTPS et inscrire automatiquement les postes.",
+  "statement": "# Contexte\n\nLe site Web de **SRV1** doit passer en HTTPS sans avertissement sur les postes du domaine `lab.local`, et chaque poste doit obtenir automatiquement un certificat d’ordinateur.\n\nCompte d’administration : `LAB\\Administrateur` / `P@ssw0rd`.\n\n## Travail demandé\n\n1. Sur SRV1, installez le rôle **Autorité de certification** (services de certificats Active Directory) avec ses outils, puis configurez une **autorité racine d’entreprise**.\n2. Installez le rôle **Serveur Web (IIS)**. Dans le Gestionnaire IIS, créez un **certificat de domaine** pour `srv1.lab.local`, puis ajoutez au site par défaut une liaison **https** (port 443) qui l’utilise.\n3. Créez une GPO liée au domaine qui active **Client des services de certificats – Inscription automatique**.\n4. Sur PC1, appliquez la stratégie (`gpupdate /force`) puis ouvrez `https://srv1.lab.local` dans le navigateur : aucun avertissement ne doit s’afficher.\n\n> Astuce : `certutil -store Root` sur PC1 montre les autorités racines approuvées par le poste.",
+  "start": {
+    "devices": [
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 330,
+        "y": 100,
+        "ip": "192.168.10.1/24",
+        "dns": ["127.0.0.1"]
+      },
+      {
+        "kind": "switch",
+        "name": "SW1",
+        "x": 330,
+        "y": 300
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 330,
+        "y": 470,
+        "ip": "192.168.10.10/24",
+        "dns": ["192.168.10.1"]
+      }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/2"]
+    ],
+    "domain": {
+      "name": "lab.local",
+      "netbios": "LAB",
+      "dc": "SRV1",
+      "join": ["PC1"]
+    }
+  },
+  "criteria": [
+    {
+      "id": "ca",
+      "label": "Une autorité de certification d’entreprise est configurée sur SRV1",
+      "hint": "Après l’installation du rôle, la configuration post-déploiement choisit le type d’autorité : elle doit être intégrée à Active Directory.",
+      "check": {
+        "type": "enterpriseCa",
+        "server": "SRV1"
+      }
+    },
+    {
+      "id": "web-cert",
+      "label": "SRV1 détient un certificat délivré par l’AC pour son nom DNS",
+      "hint": "Un certificat auto-signé ne convient pas : demandez-le à l’autorité du domaine (modèle Serveur Web).",
+      "check": {
+        "type": "certificate",
+        "device": "SRV1",
+        "dnsName": "srv1.lab.local",
+        "fromCa": true
+      }
+    },
+    {
+      "id": "binding",
+      "label": "Le site par défaut écoute en HTTPS sur le port 443",
+      "hint": "La liaison se crée dans le Gestionnaire IIS, en choisissant le certificat SSL du site.",
+      "check": {
+        "type": "iisSite",
+        "server": "SRV1",
+        "name": "Default Web Site",
+        "protocol": "https",
+        "port": 443
+      }
+    },
+    {
+      "id": "trusted",
+      "label": "PC1 consulte le site en HTTPS sans avertissement de certificat",
+      "hint": "Le poste approuve l’autorité une fois sa stratégie ordinateur appliquée ; le nom saisi doit figurer dans le certificat.",
+      "check": {
+        "type": "httpResponse",
+        "from": "PC1",
+        "url": "https://srv1.lab.local",
+        "status": 200,
+        "trusted": true
+      }
+    },
+    {
+      "id": "autoenroll",
+      "label": "PC1 a obtenu automatiquement un certificat d’ordinateur",
+      "hint": "Le paramètre se trouve dans la configuration ordinateur, parmi les stratégies de clé publique ; il s’applique au traitement de la stratégie.",
+      "check": {
+        "type": "certificate",
+        "device": "PC1",
+        "fromCa": true
+      }
+    }
+  ]
+}
