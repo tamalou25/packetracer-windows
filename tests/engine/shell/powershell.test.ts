@@ -57,6 +57,16 @@ describe('PowerShell : erreurs réalistes', () => {
     )
   })
 
+  it('-Name de Get-Command et Get-WindowsFeature : jokers * et ?, autres caractères littéraux', () => {
+    const { s, ids } = lab()
+    const cmd = (line: string) => run(s, ids.SRV1!, line)
+    expect(cmd('Get-Command -Name Get-NetAdapte?').text).toContain('Get-NetAdapter')
+    expect(cmd("Get-Command -Name 'Get-Net('").errors).toContain("n'est pas reconnu")
+    expect(cmd('Get-WindowsFeature -Name DH?P').text).toContain('DHCP')
+    expect(cmd("Get-WindowsFeature -Name 'D.CP'").text).not.toContain('DHCP')
+    expect(cmd("Get-WindowsFeature -Name 'DHCP('").text.trim()).toBe('')
+  })
+
   it('demande les paramètres obligatoires manquants', () => {
     const { s, ids } = lab()
     const r = run(s, ids.SRV1!, 'Rename-Computer', { answers: ['SRV-AD'] })

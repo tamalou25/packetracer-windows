@@ -13,6 +13,7 @@ import {
   isScript,
   psObject,
   psToString,
+  wildcardToRegExp,
   type PsObject,
   type PsValue
 } from '../values'
@@ -38,9 +39,7 @@ export const coreCmdlets: CmdletDef[] = [
       { name: 'Module', type: 'string' }
     ],
     run(ctx, args) {
-      const pattern = args['Name']
-        ? new RegExp(`^${psToString(args['Name']).replace(/\*/g, '.*')}$`, 'i')
-        : null
+      const pattern = args['Name'] ? wildcardToRegExp(psToString(args['Name'])) : null
       const module = args['Module'] ? psToString(args['Module']).toLowerCase() : null
       const cmds = ctx.catalog.cmdlets
         .filter((c) => c.available?.(ctx) ?? true)
