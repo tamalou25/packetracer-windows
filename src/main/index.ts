@@ -10,12 +10,14 @@ import {
   type AppInfo,
   type MenuState,
   type SaveChangesChoice,
-  type Theme
+  type Theme,
+  type ThemePreference
 } from '../shared/ipc'
+import { resolveTheme } from '../shared/theme'
 import { FileService, findSlabArg } from './files'
 import { buildMenu } from './menu'
 import { applyGlobalSecurity } from './security'
-import { isTheme, loadSettings, saveSettings, THEME_BACKGROUND, type Settings } from './settings'
+import { isThemePreference, loadSettings, saveSettings, THEME_BACKGROUND, type Settings } from './settings'
 import { checkForUpdatesFromMenu, initUpdater, installUpdateNow } from './updater'
 import { isDocState, isMenuState } from './validate'
 
@@ -40,7 +42,7 @@ let menuState: MenuState = {
 }
 let docState = { name: 'Sans titre', dirty: false }
 /** Préférences chargées au démarrage (après le choix éventuel du dossier userData). */
-let settings: Settings = { theme: 'dark' }
+let settings: Settings = { theme: 'system' }
 /** Vrai quand la fermeture a été confirmée (évite de redemander). */
 let closeConfirmed = false
 /**
@@ -64,7 +66,7 @@ function refreshMenu(): void {
       state: menuState,
       recent: files.recentFiles(),
       theme: settings.theme,
-      onTheme: applyTheme,
+      onTheme: applyThemePreference,
       onCheckUpdates: checkForUpdatesFromMenu
     })
   )
@@ -80,19 +82,30 @@ function restartToInstall(): void {
   mainWindow.close()
 }
 
-/**
- * Applique et enregistre le thème : barre de titre et dialogues natifs (nativeTheme),
- * fond de la fenêtre, menu, puis le renderer via la commande `view:theme`.
- */
-function applyTheme(theme: Theme): void {
-  settings = { ...settings, theme }
-  saveSettings(settings)
-  nativeTheme.themeSource = theme
+/** Thème appliqué : celui de l'OS en mode Système (nativeTheme suit `themeSource`). */
+function appliedTheme(): Theme {
+  return resolveTheme(settings.theme, nativeTheme.shouldUseDarkColors)
+}
+
+/** Transmet le thème appliqué : fond de la fenêtre, menu, renderer (commande `view:theme`). */
+function pushTheme(): void {
+  const theme = appliedTheme()
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.setBackgroundColor(THEME_BACKGROUND[theme])
     mainWindow.webContents.send(IPC.menuCommand, { command: 'view:theme', arg: theme })
   }
   refreshMenu()
+}
+
+/**
+ * Enregistre la préférence (Système, Sombre, Clair) et l'applique : barre de titre et dialogues
+ * natifs (nativeTheme), puis fenêtre et renderer.
+ */
+function applyThemePreference(preference: ThemePreference): void {
+  settings = { ...settings, theme: preference }
+  saveSettings(settings)
+  nativeTheme.themeSource = preference
+  pushTheme()
 }
 
 async function askSaveChanges(win: BrowserWindow, name: string): Promise<SaveChangesChoice> {
@@ -117,11 +130,11 @@ function createWindow(): BrowserWindow {
     minHeight: 640,
     show: false,
     title: 'ServerLab',
-    backgroundColor: THEME_BACKGROUND[settings.theme],
+    backgroundColor: THEME_BACKGROUND[appliedTheme()],
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       // Thème connu dès le chargement du preload (pas de flash de couleurs)
-      additionalArguments: [`${THEME_ARG_PREFIX}${settings.theme}`],
+      additionalArguments: [`${THEME_ARG_PREFIX}${appliedTheme()}`],
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -184,8 +197,8 @@ function registerIpc(): void {
     refreshMenu()
   })
 
-  ipcMain.on(IPC.themeSet, (_event, theme: unknown) => {
-    if (isTheme(theme)) applyTheme(theme)
+  ipcMain.on(IPC.themeSet, (_event, preference: unknown) => {
+    if (isThemePreference(preference)) applyThemePreference(preference)
   })
 
   ipcMain.on(IPC.docState, (_event, state: unknown) => {
@@ -238,6 +251,10 @@ app.whenReady().then(async () => {
   applyGlobalSecurity()
   settings = loadSettings()
   nativeTheme.themeSource = settings.theme
+  // Mode Système : l'application suit le thème de l'OS sans redémarrer
+  nativeTheme.on('updated', () => {
+    if (settings.theme === 'system') pushTheme()
+  })
   await files.init()
   registerIpc()
 

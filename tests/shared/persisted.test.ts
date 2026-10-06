@@ -28,6 +28,13 @@ describe('settings.json', () => {
     expect(parseSettings('{"theme":"light","fenetre":{"x":1}}')).toEqual({ theme: 'light' })
   })
 
+  it('thème « Système » par défaut ; un choix explicite déjà enregistré est conservé', () => {
+    expect(DEFAULT_SETTINGS.theme).toBe('system')
+    expect(parseSettings('{}')).toEqual({ theme: 'system' })
+    expect(parseSettings('{"theme":"system"}')).toEqual({ theme: 'system' })
+    expect(parseSettings('{"theme":"dark"}')).toEqual({ theme: 'dark' })
+  })
+
   it('corrompu, tronqué, trop gros ou de mauvais type : préférences par défaut', () => {
     const cases = [
       '',

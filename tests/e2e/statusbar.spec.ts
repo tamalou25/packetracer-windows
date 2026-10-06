@@ -15,10 +15,14 @@ test('Barre d’état : compteurs, enregistrement, thème et mode', async () => 
     await expect(page.getByTestId('status-save')).toContainText('Modifié')
     await expect(page.getByTestId('status-zoom')).toHaveText('100 %')
 
+    // Bascule sombre ↔ clair depuis le thème appliqué (Système au premier lancement)
+    const html = page.locator('html')
+    const initial = await html.getAttribute('data-theme')
+    const other = initial === 'dark' ? 'light' : 'dark'
     await page.getByTestId('status-theme').click()
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+    await expect(html).toHaveAttribute('data-theme', other)
     await page.getByTestId('status-theme').click()
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+    await expect(html).toHaveAttribute('data-theme', initial ?? 'dark')
 
     await page.getByTestId('mode-simulation').click()
     await expect(bar).toContainText('Aucun paquet en attente')
