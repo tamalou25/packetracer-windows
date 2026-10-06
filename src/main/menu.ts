@@ -62,8 +62,18 @@ export function buildMenu(ctx: MenuContext): Menu {
     {
       label: '&Édition',
       submenu: [
-        { label: 'Annuler', ...displayOnly('CmdOrCtrl+Z'), click: cmd('edit:undo') },
-        { label: 'Rétablir', ...displayOnly('CmdOrCtrl+Y'), click: cmd('edit:redo') },
+        {
+          label: state.undoLabel ?? 'Annuler',
+          enabled: state.undoLabel !== null,
+          ...displayOnly('CmdOrCtrl+Z'),
+          click: cmd('edit:undo')
+        },
+        {
+          label: state.redoLabel ?? 'Rétablir',
+          enabled: state.redoLabel !== null,
+          ...displayOnly('CmdOrCtrl+Y'),
+          click: cmd('edit:redo')
+        },
         { type: 'separator' },
         { label: 'Copier', ...displayOnly('CmdOrCtrl+C'), click: cmd('edit:copy') },
         { label: 'Coller', ...displayOnly('CmdOrCtrl+V'), click: cmd('edit:paste') },

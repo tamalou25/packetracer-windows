@@ -9,22 +9,25 @@
  */
 import { create } from 'zustand'
 import {
-  applyStatePatches,
   command as makeCommand,
   createLab,
   dispatch as dispatchCommand,
+  emptyHistory,
   journalEntry,
+  recordEntry,
+  redoStep,
+  undoStep,
   type AnyCommand,
   type Command,
   type CommandType,
   type CommandValue,
   type DispatchResult,
-  type JournalEntry,
+  type History,
+  type HistoryStep,
   type LabState,
   type Viewport
 } from '@engine/index'
 
-const HISTORY_LIMIT = 100
 export const UNTITLED = 'Sans titre'
 
 type LabelledCommand = AnyCommand & { label?: string }
@@ -36,6 +39,9 @@ export interface PreparedCommand<T = unknown> {
   result: DispatchResult<T>
 }
 
+/** Résultat d'un annuler / rétablir : libellé de la commande, ou message d'erreur. */
+export type HistoryOutcome = { ok: true; label: string } | { ok: false; code: string; message: string }
+
 export interface DispatchOptions {
   /** false : appliquée sans entrer dans l'historique (tâches de fond). */
   record?: boolean
@@ -46,10 +52,8 @@ interface LabStore {
   filePath: string | null
   fileName: string
   dirty: boolean
-  /** Commandes annulables, la plus récente en dernier. */
-  journal: JournalEntry[]
-  /** Commandes annulées, prêtes à être rétablies (la prochaine en dernier). */
-  redoStack: JournalEntry[]
+  /** Historique annuler / rétablir (logique dans le moteur : commands/history.ts). */
+  history: History
   /** État au début d'une transaction (glisser) : les commandes intermédiaires ne sont pas journalisées. */
   transactionBase: LabState | null
   /** Incrémenté à chaque chargement de document (permet au canvas de recadrer la vue). */
@@ -73,8 +77,8 @@ interface LabStore {
   beginTransaction(): void
   /** Ferme la transaction et la journalise sous la commande qui la résume (ex. déplacement). */
   commitTransaction(command: LabelledCommand): void
-  undo(): boolean
-  redo(): boolean
+  undo(): HistoryOutcome
+  redo(): HistoryOutcome
   /** Remplace le document (nouveau, ouverture, récupération). */
   load(
     lab: LabState,
@@ -87,11 +91,6 @@ interface LabStore {
   setRealtime(on: boolean): void
 }
 
-/** Ajoute une entrée au journal (la pile de rétablissement est vidée). */
-function pushEntry(journal: JournalEntry[], entry: JournalEntry): Pick<LabStore, 'journal' | 'redoStack'> {
-  return { journal: [...journal, entry].slice(-HISTORY_LIMIT), redoStack: [] }
-}
-
 export const useLabStore = create<LabStore>()((set, get) => {
   /** État après les tâches de fond des rôles (mode Temps réel uniquement). */
   const settle = (lab: LabState): LabState => {
@@ -100,13 +99,22 @@ export const useLabStore = create<LabStore>()((set, get) => {
     return result.ok ? result.state : lab
   }
 
+  /** Applique un pas d'historique (annuler ou rétablir) calculé par le moteur. */
+  const applyStep = (step: HistoryStep): HistoryOutcome => {
+    if (!step.ok) {
+      set({ history: step.history })
+      return { ok: false, code: step.error.code, message: step.error.message }
+    }
+    set({ lab: settle(step.state), history: step.history, dirty: true })
+    return { ok: true, label: step.entry.label }
+  }
+
   return {
     lab: createLab(),
     filePath: null,
     fileName: UNTITLED,
     dirty: false,
-    journal: [],
-    redoStack: [],
+    history: emptyHistory(),
     transactionBase: null,
     revision: 0,
     viewport: null,
@@ -120,7 +128,7 @@ export const useLabStore = create<LabStore>()((set, get) => {
         set((s) => ({
           lab: settle(result.state),
           dirty: true,
-          ...(record && result.entry ? pushEntry(s.journal, result.entry) : {})
+          ...(record && result.entry ? { history: recordEntry(s.history, result.entry) } : {})
         }))
       }
       return result
@@ -141,7 +149,11 @@ export const useLabStore = create<LabStore>()((set, get) => {
       }
       if (result.state === base) return
       const entry = journalEntry(base, result.state, command)
-      set((s) => ({ lab: settle(result.state), dirty: true, ...(entry ? pushEntry(s.journal, entry) : {}) }))
+      set((s) => ({
+        lab: settle(result.state),
+        dirty: true,
+        ...(entry ? { history: recordEntry(s.history, entry) } : {})
+      }))
     },
 
     beginTransaction() {
@@ -152,44 +164,15 @@ export const useLabStore = create<LabStore>()((set, get) => {
       const base = get().transactionBase
       if (base === null) return
       const entry = journalEntry(base, get().lab, command)
-      set((s) => ({ transactionBase: null, ...(entry ? pushEntry(s.journal, entry) : {}) }))
+      set((s) => ({ transactionBase: null, ...(entry ? { history: recordEntry(s.history, entry) } : {}) }))
     },
 
     undo() {
-      const { journal, redoStack, lab } = get()
-      const entry = journal[journal.length - 1]
-      if (!entry) return false
-      try {
-        set({
-          lab: settle(applyStatePatches(lab, entry.inversePatches)),
-          journal: journal.slice(0, -1),
-          redoStack: [...redoStack, entry],
-          dirty: true
-        })
-        return true
-      } catch {
-        // Patches devenus inapplicables (objet supprimé depuis par une tâche de fond) : entrée écartée
-        set({ journal: journal.slice(0, -1) })
-        return false
-      }
+      return applyStep(undoStep(get().lab, get().history))
     },
 
     redo() {
-      const { journal, redoStack, lab } = get()
-      const entry = redoStack[redoStack.length - 1]
-      if (!entry) return false
-      try {
-        set({
-          lab: settle(applyStatePatches(lab, entry.patches)),
-          journal: [...journal, entry],
-          redoStack: redoStack.slice(0, -1),
-          dirty: true
-        })
-        return true
-      } catch {
-        set({ redoStack: redoStack.slice(0, -1) })
-        return false
-      }
+      return applyStep(redoStep(get().lab, get().history))
     },
 
     load(lab, file, viewport = null, dirty = false) {
@@ -200,8 +183,7 @@ export const useLabStore = create<LabStore>()((set, get) => {
         fileName: file.name,
         // Un bail obtenu à l'ouverture modifie le document
         dirty: dirty || settled !== lab,
-        journal: [],
-        redoStack: [],
+        history: emptyHistory(),
         transactionBase: null,
         viewport,
         revision: s.revision + 1

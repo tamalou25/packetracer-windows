@@ -34,7 +34,9 @@ let menuState: MenuState = {
   mode: 'realtime',
   showPortLabels: false,
   showProperties: true,
-  showMinimap: true
+  showMinimap: true,
+  undoLabel: null,
+  redoLabel: null
 }
 let docState = { name: 'Sans titre', dirty: false }
 /** Préférences chargées au démarrage (après le choix éventuel du dossier userData). */

@@ -48,11 +48,12 @@ function handleMenuCommand(msg: MenuCommandMessage): void {
     case 'file:openLab':
       useLabsStore.getState().setPickerOpen(true)
       break
+    // Menu « Annuler : … » : toujours la commande annoncée, même si le focus est dans un champ
     case 'edit:undo':
-      undo()
+      undo('lab')
       break
     case 'edit:redo':
-      redo()
+      redo('lab')
       break
     case 'edit:copy':
       copySelection()

@@ -7,7 +7,7 @@ import { useUiStore } from '../../store/ui'
 const SHORTCUTS: [string, string][] = [
   ['Ctrl+N / Ctrl+O / Ctrl+S', 'Nouveau / Ouvrir / Enregistrer'],
   ['Ctrl+Maj+S', 'Enregistrer sous'],
-  ['Ctrl+Z / Ctrl+Y', 'Annuler / Rétablir'],
+  ['Ctrl+Z / Ctrl+Y (ou Ctrl+Maj+Z)', 'Annuler / Rétablir (aussi dans une console, ligne vide)'],
   ['Ctrl+C / Ctrl+V', 'Copier / Coller des équipements'],
   ['V / C / P', 'Outils Sélection / Câble / PDU simple'],
   ['Suppr', 'Supprimer la sélection (sans sélection : outil Supprimer)'],
