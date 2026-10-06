@@ -66,6 +66,8 @@ function CableEdgeComponent({ id, source, target, data, selected }: EdgeProps<Ca
         path={path}
         interactionWidth={16}
         className={selected ? '!stroke-accent !stroke-[2.5px]' : '!stroke-fg-subtle !stroke-2'}
+        // Liaison virtuelle (Hyper-V) : tracé en pointillés
+        {...(link.virtual ? { style: { strokeDasharray: '6 4' } } : {})}
       />
       {visible && (
         <g data-testid={`cable-${portA}-${portB}`}>

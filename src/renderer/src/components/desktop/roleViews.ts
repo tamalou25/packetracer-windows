@@ -12,6 +12,7 @@ import {
   Globe,
   Earth,
   HardDrive,
+  Layers,
   MonitorSmartphone,
   ScrollText,
   Server,
@@ -41,6 +42,7 @@ const STYLES: Record<string, ViewStyle> = {
   },
   newshare: { icon: FolderSymlink, color: 'text-amber-500', size: { w: 520, h: 470 } },
   wsus: { icon: CloudDownload, color: 'text-emerald-600', size: { w: 980, h: 600 } },
+  hypervmgr: { icon: Layers, color: 'text-sky-700', size: { w: 980, h: 600 } },
   rdsmgr: { icon: MonitorSmartphone, color: 'text-violet-600', size: { w: 900, h: 560 } },
   mstsc: {
     icon: MonitorSmartphone,
@@ -67,6 +69,7 @@ const ROLE_ICONS: Record<string, LucideIcon> = {
   dns: Globe,
   files: HardDrive,
   gpo: ScrollText,
+  hyperv: Layers,
   iis: Earth,
   rds: MonitorSmartphone,
   wsus: CloudDownload

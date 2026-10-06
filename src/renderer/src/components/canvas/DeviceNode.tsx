@@ -73,10 +73,19 @@ function DeviceNodeComponent({ data, selected, dragging }: NodeProps<DeviceFlowN
       <div
         className={`relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-md border bg-surface shadow-xs transition-colors ${
           selected ? 'border-accent ring-1 ring-accent' : 'border-line-strong hover:border-fg-subtle'
-        } ${device.powered ? '' : 'opacity-50'}`}
+        } ${device.powered ? '' : 'opacity-50'} ${device.hostedBy ? 'border-dashed' : ''}`}
+        title={device.hostedBy ? 'Équipement virtuel (Hyper-V)' : undefined}
       >
         <span className={`absolute inset-y-0 left-0 w-[3px] ${KIND_STRIPE[device.kind]}`} />
         <Icon size={26} strokeWidth={1.5} className="text-fg-muted" />
+        {device.hostedBy && (
+          <span
+            className="absolute right-0.5 bottom-0.5 rounded-sm bg-panel px-0.5 text-[8px] leading-none font-semibold text-fg-subtle"
+            data-testid="device-virtual"
+          >
+            {device.kind === 'switch' ? 'vSW' : 'VM'}
+          </span>
+        )}
       </div>
       <span
         className={`absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full ring-2 ring-canvas ${LED[health.status]}`}
