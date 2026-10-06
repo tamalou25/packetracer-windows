@@ -10,6 +10,7 @@ import { Modal } from './components/common/Modal'
 import { Toasts } from './components/common/Toasts'
 import { DeviceWindows } from './components/device-window/DeviceWindow'
 import { HomeScreen } from './components/home/HomeScreen'
+import { TutorialCoach } from './components/tutorial/TutorialCoach'
 import { Palette } from './components/Palette'
 import { RightPanel } from './components/RightPanel'
 import { StatusBar } from './components/StatusBar'
@@ -23,6 +24,7 @@ import { useSimulationPlayback } from './hooks/useSimulationPlayback'
 import { newDocument, openDocument, openRecentDocument, saveDocument } from './lib/document'
 import { copySelection, deleteSelection, paste, redo, selectAll, undo } from './lib/editing'
 import { getFlowInstance } from './lib/flow'
+import { offerTutorial } from './lib/tutorial'
 import { useSimStore } from './store/sim'
 import { useUiStore } from './store/ui'
 
@@ -113,6 +115,9 @@ function handleMenuCommand(msg: MenuCommandMessage): void {
     case 'help:shortcuts':
       ui.setHelpPanel('shortcuts')
       break
+    case 'help:tutorial':
+      offerTutorial()
+      break
     default:
       break
   }
@@ -140,6 +145,7 @@ export function App() {
         <StatusBar />
       </div>
       <HomeScreen />
+      <TutorialCoach />
       <DeviceWindows />
       <LabPicker />
       <Toasts />

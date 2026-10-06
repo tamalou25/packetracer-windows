@@ -8,6 +8,7 @@ import { useConsoleStore } from '../store/console'
 import { useDesktopStore } from '../store/desktop'
 import { useLabsStore } from '../store/labs'
 import { useSimStore } from '../store/sim'
+import { useTutorialStore } from '../store/tutorial'
 import { useUiStore } from '../store/ui'
 import { getFlowInstance } from './flow'
 import { labById } from './labCatalog'
@@ -75,12 +76,14 @@ export async function confirmDiscard(): Promise<boolean> {
   return true
 }
 
-export async function newDocument(): Promise<void> {
-  if (!(await confirmDiscard())) return
+/** Nouveau lab vide. Renvoie faux si l'utilisateur a annulé (« Enregistrer les modifications ? »). */
+export async function newDocument(): Promise<boolean> {
+  if (!(await confirmDiscard())) return false
   resetDocumentUi()
   useLabsStore.getState().setActive(null)
   useLabStore.getState().load(createLab(), { path: null, name: UNTITLED })
   await api().clearAutosave()
+  return true
 }
 
 export async function openDocument(): Promise<void> {
@@ -139,9 +142,14 @@ export async function saveDocument(saveAs = false): Promise<boolean> {
   return true
 }
 
-/** Lancement sans fichier : écran d'accueil, sauf si l'utilisateur l'a désactivé. */
+/**
+ * Lancement sans fichier : écran d'accueil et tutoriel (carte de bienvenue par-dessus l'accueil),
+ * sauf si l'utilisateur les a désactivés.
+ */
 async function showHomeAtStartup(): Promise<void> {
-  if (await api().homeAtStartup()) useUiStore.getState().setHome(true)
+  const [home, tutorial] = await Promise.all([api().homeAtStartup(), api().tutorialAtStartup()])
+  if (home) useUiStore.getState().setHome(true)
+  if (tutorial) useTutorialStore.getState().offer()
 }
 
 /**

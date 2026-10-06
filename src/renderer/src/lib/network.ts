@@ -5,6 +5,7 @@ import { effectiveIpv4, isApipa, ping, type PacketTrace } from '@engine/index'
 import { useLabStore } from '../store/lab'
 import { useSimStore } from '../store/sim'
 import { useUiStore } from '../store/ui'
+import { observeTrace } from './tutorial'
 
 /**
  * Lance une opération réseau : immédiate en Temps réel, rejouée pas à pas en Simulation.
@@ -61,6 +62,7 @@ export function sendSimplePdu(sourceId: string, targetId: string): void {
   }
   const { value } = result
   runNetworkOperation(value.trace, () => {
+    observeTrace(value.trace)
     ui.addPduResult({ source: src.name, target: `${dst.name} (${target})`, success: value.success })
     ui.notify(
       value.success ? 'success' : 'error',

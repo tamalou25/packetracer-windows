@@ -83,7 +83,7 @@ export function applyThemeToDocument(theme: Theme): void {
   document.documentElement.dataset['theme'] = theme
 }
 
-interface UiState {
+export interface UiState {
   theme: Theme
   mode: SimMode
   showPortLabels: boolean

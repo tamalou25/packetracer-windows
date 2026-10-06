@@ -7,7 +7,7 @@
 import type { Device, LabState, NetInterface } from '../model/schema'
 import { effectiveIpv4, type EffectiveIpv4 } from '../net/addressing'
 import type { EchoReceived } from '../net/diagnostics'
-import { isApipa, sameSubnet } from '../net/ipv4'
+import { broadcastInt, formatIpv4, isApipa, networkInt, parseIpv4, sameSubnet } from '../net/ipv4'
 import { l2Segment, linkAt } from '../net/segment'
 
 export const TUTORIAL_STEPS = [
@@ -27,6 +27,7 @@ export interface TutorialHost {
   name: string
   /** Adresse IPv4 effective de la carte utilisée (APIPA comprise), ou null. */
   address: string | null
+  prefixLength: number | null
 }
 
 export interface TutorialProgress {
@@ -68,7 +69,14 @@ function trackedPair(state: LabState): { server?: Device; client?: Device } {
 }
 
 function host(device: Device | undefined, eff: EffectiveIpv4 | null): TutorialHost | null {
-  return device ? { id: device.id, name: device.name, address: eff?.address ?? null } : null
+  return device
+    ? {
+        id: device.id,
+        name: device.name,
+        address: eff?.address ?? null,
+        prefixLength: eff?.prefixLength ?? null
+      }
+    : null
 }
 
 /** Progression du tutoriel sur l'état courant et les réponses d'écho reçues depuis son début. */
@@ -115,4 +123,20 @@ export function tutorialProgress(state: LabState, echoes: readonly EchoReceived[
     server: host(server, sEff),
     client: host(client, cEff)
   }
+}
+
+/**
+ * Adresse à proposer au poste : dans le réseau du serveur, différente de la sienne (« .10 » de
+ * préférence, sinon la première adresse d'hôte libre). Null si le réseau n'a pas d'autre hôte.
+ */
+export function suggestPeerAddress(address: string, prefixLength: number): string | null {
+  const ip = parseIpv4(address)
+  if (ip === null || prefixLength > 30) return null
+  const network = networkInt(ip, prefixLength)
+  const broadcast = broadcastInt(ip, prefixLength)
+  for (const offset of [10, 1, 2]) {
+    const candidate = (network + offset) >>> 0
+    if (candidate < broadcast && candidate !== ip) return formatIpv4(candidate)
+  }
+  return null
 }

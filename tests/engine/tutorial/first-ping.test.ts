@@ -11,6 +11,7 @@ import {
   removeDevices,
   renameDevice,
   setPower,
+  suggestPeerAddress,
   tutorialProgress,
   unwrap,
   type EchoReceived,
@@ -79,8 +80,8 @@ describe('tutoriel « premier ping »', () => {
     const progress = tutorialProgress(s, consolePing(s, pc.id, '10.0.0.1'))
     expect(progress.current).toBeNull()
     expect(progress.steps.every((step) => step.done)).toBe(true)
-    expect(progress.server).toEqual({ id: srv.id, name: 'SRV1', address: '10.0.0.1' })
-    expect(progress.client).toEqual({ id: pc.id, name: 'PC1', address: '10.0.0.2' })
+    expect(progress.server).toEqual({ id: srv.id, name: 'SRV1', address: '10.0.0.1', prefixLength: 8 })
+    expect(progress.client).toEqual({ id: pc.id, name: 'PC1', address: '10.0.0.2', prefixLength: 8 })
   })
 
   it('câble à travers un switch', () => {
@@ -157,5 +158,20 @@ describe('tutoriel « premier ping »', () => {
     const progress = tutorialProgress(s, [])
     expect(progress.current).toBe('ip-server')
     expect(progress.server?.name).toBe('SRV2')
+  })
+})
+
+describe('adresse proposée au poste', () => {
+  it('dans le réseau du serveur, « .10 » de préférence', () => {
+    expect(suggestPeerAddress('192.168.1.1', 24)).toBe('192.168.1.10')
+    expect(suggestPeerAddress('192.168.1.10', 24)).toBe('192.168.1.1')
+    expect(suggestPeerAddress('10.20.30.40', 8)).toBe('10.0.0.10')
+  })
+
+  it('petits réseaux : première adresse d’hôte libre, ou aucune', () => {
+    expect(suggestPeerAddress('192.168.1.1', 30)).toBe('192.168.1.2')
+    expect(suggestPeerAddress('192.168.1.2', 30)).toBe('192.168.1.1')
+    expect(suggestPeerAddress('192.168.1.1', 31)).toBeNull()
+    expect(suggestPeerAddress('pas une IP', 24)).toBeNull()
   })
 })
