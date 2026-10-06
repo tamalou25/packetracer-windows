@@ -4,13 +4,14 @@
 import { useState } from 'react'
 import { CircleArrowDown, CircleCheck, FolderOpen, ListTree, Server, Settings2 } from 'lucide-react'
 import {
+  command,
+  dhcpServerOf,
   formatLeaseDuration,
   formatShortDate,
   prefixToMask,
   type DhcpOptions,
   type DhcpScope,
-  type ServerDevice,
-  command
+  type ServerDevice
 } from '@engine/index'
 import { runCommand } from '../../lib/run'
 import { useUiStore } from '../../store/ui'
@@ -18,7 +19,7 @@ import { Button, Field, inputClass } from '../common/ui'
 import { Mmc, MmcAction, MmcTable, type MmcNode } from '../mmc/Mmc'
 
 export function DhcpApp({ device }: { device: ServerDevice }) {
-  const dhcp = device.services.dhcp
+  const dhcp = dhcpServerOf(device)
   const [selected, setSelected] = useState('server')
   const [dialog, setDialog] = useState<'scope' | null>(null)
   if (!dhcp) return <div className="p-6 text-sm text-slate-500">Le rôle Serveur DHCP n’est pas installé.</div>

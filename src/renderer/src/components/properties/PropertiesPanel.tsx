@@ -18,18 +18,20 @@ import {
   type LucideIcon
 } from 'lucide-react'
 import {
+  allFeatures,
+  command,
   DEVICE_KIND_INFO,
   DEVICE_KINDS,
+  dhcpServerOf,
+  dnsServerOf,
   endStatus,
-  FEATURES,
   isHostDevice,
   linkStatus,
   type Device,
   type HostDevice,
   type LabState,
   type Link,
-  type RouterDevice,
-  command
+  type RouterDevice
 } from '@engine/index'
 import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
@@ -263,7 +265,7 @@ function isEnd(link: Link, deviceId: string, ifaceId: string): boolean {
 }
 
 function RolesSection({ device }: { device: HostDevice }) {
-  const roles = FEATURES.filter((f) => f.role && device.host.features.includes(f.name))
+  const roles = allFeatures().filter((f) => f.role && device.host.features.includes(f.name))
   return (
     <PanelSection id="roles" title="Rôles installés" count={roles.length}>
       {roles.length === 0 ? (
@@ -288,7 +290,7 @@ function RolesSection({ device }: { device: HostDevice }) {
 function ServicesSection({ lab, device }: { lab: LabState; device: HostDevice }) {
   const rows: [string, ReactNode][] = []
   if (device.kind === 'server') {
-    const dhcp = device.services.dhcp
+    const dhcp = dhcpServerOf(device)
     if (dhcp) {
       const scopes = dhcp.scopes.length
       const leases = dhcp.scopes.reduce((n, s) => n + s.leases.length, 0)
@@ -304,7 +306,7 @@ function ServicesSection({ lab, device }: { lab: LabState; device: HostDevice })
         </>
       ])
     }
-    const dns = device.services.dns
+    const dns = dnsServerOf(device)
     if (dns) {
       const zones = dns.zones.length
       rows.push([

@@ -3,7 +3,7 @@
  */
 import { DEFAULT_LOCAL_USER } from '../model/factory'
 import type { LabState } from '../model/schema'
-import { CATALOG } from './catalog'
+import { shellCatalog } from './catalog'
 import { executeCmd } from './cmd/interpreter'
 import { CommandFailure } from './context'
 import { CmdContext, executePowerShell } from './ps/interpreter'
@@ -65,7 +65,7 @@ export function executeLine(
   line: string,
   answers: string[] = []
 ): ShellResult {
-  const ctx = new CmdContext(state, session, answers, CATALOG, line)
+  const ctx = new CmdContext(state, session, answers, shellCatalog(), line)
   const base = { trace: null, clear: false, prompt: null, exit: false }
   const device = state.devices[session.deviceId]
   if (!device || !device.powered) {
@@ -83,7 +83,7 @@ export function executeLine(
     } else if (cmdDisabledByPolicy(state, session.deviceId)) {
       ctx.writeLines(CMD_DISABLED_LINES.slice(0, 1))
     } else {
-      executeCmd(ctx, line, CATALOG.tools)
+      executeCmd(ctx, line, shellCatalog().tools)
     }
   } catch (e) {
     if (e instanceof NeedInput) {

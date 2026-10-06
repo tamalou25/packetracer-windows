@@ -14,7 +14,6 @@ import { RightPanel } from './components/RightPanel'
 import { StatusBar } from './components/StatusBar'
 import { useDocumentLifecycle } from './hooks/useDocumentLifecycle'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
-import { useBackgroundServices } from './hooks/useBackgroundServices'
 import { LabPicker } from './components/labs/LabPicker'
 import { useLabsStore } from './store/labs'
 import { useConsoleSessionSync } from './hooks/useConsoleSessionSync'
@@ -121,7 +120,6 @@ export function App() {
   useKeyboardShortcuts()
   useDocumentLifecycle()
   useSimulationPlayback()
-  useBackgroundServices()
   useConsoleSessionSync()
 
   return (

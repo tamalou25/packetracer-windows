@@ -3,6 +3,7 @@
  * Un objet introuvable (déjà supprimé) est désigné par son identifiant.
  */
 import type { LabState } from '../model/schema'
+import { dhcpServerOf } from '../roles/dhcp/state'
 
 export function deviceName(state: LabState, id: string): string {
   return state.devices[id]?.name ?? id
@@ -31,7 +32,7 @@ export function gpoName(state: LabState, domainName: string, gpoId: string): str
 export function scopeName(state: LabState, deviceId: string, scopeId: string): string {
   const device = state.devices[deviceId]
   const scope =
-    device?.kind === 'server' ? device.services.dhcp?.scopes.find((s) => s.scopeId === scopeId) : undefined
+    device?.kind === 'server' ? dhcpServerOf(device)?.scopes.find((s) => s.scopeId === scopeId) : undefined
   return scope ? `${scope.name} (${scope.scopeId})` : scopeId
 }
 

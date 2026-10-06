@@ -1,0 +1,81 @@
+/**
+ * Registre unique des modules de rôles. Installation des fonctionnalités, catalogue des cmdlets
+ * et outils, critères de lab, tâches de fond, vues et commandes en sont dérivés.
+ *
+ * Ajouter un rôle : créer `roles/<rôle>/index.ts` (voir `types.ts`) et l'ajouter à `load()`,
+ * après les rôles dont il dépend.
+ *
+ * Le registre est construit à la première lecture : un module de rôle peut ainsi importer
+ * n'importe quelle partie du cœur, même une partie qui lit le registre, quel que soit l'ordre
+ * de chargement des modules.
+ */
+import { addsRole } from './adds'
+import { dhcpRole } from './dhcp'
+import { dnsRole } from './dns'
+import { filesRole } from './files'
+import { gpoRole } from './gpo'
+import type { BackgroundTask, CriterionType, FeatureInfo, RoleModule, RoleView } from './types'
+
+/** Modules dans l'ordre d'exécution (dépendances d'abord : DHCP avant les stratégies de groupe). */
+const load = () => [dnsRole, dhcpRole, addsRole, gpoRole, filesRole] as const
+
+export type RoleModules = ReturnType<typeof load>
+
+let modules: RoleModules | null = null
+
+/** Modules de rôles enregistrés. */
+export function roleModules(): RoleModules {
+  return (modules ??= load())
+}
+
+export function roleModule(id: string): RoleModule | undefined {
+  return roleModules().find((m) => m.id === id)
+}
+
+/** Fonctionnalités du système de base (présentes sans rôle). */
+const CORE_FEATURES: FeatureInfo[] = [{ name: 'PowerShell', displayName: 'PowerShell 5.1', role: false }]
+
+let features: FeatureInfo[] | null = null
+
+/**
+ * Catalogue des rôles et fonctionnalités, trié comme Get-WindowsFeature : par nom de la
+ * fonctionnalité racine, chaque parent suivi de ses enfants.
+ */
+export function allFeatures(): FeatureInfo[] {
+  if (features) return features
+  const list = [...CORE_FEATURES, ...roleModules().flatMap((m) => m.features)]
+  const rootOf = (f: FeatureInfo) => (f.parent ?? f.name).toLowerCase()
+  features = list
+    .map((f, index) => ({ f, index }))
+    .sort((a, b) => {
+      const byRoot = rootOf(a.f).localeCompare(rootOf(b.f))
+      if (byRoot !== 0) return byRoot
+      // Parent avant ses enfants, puis ordre de déclaration
+      return Number(!!a.f.parent) - Number(!!b.f.parent) || a.index - b.index
+    })
+    .map(({ f }) => f)
+  return features
+}
+
+export function featureInfo(name: string): FeatureInfo | undefined {
+  const lower = name.toLowerCase()
+  return allFeatures().find((f) => f.name.toLowerCase() === lower)
+}
+
+/** Module qui apporte une fonctionnalité. */
+export function roleOfFeature(name: string): RoleModule | undefined {
+  const lower = name.toLowerCase()
+  return roleModules().find((m) => m.features.some((f) => f.name.toLowerCase() === lower))
+}
+
+export function roleCriteria(): CriterionType[] {
+  return roleModules().flatMap((m) => m.criteria)
+}
+
+export function roleBackgroundTasks(): BackgroundTask[] {
+  return roleModules().flatMap((m) => m.backgroundTasks)
+}
+
+export function roleViews(): (RoleView & { role: string })[] {
+  return roleModules().flatMap((m) => m.views.map((v) => ({ ...v, role: m.id })))
+}

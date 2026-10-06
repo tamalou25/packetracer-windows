@@ -1,30 +1,26 @@
 /**
  * Applications du Bureau simulé : métadonnées (titre, icône, taille, commande Exécuter,
- * place dans le menu Démarrer…). Les composants sont associés dans renderApp.tsx.
+ * place dans le menu Démarrer…). Les applications des rôles (DHCP, DNS, Active Directory…) sont
+ * déclarées par les modules de rôles du moteur et habillées dans roleViews.ts. Les composants
+ * sont associés dans renderApp.tsx.
  */
 import {
   EthernetPort,
-  FileCog,
-  FolderCog,
   FolderOpen,
-  FolderSymlink,
-  Globe,
   Monitor,
   Network,
   PackagePlus,
   Play,
   ScrollText,
   ServerCog,
-  ShieldCheck,
   SlidersHorizontal,
   SquareTerminal,
   TerminalSquare,
   Trash2,
-  UsersRound,
-  Waypoints,
   type LucideIcon
 } from 'lucide-react'
-import type { HostDevice } from '@engine/index'
+import { roleViews, viewAvailable, type HostDevice } from '@engine/index'
+import { roleViewStyle } from './roleViews'
 
 export interface DesktopApp {
   id: string
@@ -53,7 +49,6 @@ export interface DesktopApp {
   title?: (device: HostDevice, arg?: string) => string
 }
 
-const has = (device: HostDevice, feature: string) => device.host.features.includes(feature)
 const isServer = (device: HostDevice) => device.kind === 'server'
 const always = () => true
 
@@ -62,7 +57,8 @@ function ifaceName(device: HostDevice, arg?: string): string {
   return device.interfaces.find((i) => i.id === arg)?.name ?? 'Ethernet'
 }
 
-export const DESKTOP_APPS: DesktopApp[] = [
+/** Applications du système de base. */
+const CORE_APPS: DesktopApp[] = [
   {
     id: 'servermanager',
     label: 'Gestionnaire de serveur',
@@ -190,58 +186,6 @@ export const DESKTOP_APPS: DesktopApp[] = [
     available: always
   },
   {
-    id: 'dhcp',
-    label: 'DHCP',
-    icon: Waypoints,
-    color: 'text-teal-500',
-    size: { w: 920, h: 580 },
-    run: ['dhcpmgmt.msc'],
-    start: 'admin',
-    tool: true,
-    available: (d) => has(d, 'RSAT-DHCP')
-  },
-  {
-    id: 'dns',
-    label: 'DNS',
-    icon: Globe,
-    color: 'text-sky-500',
-    size: { w: 920, h: 580 },
-    run: ['dnsmgmt.msc'],
-    start: 'admin',
-    tool: true,
-    available: (d) => has(d, 'RSAT-DNS-Server')
-  },
-  {
-    id: 'aduc',
-    label: 'Utilisateurs et ordinateurs Active Directory',
-    icon: UsersRound,
-    color: 'text-indigo-400',
-    size: { w: 940, h: 600 },
-    run: ['dsa.msc'],
-    start: 'admin',
-    tool: true,
-    available: (d) => has(d, 'RSAT-ADDS') && !!d.host.domain
-  },
-  {
-    id: 'gpmc',
-    label: 'Gestion des stratégies de groupe',
-    icon: ScrollText,
-    color: 'text-amber-600',
-    size: { w: 980, h: 620 },
-    run: ['gpmc.msc'],
-    start: 'admin',
-    tool: true,
-    available: (d) => has(d, 'GPMC') && !!d.host.domain
-  },
-  {
-    id: 'gpme',
-    label: 'Éditeur de gestion des stratégies de groupe',
-    icon: FileCog,
-    color: 'text-amber-600',
-    size: { w: 980, h: 600 },
-    available: (d) => has(d, 'GPMC') && !!d.host.domain
-  },
-  {
     id: 'explorer',
     label: 'Explorateur de fichiers',
     icon: FolderOpen,
@@ -251,25 +195,6 @@ export const DESKTOP_APPS: DesktopApp[] = [
     start: 'system',
     pinned: always,
     available: always
-  },
-  {
-    id: 'fileprops',
-    label: 'Propriétés',
-    icon: FolderCog,
-    color: 'text-amber-500',
-    size: { w: 440, h: 560 },
-    dialog: true,
-    title: (_d, arg) => `Propriétés de : ${arg?.replace(/\\$/, '').split('\\').pop() || arg || ''}`,
-    available: isServer
-  },
-  {
-    id: 'newshare',
-    label: 'Assistant Nouveau partage',
-    icon: FolderSymlink,
-    color: 'text-amber-500',
-    size: { w: 520, h: 470 },
-    dialog: true,
-    available: isServer
   },
   {
     id: 'run',
@@ -294,22 +219,6 @@ export const DESKTOP_APPS: DesktopApp[] = [
     available: isServer
   },
   {
-    id: 'adpromote',
-    label: 'Assistant Configuration des services de domaine Active Directory',
-    icon: ShieldCheck,
-    color: 'text-indigo-400',
-    size: { w: 800, h: 580 },
-    available: isServer
-  },
-  {
-    id: 'dhcppost',
-    label: 'Assistant Configuration post-installation DHCP',
-    icon: Waypoints,
-    color: 'text-teal-500',
-    size: { w: 660, h: 470 },
-    available: isServer
-  },
-  {
     id: 'recycle',
     label: 'Corbeille',
     icon: Trash2,
@@ -318,6 +227,20 @@ export const DESKTOP_APPS: DesktopApp[] = [
     available: always
   }
 ]
+
+/** Vues déclarées par les modules de rôles (registre du moteur) + apparence associée ici. */
+const ROLE_APPS: DesktopApp[] = roleViews().map((view) => ({
+  id: view.app,
+  label: view.label,
+  run: view.run,
+  tool: view.tool,
+  dialog: view.dialog,
+  start: view.tool ? 'admin' : undefined,
+  available: (device) => viewAvailable(view, device),
+  ...roleViewStyle(view.app)
+}))
+
+export const DESKTOP_APPS: DesktopApp[] = [...CORE_APPS, ...ROLE_APPS]
 
 export function appInfo(id: string): DesktopApp | undefined {
   return DESKTOP_APPS.find((a) => a.id === id)

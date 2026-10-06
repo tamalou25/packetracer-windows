@@ -9,6 +9,7 @@ switch, routeur, poste en DHCP joint au domaine, poste statique, OU, utilisateur
 | `v1.slab` | 1      | commit `6da8368` (Bureau façon serveur, avant GPO) |
 | `v2.slab` | 2      | commit `4379438` (GPO + fichiers, avant les labs)  |
 | `v3.slab` | 3      | ServerLab 1.0.0 (`npm run fixture:slab`)           |
+| `v4.slab` | 4      | modules de rôles, données dans `roles` (issue #4)  |
 
 Ces fichiers ne doivent **jamais** être modifiés ni régénérés : ils représentent les fichiers que
 des utilisateurs ont réellement enregistrés. `../migrations.test.ts` vérifie que chacun s'ouvre,

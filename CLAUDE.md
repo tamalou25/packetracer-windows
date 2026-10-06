@@ -24,11 +24,13 @@ src/shared/    types partagés main/preload/renderer (contrat IPC)
 src/renderer/  application React (index.html + src/)
 src/engine/    moteur de simulation pur :
                model/ (schémas zod) · net/ (IPv4, routage, ARP) · sim/ (traces de paquets)
-               services/ (rôles, DHCP, DNS, adds/ Active Directory, gpo/ stratégies, files/ NTFS et SMB)
-               shell/ (PowerShell, cmd)
+               roles/ (registre + un module par rôle : dhcp/, dns/, adds/ Active Directory,
+               gpo/ stratégies, files/ NTFS et SMB) · services/ (système de base)
+               commands/ (commandes nommées, dispatch, patches) · shell/ (PowerShell, cmd)
 src/renderer/src/components/desktop/  Bureau simulé : DesktopShell (verrouillage, fenêtres, barre des
-               tâches, menu Démarrer), apps.ts (registre des applications), apps/ (Gestionnaire de
-               serveur, assistants, Connexions réseau, Propriétés système…), shell/ (fenêtres, menus)
+               tâches, menu Démarrer), apps.ts (registre des applications, vues des rôles incluses),
+               roleViews.ts (apparence des vues de rôles), apps/ (Gestionnaire de serveur, assistants,
+               Connexions réseau, Propriétés système…), shell/ (fenêtres, menus)
 labs/          labs pédagogiques *.json
 tests/engine/  tests Vitest du moteur
 tests/e2e/     scénarios Playwright Electron
@@ -106,8 +108,10 @@ La roadmap est dans `ROADMAP.md` ; ses milestones, labels et issues sont décrit
 
 ### Ajouter une commande (modification déclenchée par l'interface)
 
-1. Écrire ou réutiliser l'action pure `(state, ...args) => EngineResult` dans `src/engine/services/…`.
-2. La déclarer dans `src/engine/commands/catalog.ts` : `'domaine.verbe': def(action, (state, ...args) => 'Libellé FR')`
+1. Écrire ou réutiliser l'action pure `(state, ...args) => EngineResult` dans `src/engine/roles/<rôle>/…`
+   (ou `services/`, `topology/`, `net/` pour le système de base).
+2. La déclarer dans `src/engine/roles/<rôle>/commands.ts` (ou `commands/catalog.ts` pour le système de
+   base) : `'domaine.verbe': def(action, (state, ...args) => 'Libellé FR')`
    (libellé lisible, évalué sur l'état d'avant ; arguments sérialisables). Une action dont le
    résultat n'est pas un `EngineResult` passe par un adaptateur (voir `directory`, `drive`).
 3. Côté interface : `runCommand(command('domaine.verbe', ...args))` ; plusieurs commandes liées →
@@ -118,10 +122,28 @@ L'annuler/rétablir et le journal viennent des patches immer calculés par `disp
 
 ### Ajouter une cmdlet PowerShell
 
-1. Implémenter l'action métier dans `src/engine/services/<service>.ts` (si elle n'existe pas).
-2. Déclarer la cmdlet dans `src/engine/shell/powershell/cmdlets/<domaine>.ts` : nom, paramètres
-   (type, obligatoire, position), handler qui appelle l'action → la complétion Tab est automatique.
+1. Implémenter l'action métier dans `src/engine/roles/<rôle>/` (si elle n'existe pas).
+2. Déclarer la cmdlet dans `src/engine/roles/<rôle>/cmdlets.ts` (système de base :
+   `shell/ps/cmdlets/`) : nom, paramètres (type, obligatoire, position), handler qui appelle l'action
+   → catalogue et complétion Tab dérivés du registre.
 3. Test Vitest dans `tests/engine/shell/` : sortie + état identique à l'action GUI.
+
+### Ajouter un rôle
+
+Un rôle ne touche pas au cœur du moteur : tout est déclaré dans son module.
+
+1. Créer `src/engine/roles/<rôle>/` : actions pures, `commands.ts`, `cmdlets.ts` (et `tools.ts`),
+   `criteria.ts`, et `index.ts` qui exporte `defineRole({ … })` (contrat : `roles/types.ts`) :
+   id, nom, fonctionnalité principale, dépendances, fonctionnalités installables, état sur le
+   serveur (`RoleStateDef` : clé, schéma zod, état initial, accesseur typé dans `state.ts`),
+   commandes, cmdlets, outils, vues, critères, tâches de fond, sources d'évènements, services.
+2. L'ajouter dans `load()` de `src/engine/roles/registry.ts`, après les rôles dont il dépend.
+   Installation, catalogue des consoles, critères de lab, commandes et tâches de fond suivent.
+3. Interface : apparence de chaque vue dans `components/desktop/roleViews.ts`, composant dans
+   `renderApp.tsx`, icône du rôle (`roleIcon`). Aucune autre liste à compléter.
+4. Données sur le serveur nouvelles ou modifiées → recette « Faire évoluer le format .slab ».
+5. Tests Vitest dans `tests/engine/` ; `tests/engine/roles/registry.test.ts` vérifie la cohérence
+   du registre (dépendances, unicité des noms, état initial).
 
 ### Publier une version
 
@@ -144,6 +166,7 @@ Un ancien lab doit toujours s'ouvrir. Les fichiers `tests/engine/serialization/f
 
 ### Ajouter un critère de lab
 
-1. Ajouter le type dans `src/engine/labs/criteria.ts` (schéma zod + évaluateur).
+1. Ajouter le type avec `defineCriterion(schéma zod, évaluateur)` dans `src/engine/roles/<rôle>/criteria.ts`
+   (système de base : `src/engine/labs/criteria.ts`) ; le schéma des labs en est dérivé.
 2. L'utiliser dans `labs/*.json` avec `label` et `hint` (l'indice ne donne jamais la solution).
 3. Le test `tests/engine/labs/` applique la solution du lab et exige 100 % de critères validés.

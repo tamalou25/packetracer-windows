@@ -6,7 +6,7 @@
 import type { EngineResult } from '../core/result'
 import type { LabState } from '../model/schema'
 import {
-  COMMANDS,
+  commandDefinitions,
   isCommandType,
   type AnyCommand,
   type Command,
@@ -33,7 +33,7 @@ export type DispatchResult<T> = EngineResult<T> & {
 }
 
 function definition(type: string): CommandDef<unknown[], unknown> | undefined {
-  return isCommandType(type) ? (COMMANDS[type] as unknown as CommandDef<unknown[], unknown>) : undefined
+  return isCommandType(type) ? (commandDefinitions()[type] as CommandDef<unknown[], unknown>) : undefined
 }
 
 /** Libellé français d'une commande (évalué sur l'état d'avant). */

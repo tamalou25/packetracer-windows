@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   clearEventLog,
   completeDhcpPostInstall,
+  dhcpServerOf,
   installFeatures,
   joinDomain,
   logoff,
@@ -102,7 +103,7 @@ describe('DHCP : configuration post-installation', () => {
     const r = unwrap(completeDhcpPostInstall(s, ids.SRV1!, { authorize: true }))
     expect(r.value.authorization).toBe('not-member')
     const srv = r.state.devices[ids.SRV1!]
-    expect(srv?.kind === 'server' && srv.services.dhcp?.configured).toBe(true)
+    expect(srv?.kind === 'server' && dhcpServerOf(srv)?.configured).toBe(true)
   })
 
   it('membre du domaine : autorisation par un Admin du domaine, refusée sinon', () => {
@@ -110,7 +111,7 @@ describe('DHCP : configuration post-installation', () => {
     const ok = unwrap(completeDhcpPostInstall(s, ids.SRV1!, { authorize: true }))
     expect(ok.value.authorization).toBe('done')
     const srv = ok.state.devices[ids.SRV1!]
-    expect(srv?.kind === 'server' && srv.services.dhcp?.authorized).toBe(true)
+    expect(srv?.kind === 'server' && dhcpServerOf(srv)?.authorized).toBe(true)
     // Session locale (non administrateur du domaine) : accès refusé
     const local = logon(logoff(s, ids.SRV1!), ids.SRV1!, {
       user: 'Administrateur',

@@ -7,7 +7,7 @@ import { raise, transact, type EngineResult } from '../core/result'
 import { DEFAULT_LOCAL_USER } from '../model/factory'
 import type { HostDevice, LabState } from '../model/schema'
 import { deviceNameError, requireDevice } from '../topology/actions'
-import { registerHostDns } from './adds/join'
+import { registerHostDns } from '../roles/adds/join'
 
 /** Applique les opérations en attente d'un redémarrage (renommage…). */
 export function applyRestart(draft: Draft<LabState>, device: Draft<HostDevice>, reason?: string): void {

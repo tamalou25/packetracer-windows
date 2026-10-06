@@ -2,10 +2,15 @@
  * Store du document courant : état simulé (LabState du moteur), journal des commandes, fichier.
  * Toute modification passe par `dispatch` (commande nommée du moteur) ; l'annuler/rétablir
  * applique les patches du journal, sans aucun inverse écrit à la main.
+ *
+ * Mode Temps réel : après chaque changement d'état, le moteur exécute les tâches de fond
+ * déclarées par les modules de rôles (bail DHCP, application des stratégies de groupe), hors
+ * historique : annuler une action ne défait pas un bail obtenu entre-temps.
  */
 import { create } from 'zustand'
 import {
   applyStatePatches,
+  command as makeCommand,
   createLab,
   dispatch as dispatchCommand,
   journalEntry,
@@ -51,6 +56,8 @@ interface LabStore {
   revision: number
   /** Vue à restaurer après chargement (null → ajuster à la fenêtre). */
   viewport: Viewport | null
+  /** Mode Temps réel : tâches de fond des rôles exécutées après chaque changement. */
+  realtime: boolean
 
   /** Exécute une commande du moteur ; en cas de succès l'état est remplacé (et journalisé). */
   dispatch<K extends CommandType>(
@@ -76,6 +83,8 @@ interface LabStore {
     dirty?: boolean
   ): void
   markSaved(path: string, name: string): void
+  /** Active ou suspend les tâches de fond (mode Temps réel / Simulation). */
+  setRealtime(on: boolean): void
 }
 
 /** Ajoute une entrée au journal (la pile de rétablissement est vidée). */
@@ -83,112 +92,132 @@ function pushEntry(journal: JournalEntry[], entry: JournalEntry): Pick<LabStore,
   return { journal: [...journal, entry].slice(-HISTORY_LIMIT), redoStack: [] }
 }
 
-export const useLabStore = create<LabStore>()((set, get) => ({
-  lab: createLab(),
-  filePath: null,
-  fileName: UNTITLED,
-  dirty: false,
-  journal: [],
-  redoStack: [],
-  transactionBase: null,
-  revision: 0,
-  viewport: null,
-
-  dispatch: ((command: LabelledCommand, options?: DispatchOptions) => {
-    const before = get().lab
-    const result = dispatchCommand(before, command)
-    if (result.ok && result.state !== before) {
-      const record = (options?.record ?? true) && get().transactionBase === null
-      set((s) => ({
-        lab: result.state,
-        dirty: true,
-        ...(record && result.entry ? pushEntry(s.journal, result.entry) : {})
-      }))
-    }
-    return result
-  }) as LabStore['dispatch'],
-
-  prepare: ((command: LabelledCommand) => {
-    const base = get().lab
-    return { command, base, result: dispatchCommand(base, command) }
-  }) as LabStore['prepare'],
-
-  commit(prepared) {
-    const { result, base, command } = prepared
-    if (!result.ok) return
-    if (get().lab !== base) {
-      // Le lab a changé pendant la lecture : la commande est rejouée sur l'état courant
-      get().dispatch(command)
-      return
-    }
-    if (result.state === base) return
-    const entry = journalEntry(base, result.state, command)
-    set((s) => ({ lab: result.state, dirty: true, ...(entry ? pushEntry(s.journal, entry) : {}) }))
-  },
-
-  beginTransaction() {
-    if (get().transactionBase === null) set({ transactionBase: get().lab })
-  },
-
-  commitTransaction(command) {
-    const base = get().transactionBase
-    if (base === null) return
-    const entry = journalEntry(base, get().lab, command)
-    set((s) => ({ transactionBase: null, ...(entry ? pushEntry(s.journal, entry) : {}) }))
-  },
-
-  undo() {
-    const { journal, redoStack, lab } = get()
-    const entry = journal[journal.length - 1]
-    if (!entry) return false
-    try {
-      set({
-        lab: applyStatePatches(lab, entry.inversePatches),
-        journal: journal.slice(0, -1),
-        redoStack: [...redoStack, entry],
-        dirty: true
-      })
-      return true
-    } catch {
-      // Patches devenus inapplicables (objet supprimé depuis par une tâche de fond) : entrée écartée
-      set({ journal: journal.slice(0, -1) })
-      return false
-    }
-  },
-
-  redo() {
-    const { journal, redoStack, lab } = get()
-    const entry = redoStack[redoStack.length - 1]
-    if (!entry) return false
-    try {
-      set({
-        lab: applyStatePatches(lab, entry.patches),
-        journal: [...journal, entry],
-        redoStack: redoStack.slice(0, -1),
-        dirty: true
-      })
-      return true
-    } catch {
-      set({ redoStack: redoStack.slice(0, -1) })
-      return false
-    }
-  },
-
-  load(lab, file, viewport = null, dirty = false) {
-    set((s) => ({
-      lab,
-      filePath: file.path,
-      fileName: file.name,
-      dirty,
-      journal: [],
-      redoStack: [],
-      transactionBase: null,
-      viewport,
-      revision: s.revision + 1
-    }))
-  },
-
-  markSaved(path, name) {
-    set({ filePath: path, fileName: name, dirty: false })
+export const useLabStore = create<LabStore>()((set, get) => {
+  /** État après les tâches de fond des rôles (mode Temps réel uniquement). */
+  const settle = (lab: LabState): LabState => {
+    if (!get().realtime) return lab
+    const result = dispatchCommand(lab, makeCommand('background.tick'))
+    return result.ok ? result.state : lab
   }
-}))
+
+  return {
+    lab: createLab(),
+    filePath: null,
+    fileName: UNTITLED,
+    dirty: false,
+    journal: [],
+    redoStack: [],
+    transactionBase: null,
+    revision: 0,
+    viewport: null,
+    realtime: true,
+
+    dispatch: ((command: LabelledCommand, options?: DispatchOptions) => {
+      const before = get().lab
+      const result = dispatchCommand(before, command)
+      if (result.ok && result.state !== before) {
+        const record = (options?.record ?? true) && get().transactionBase === null
+        set((s) => ({
+          lab: settle(result.state),
+          dirty: true,
+          ...(record && result.entry ? pushEntry(s.journal, result.entry) : {})
+        }))
+      }
+      return result
+    }) as LabStore['dispatch'],
+
+    prepare: ((command: LabelledCommand) => {
+      const base = get().lab
+      return { command, base, result: dispatchCommand(base, command) }
+    }) as LabStore['prepare'],
+
+    commit(prepared) {
+      const { result, base, command } = prepared
+      if (!result.ok) return
+      if (get().lab !== base) {
+        // Le lab a changé pendant la lecture : la commande est rejouée sur l'état courant
+        get().dispatch(command)
+        return
+      }
+      if (result.state === base) return
+      const entry = journalEntry(base, result.state, command)
+      set((s) => ({ lab: settle(result.state), dirty: true, ...(entry ? pushEntry(s.journal, entry) : {}) }))
+    },
+
+    beginTransaction() {
+      if (get().transactionBase === null) set({ transactionBase: get().lab })
+    },
+
+    commitTransaction(command) {
+      const base = get().transactionBase
+      if (base === null) return
+      const entry = journalEntry(base, get().lab, command)
+      set((s) => ({ transactionBase: null, ...(entry ? pushEntry(s.journal, entry) : {}) }))
+    },
+
+    undo() {
+      const { journal, redoStack, lab } = get()
+      const entry = journal[journal.length - 1]
+      if (!entry) return false
+      try {
+        set({
+          lab: settle(applyStatePatches(lab, entry.inversePatches)),
+          journal: journal.slice(0, -1),
+          redoStack: [...redoStack, entry],
+          dirty: true
+        })
+        return true
+      } catch {
+        // Patches devenus inapplicables (objet supprimé depuis par une tâche de fond) : entrée écartée
+        set({ journal: journal.slice(0, -1) })
+        return false
+      }
+    },
+
+    redo() {
+      const { journal, redoStack, lab } = get()
+      const entry = redoStack[redoStack.length - 1]
+      if (!entry) return false
+      try {
+        set({
+          lab: settle(applyStatePatches(lab, entry.patches)),
+          journal: [...journal, entry],
+          redoStack: redoStack.slice(0, -1),
+          dirty: true
+        })
+        return true
+      } catch {
+        set({ redoStack: redoStack.slice(0, -1) })
+        return false
+      }
+    },
+
+    load(lab, file, viewport = null, dirty = false) {
+      const settled = settle(lab)
+      set((s) => ({
+        lab: settled,
+        filePath: file.path,
+        fileName: file.name,
+        // Un bail obtenu à l'ouverture modifie le document
+        dirty: dirty || settled !== lab,
+        journal: [],
+        redoStack: [],
+        transactionBase: null,
+        viewport,
+        revision: s.revision + 1
+      }))
+    },
+
+    markSaved(path, name) {
+      set({ filePath: path, fileName: name, dirty: false })
+    },
+
+    setRealtime(on) {
+      if (get().realtime === on) return
+      set({ realtime: on })
+      const { lab } = get()
+      const settled = settle(lab)
+      if (settled !== lab) set({ lab: settled, dirty: true })
+    }
+  }
+})

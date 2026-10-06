@@ -3,9 +3,9 @@
  * Chaque entrée transforme un document de la version N vers N+1.
  * Pour faire évoluer le format : incrémenter CURRENT_SCHEMA_VERSION et ajouter une migration.
  */
-import { DEFAULT_DC_POLICY_ID, DEFAULT_DOMAIN_POLICY_ID, defaultDomainGpos } from '../services/gpo/defaults'
+import { DEFAULT_DC_POLICY_ID, DEFAULT_DOMAIN_POLICY_ID, defaultDomainGpos } from '../roles/gpo/defaults'
 
-export const CURRENT_SCHEMA_VERSION = 3
+export const CURRENT_SCHEMA_VERSION = 4
 
 type RawDocument = Record<string, unknown>
 
@@ -47,10 +47,31 @@ function addLabId(doc: RawDocument): RawDocument {
   }
 }
 
+/**
+ * Version 4 : données des rôles stockées de façon générique, par identifiant de module.
+ * `services: { dhcp, dns }` (null = rôle jamais installé) devient `roles: { dhcp?, dns? }`.
+ */
+function moveServicesToRoles(doc: RawDocument): RawDocument {
+  const lab = doc['lab']
+  if (isRecord(lab) && isRecord(lab['devices'])) {
+    for (const device of Object.values(lab['devices'])) {
+      if (!isRecord(device) || device['kind'] !== 'server') continue
+      const services = isRecord(device['services']) ? device['services'] : {}
+      const roles: Record<string, unknown> = isRecord(device['roles']) ? { ...device['roles'] } : {}
+      for (const [key, value] of Object.entries(services))
+        if (value !== null && value !== undefined && roles[key] === undefined) roles[key] = value
+      device['roles'] = roles
+      delete device['services']
+    }
+  }
+  return { ...doc, schemaVersion: 4 }
+}
+
 /** migrations[n] migre un document de la version n vers n + 1. */
 export const migrations: Record<number, (doc: RawDocument) => RawDocument> = {
   1: addDefaultGpos,
-  2: addLabId
+  2: addLabId,
+  3: moveServicesToRoles
 }
 
 export type MigrationResult = { ok: true; doc: RawDocument } | { ok: false; message: string }
