@@ -21,7 +21,7 @@ Ce journal permet à une nouvelle session de reprendre le travail là où il s'e
 | #17   | Rôle RDS                 | `feat/17-rds`    | #76 | fusionné |
 | #18   | Rôle Hyper-V             | `feat/18-hyperv` | #77 | fusionné |
 | #19   | Rôle AD CS               | `feat/19-adcs`   | #78 | fusionné |
-| #20   | Rôle DFS                 | `feat/20-dfs`    |     | en cours |
+| #20   | Rôle DFS                 | `feat/20-dfs`    | #79 | fusionné |
 | #21   | Sauvegarde, corbeille AD | `feat/21-backup` |     | en cours |
 
 ### #15 WSUS
