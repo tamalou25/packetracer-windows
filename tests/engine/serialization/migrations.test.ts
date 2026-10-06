@@ -194,6 +194,36 @@ describe('migration 4 → 5 (rôles et stratégies de la v2.1)', () => {
   })
 })
 
+describe('migration 5 → 6 (VLAN et réseau de la v2.2)', () => {
+  it('change seulement la version ; switchs et ports reçoivent la configuration par défaut', () => {
+    const doc = JSON.parse(readFixture(5)) as Record<string, unknown>
+    const migrated = migrations[5]!(doc)
+    expect(migrated).toEqual({ ...doc, schemaVersion: 6 })
+    const parsed = parseSlab(readFixture(5))
+    const sw = parsed.ok ? Object.values(parsed.doc.lab.devices).find((d) => d.kind === 'switch') : undefined
+    expect(sw?.kind === 'switch' && sw.vlans).toEqual([{ id: 1, name: 'default' }])
+    expect(sw?.interfaces.every((i) => i.switchport === undefined && i.subinterface === undefined)).toBe(true)
+  })
+
+  it('le fichier v6 conserve le VLAN 20, le trunk et la sous-interface du routeur', () => {
+    const parsed = parseSlab(readFixture(6))
+    if (!parsed.ok) throw new Error(parsed.message)
+    const lab = parsed.doc.lab
+    const sw = lab.devices[deviceId(lab, 'SW1')]
+    expect(sw?.kind === 'switch' && sw.vlans.map((v) => v.name)).toEqual(['default', 'Compta'])
+    expect(sw?.interfaces.map((i) => i.switchport?.mode ?? '-').slice(0, 5)).toEqual([
+      '-',
+      '-',
+      '-',
+      'trunk',
+      'access'
+    ])
+    const sub = lab.devices[deviceId(lab, 'R1')]?.interfaces.find((i) => i.name === 'Gi0/0.20')
+    expect(sub?.subinterface?.vlan).toBe(20)
+    expect(sub?.address).toBe('192.168.20.254')
+  })
+})
+
 describe('validation des données de rôles', () => {
   const withRoles = (roles: unknown) => {
     const doc = JSON.parse(readFixture(4)) as { lab: { devices: Record<string, RawDevice> } }

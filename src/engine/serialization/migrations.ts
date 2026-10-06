@@ -5,7 +5,7 @@
  */
 import { DEFAULT_DC_POLICY_ID, DEFAULT_DOMAIN_POLICY_ID, defaultDomainGpos } from '../roles/gpo/defaults'
 
-export const CURRENT_SCHEMA_VERSION = 5
+export const CURRENT_SCHEMA_VERSION = 6
 
 type RawDocument = Record<string, unknown>
 
@@ -76,12 +76,23 @@ function addV21Roles(doc: RawDocument): RawDocument {
   return { ...doc, schemaVersion: 5 }
 }
 
+/**
+ * Version 6 (ServerLab 2.2) : VLAN (base des switchs, ports d'accès et trunks 802.1Q,
+ * sous-interfaces de routeur) et fonctionnalités réseau de la v2.2. Rien à transformer : un
+ * switch sans base reçoit le VLAN 1 par défaut, un port sans configuration est un port d'accès
+ * du VLAN 1 ; le numéro de version empêche une version 2.1 d'ouvrir (et de tronquer) ces labs.
+ */
+function addV22Network(doc: RawDocument): RawDocument {
+  return { ...doc, schemaVersion: 6 }
+}
+
 /** migrations[n] migre un document de la version n vers n + 1. */
 export const migrations: Record<number, (doc: RawDocument) => RawDocument> = {
   1: addDefaultGpos,
   2: addLabId,
   3: moveServicesToRoles,
-  4: addV21Roles
+  4: addV21Roles,
+  5: addV22Network
 }
 
 export type MigrationResult = { ok: true; doc: RawDocument } | { ok: false; message: string }

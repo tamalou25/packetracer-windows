@@ -44,6 +44,7 @@ import lab8 from '../../../labs/lab-08-rds.json'
 import lab9 from '../../../labs/lab-09-hyperv.json'
 import lab10 from '../../../labs/lab-10-adcs.json'
 import lab11 from '../../../labs/lab-11-dfs.json'
+import lab13 from '../../../labs/lab-13-vlan.json'
 import { run } from '../shell/helpers'
 
 function load(raw: unknown): LabDefinition {
@@ -330,11 +331,33 @@ const SOLUTIONS: Record<string, (s: LabState) => LabState> = {
     s = unwrap(createItem(s, id(s, 'SRV1'), 'C:\\Compta\\rapport.txt', 'file', admin)).state
     s = runBackgroundTasks(s).state
     return logon(s, id(s, 'PC1'), { user: 'jdupont', password: 'Azerty123!', domain: 'LAB' }).state
+  },
+  'lab-13-vlan': (s) => {
+    const sw = id(s, 'SW1')
+    const r1 = id(s, 'R1')
+    const exec = (cmd: AnyCommand) => {
+      const r = dispatch(s, cmd)
+      if (!r.ok) throw new Error(r.error.message)
+      s = r.state
+      return r.value
+    }
+    const port = (device: string, name: string) =>
+      s.devices[device]!.interfaces.find((i) => i.name === name)!.id
+    exec(command('net.addVlan', sw, 10, 'Compta'))
+    exec(command('net.addVlan', sw, 20, 'RH'))
+    exec(command('net.setSwitchport', sw, port(sw, 'Fa0/1'), { mode: 'access', accessVlan: 10 }))
+    exec(command('net.setSwitchport', sw, port(sw, 'Fa0/2'), { mode: 'access', accessVlan: 20 }))
+    exec(command('net.setSwitchport', sw, port(sw, 'Fa0/16'), { mode: 'trunk' }))
+    for (const vlan of [10, 20]) {
+      exec(command('net.addSubinterface', r1, port(r1, 'Gi0/0'), vlan))
+      s = ip(s, 'R1', `Gi0/0.${vlan}`, `192.168.${vlan}.254/24`)
+    }
+    return s
   }
 }
 
 describe('Labs', () => {
-  const labs = [lab1, lab2, lab3, lab4, lab5, lab6, lab7, lab8, lab9, lab10, lab11].map(load)
+  const labs = [lab1, lab2, lab3, lab4, lab5, lab6, lab7, lab8, lab9, lab10, lab11, lab13].map(load)
 
   it('chaque lab a un identifiant unique, des critères uniques et des indices', () => {
     expect(new Set(labs.map((l) => l.id)).size).toBe(labs.length)

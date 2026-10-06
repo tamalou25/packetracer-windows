@@ -28,6 +28,26 @@ export const DhcpClientLeaseSchema = z.object({
   expiresAt: z.number()
 })
 
+/** Numéro de VLAN 802.1Q utilisable (1 à 4094). */
+export const VlanIdSchema = z.number().int().min(1).max(4094)
+
+/** Configuration 802.1Q d'un port de switch (absente : port d'accès du VLAN 1). */
+export const SwitchportSchema = z.object({
+  mode: z.enum(['access', 'trunk']).default('access'),
+  /** VLAN d'un port d'accès (trames non étiquetées). */
+  accessVlan: VlanIdSchema.default(1),
+  /** VLAN natif d'un trunk : ses trames circulent sans étiquette. */
+  nativeVlan: VlanIdSchema.default(1),
+  /** VLAN autorisés sur le trunk (null : tous). */
+  allowedVlans: z.array(VlanIdSchema).nullable().default(null)
+})
+
+/** Sous-interface de routeur (Gi0/0.10) : carte physique parente et VLAN de l'encapsulation dot1Q. */
+export const SubinterfaceSchema = z.object({ parent: z.string(), vlan: VlanIdSchema })
+
+/** VLAN de la base d'un switch. */
+export const VlanSchema = z.object({ id: VlanIdSchema, name: z.string() })
+
 /** Carte réseau / port d'un équipement. */
 export const NetInterfaceSchema = z.object({
   id: z.string(),
@@ -51,7 +71,11 @@ export const NetInterfaceSchema = z.object({
    * Carte physique liée à un commutateur virtuel externe Hyper-V (identifiant du commutateur) :
    * elle ne porte plus d'adresse IP et transmet les trames du commutateur sur son câble.
    */
-  bridge: z.string().nullable().default(null)
+  bridge: z.string().nullable().default(null),
+  /** Port de switch : mode accès ou trunk 802.1Q (absent : accès, VLAN 1). */
+  switchport: SwitchportSchema.optional(),
+  /** Sous-interface de routeur (sans câble propre : elle utilise celui de sa carte parente). */
+  subinterface: SubinterfaceSchema.optional()
 })
 
 /** Entrée du journal d'événements (Observateur d'événements simplifié). */
@@ -444,7 +468,12 @@ export const ServerDeviceSchema = z.object({
   storage: StorageSchema.default(() => ({ rootAcl: defaultRootAcl(), nodes: defaultFsNodes(), shares: [] }))
 })
 export const ClientDeviceSchema = z.object({ ...deviceBase, kind: z.literal('client'), host: HostSchema })
-export const SwitchDeviceSchema = z.object({ ...deviceBase, kind: z.literal('switch') })
+export const SwitchDeviceSchema = z.object({
+  ...deviceBase,
+  kind: z.literal('switch'),
+  /** Base des VLAN (VLAN 1 « default » toujours présent). */
+  vlans: z.array(VlanSchema).default(() => [{ id: 1, name: 'default' }])
+})
 export const RouterDeviceSchema = z.object({
   ...deviceBase,
   kind: z.literal('router'),
@@ -606,6 +635,9 @@ export const DeviceKindSchema = z.enum(DEVICE_KINDS)
 export type Position = z.infer<typeof PositionSchema>
 export type DhcpClientLease = z.infer<typeof DhcpClientLeaseSchema>
 export type NetInterface = z.infer<typeof NetInterfaceSchema>
+export type Switchport = z.infer<typeof SwitchportSchema>
+export type Subinterface = z.infer<typeof SubinterfaceSchema>
+export type Vlan = z.infer<typeof VlanSchema>
 export type EventLogEntry = z.infer<typeof EventLogEntrySchema>
 export type StaticRoute = z.infer<typeof StaticRouteSchema>
 export type Host = z.infer<typeof HostSchema>

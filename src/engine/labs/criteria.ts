@@ -10,6 +10,7 @@ import { z } from 'zod'
 import type { LabState } from '../model/schema'
 import { effectiveIpv4 } from '../net/addressing'
 import { ping } from '../net/diagnostics'
+import { switchportOf } from '../net/switchport'
 import { roleCriteria } from '../roles/registry'
 import { defineCriterion, type CriterionType } from '../roles/types'
 import { byName, hostByName, sameName, targetIp } from './lookup'
@@ -54,6 +55,29 @@ const CORE_CRITERIA: CriterionType[] = [
       if (!from || !ip) return false
       const r = ping(state, from.id, ip, { count: 1 })
       return r.ok && r.value.success === (check.success !== false)
+    }
+  ),
+  defineCriterion(
+    z.object({
+      type: z.literal('switchport'),
+      device: z.string(),
+      port: z.string(),
+      mode: z.enum(['access', 'trunk']).optional(),
+      /** VLAN d'accès (port d'accès) ou VLAN qui doit circuler sur le trunk. */
+      vlan: z.number().int().optional()
+    }),
+    (state, check) => {
+      const device = byName(state, check.device)
+      const port =
+        device?.kind === 'switch' ? device.interfaces.find((i) => sameName(i.name, check.port)) : undefined
+      if (!device || device.kind !== 'switch' || !port) return false
+      const config = switchportOf(port)
+      if (check.mode !== undefined && config.mode !== check.mode) return false
+      if (check.vlan === undefined) return true
+      if (!device.vlans.some((v) => v.id === check.vlan)) return false
+      return config.mode === 'access'
+        ? config.accessVlan === check.vlan
+        : config.allowedVlans === null || config.allowedVlans.includes(check.vlan)
     }
   ),
   defineCriterion(
