@@ -5,11 +5,11 @@ Une nouvelle session reprend **uniquement** à partir de ce fichier (lire aussi 
 
 ## État
 
-| Clé              | Valeur                                                                                               |
-| ---------------- | ---------------------------------------------------------------------------------------------------- |
-| Étape en cours   | 2 — Preuve des acquis (terminée, attente « OK étape 2 »)                                             |
-| Base de travail  | `main` @ `ee85a79` (merge PR #51), `package.json` = 2.0.0                                            |
-| Prochaine action | Après « OK étape 2 » : étape 3 (couverture) ; y intégrer les tests manquants G1 → G4. Gary : A1 → A6 |
+| Clé              | Valeur                                                                                                                                                                                  |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Étape en cours   | 3 — Couverture (terminée, attente « OK étape 3 »)                                                                                                                                       |
+| Base de travail  | `main` @ `ee85a79` (merge PR #51), `package.json` = 2.0.0                                                                                                                               |
+| Prochaine action | Après « OK étape 3 » : étape 4, en commençant par corriger B1 → B4 (une branche `fix/<num>-<slug>` et une PR par bug). Gary : A1 → A6 (A3 requis pour rattacher #53 → #56 au milestone) |
 
 ## Étapes
 
@@ -17,8 +17,8 @@ Une nouvelle session reprend **uniquement** à partir de ce fichier (lire aussi 
 | --- | -------------------------- | ------------------------------------------------- |
 | 0   | Hygiène du dépôt           | validée (OK le 2026-10-06), actions Gary en cours |
 | 1   | État des lieux             | validée (OK le 2026-10-06)                        |
-| 2   | Preuve des acquis 2.0.0    | terminée, attente OK                              |
-| 3   | Couverture                 | à faire                                           |
+| 2   | Preuve des acquis 2.0.0    | validée (OK le 2026-10-06)                        |
+| 3   | Couverture                 | terminée, attente OK                              |
 | 4   | Chasse aux bugs par rôle   | à faire                                           |
 | 5   | Fichiers .slab             | à faire                                           |
 | 6   | Labs                       | à faire                                           |
@@ -117,13 +117,68 @@ Fichiers : `E` = `tests/engine/…`, `S` = `tests/shared/…`, `P` = `tests/e2e/
 
 ## Bugs
 
-| Issue | Titre | Branche | PR  | Statut |
-| ----- | ----- | ------- | --- | ------ |
+| #   | Issue | Titre                                                                              | Gravité                    | Branche | PR  | Statut |
+| --- | ----- | ---------------------------------------------------------------------------------- | -------------------------- | ------- | --- | ------ |
+| B1  | #53   | `net share … /grant:Inconnu` : « Erreur système 2 » au lieu de 1332                | Mineure (fidélité sourcée) | —       | —   | ouvert |
+| B2  | #54   | `-match` / `-notmatch` regex invalide : exception non rattrapée                    | Haute (plantage console)   | —       | —   | ouvert |
+| B3  | #55   | `-in` / `-notin` / `-contains` : liste `'a','b'` refusée, opérateurs inutilisables | Moyenne                    | —       | —   | ouvert |
+| B4  | #56   | `Get-Command` / `Get-WindowsFeature -Name` : joker non échappé, plantage sur `(`   | Haute (plantage console)   | —       | —   | ouvert |
+
+Milestone `v2.0.x` absent (A3) : à rattacher dès sa création.
 
 ## Couverture
 
-| Dossier `src/engine` | Avant | Après |
-| -------------------- | ----- | ----- |
+Mesure : `npm run test:coverage` (v8, `src/engine/**`). Avant = `main` @ `ee85a79`.
+
+| Métrique       | Avant  | Après  |
+| -------------- | ------ | ------ |
+| Lignes         | 78,5 % | 90,4 % |
+| Instructions   | 75,5 % | 86,5 % |
+| Fonctions      | 76,2 % | 92,5 % |
+| Branches       | 63,6 % | 72,5 % |
+| Tests (moteur) | 265    | 314    |
+| Tests (E2E)    | 31     | 34     |
+
+| Dossier (lignes) | Avant  | Après  |
+| ---------------- | ------ | ------ |
+| commands         | 73,0 % | 96,4 % |
+| roles/adds       | 70,7 % | 88,9 % |
+| roles/dhcp       | 75,0 % | 91,8 % |
+| roles/dns        | 77,8 % | 89,6 % |
+| roles/files      | 71,4 % | 89,5 % |
+| roles/gpo        | 85,2 % | 90,4 % |
+| shell/cmd        | 58,5 % | 96,2 % |
+| shell/ps         | 72,6 % | 86,5 % |
+| shell/tools      | 63,2 % | 90,3 % |
+| autres dossiers  | ≥ 86 % | ≥ 86 % |
+
+Tests ajoutés (étape 3) :
+
+- `tests/engine/commands/catalog.test.ts` : les 68 commandes du catalogue via `dispatch` (succès, libellé FR,
+  inverse exact) ; échoue si une commande est ajoutée sans test.
+- `tests/engine/shell/cmdlets-roles.test.ts`, `cmdlets-core.test.ts`, `cmd-tools.test.ts`, `files-tools.test.ts`,
+  `ps-expressions.test.ts` : 58 cmdlets et 5 outils cmd jamais exécutés jusque-là, équivalence GUI ⇔ PowerShell
+  sur DHCP (exclusion, réservation) et Remove-Computer.
+- `tests/engine/roles/boundaries.test.ts` : garde-fou G1 (dépendances cœur → rôle figées, aucun `case '<rôle>'`).
+- `tests/e2e/recovery.spec.ts` (G2) et 2e test de `tests/e2e/undo.spec.ts` (G3).
+
+Restant : branches à 72,5 % (cible 80 % atteinte en lignes, pas en branches). Points faibles : `shell/ps`
+(66 %), `roles/files` et `roles/adds` (69 %).
+
+## Points de fidélité relevés (pour l'étape 8, non corrigés)
+
+| Comportement simulé                                                                 | Doute                                               |
+| ----------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `Get-ADUser -Properties Description` n'affiche pas `Description`                    | `-Properties` ajoute les propriétés demandées       |
+| `Get-DnsServerZone` sur un DC : seule `lab.local`                                   | zones `_msdcs`, `TrustAnchors`, zones inverses auto |
+| Zone inverse : SOA `hostmaster.srv1.lab.local.` (directe : `hostmaster.lab.local.`) | incohérence entre zones                             |
+| Enregistrement statique : `Timestamp` = `0`                                         | colonne vide pour un enregistrement statique        |
+| `Get-NetIPConfiguration -Detailed` identique à la version courte                    | propriétés supplémentaires                          |
+| `Rename-GPO` : `ModificationTime` inchangé                                          | date mise à jour                                    |
+| `echo x > fichier` (cmd) : redirection non gérée, texte affiché                     | fichier créé (fonction absente → hors mission)      |
+| `dir /?` liste le dossier courant                                                   | aide de `dir`                                       |
+| Session refusée « mot de passe à changer » : aucun évènement journalisé             | 4625 attendu ?                                      |
+| `net share` : nom ou chemin invalide → « Erreur système 2 »                         | code exact à vérifier                               |
 
 ## Notes de reprise
 
