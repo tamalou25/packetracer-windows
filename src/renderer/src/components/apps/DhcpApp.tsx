@@ -4,23 +4,15 @@
 import { useState } from 'react'
 import { CircleArrowDown, CircleCheck, FolderOpen, ListTree, Server, Settings2 } from 'lucide-react'
 import {
-  addExclusion,
-  addReservation,
-  addScope,
-  authorizeDhcpServer,
   formatLeaseDuration,
   formatShortDate,
   prefixToMask,
-  removeExclusion,
-  removeReservation,
-  removeScope,
-  setDhcpOptions,
-  setScopeState,
   type DhcpOptions,
   type DhcpScope,
-  type ServerDevice
+  type ServerDevice,
+  command
 } from '@engine/index'
-import { runAction } from '../../lib/run'
+import { runCommand } from '../../lib/run'
 import { useUiStore } from '../../store/ui'
 import { Button, Field, inputClass } from '../common/ui'
 import { Mmc, MmcAction, MmcTable, type MmcNode } from '../mmc/Mmc'
@@ -78,7 +70,7 @@ export function DhcpApp({ device }: { device: ServerDevice }) {
       {device.host.domain && (
         <MmcAction
           onClick={() =>
-            runAction((lab) => authorizeDhcpServer(lab, device.id, !dhcp.authorized), {
+            runCommand(command('dhcp.authorize', device.id, !dhcp.authorized), {
               success: dhcp.authorized
                 ? 'Autorisation retirée.'
                 : 'Serveur DHCP autorisé dans Active Directory.'
@@ -92,7 +84,7 @@ export function DhcpApp({ device }: { device: ServerDevice }) {
         <>
           <MmcAction
             onClick={() =>
-              runAction((lab) => setScopeState(lab, device.id, scope.scopeId, scope.state !== 'Active'))
+              runCommand(command('dhcp.setScopeState', device.id, scope.scopeId, scope.state !== 'Active'))
             }
           >
             {scope.state === 'Active' ? 'Désactiver l’étendue' : 'Activer l’étendue'}
@@ -100,7 +92,7 @@ export function DhcpApp({ device }: { device: ServerDevice }) {
           <MmcAction
             danger
             onClick={() => {
-              if (runAction((lab) => removeScope(lab, device.id, scope.scopeId)) !== undefined)
+              if (runCommand(command('dhcp.removeScope', device.id, scope.scopeId)) !== undefined)
                 setSelected('ipv4')
             }}
           >
@@ -215,7 +207,7 @@ function PoolView({ device, scope }: { device: ServerDevice; scope: DhcpScope })
               key="d"
               type="button"
               className="text-red-600 hover:underline"
-              onClick={() => runAction((lab) => removeExclusion(lab, device.id, scope.scopeId, i))}
+              onClick={() => runCommand(command('dhcp.removeExclusion', device.id, scope.scopeId, i))}
             >
               Supprimer
             </button>
@@ -238,7 +230,7 @@ function PoolView({ device, scope }: { device: ServerDevice; scope: DhcpScope })
           variant="primary"
           onClick={() => {
             if (
-              runAction((lab) => addExclusion(lab, device.id, scope.scopeId, start, end || start)) !==
+              runCommand(command('dhcp.addExclusion', device.id, scope.scopeId, start, end || start)) !==
               undefined
             ) {
               setStart('')
@@ -268,7 +260,7 @@ function ReservationsView({ device, scope }: { device: ServerDevice; scope: Dhcp
             key="d"
             type="button"
             className="text-red-600 hover:underline"
-            onClick={() => runAction((lab) => removeReservation(lab, device.id, scope.scopeId, r.ip))}
+            onClick={() => runCommand(command('dhcp.removeReservation', device.id, scope.scopeId, r.ip))}
           >
             Supprimer
           </button>
@@ -300,7 +292,7 @@ function ReservationsView({ device, scope }: { device: ServerDevice; scope: Dhcp
         <Button
           variant="primary"
           onClick={() => {
-            if (runAction((lab) => addReservation(lab, device.id, scope.scopeId, form)) !== undefined)
+            if (runCommand(command('dhcp.addReservation', device.id, scope.scopeId, form)) !== undefined)
               setForm({ name: '', ip: '', mac: '' })
           }}
         >
@@ -358,14 +350,13 @@ function OptionsEditor({
           variant="primary"
           data-testid="opt-apply"
           onClick={() =>
-            runAction(
-              (lab) =>
-                setDhcpOptions(lab, device.id, scopeId, {
-                  router: split(router),
-                  dnsServers: split(dns),
-                  dnsDomain: domain,
-                  force
-                }),
+            runCommand(
+              command('dhcp.setOptions', device.id, scopeId, {
+                router: split(router),
+                dnsServers: split(dns),
+                dnsDomain: domain,
+                force
+              }),
               {
                 success: 'Options enregistrées.'
               }
@@ -400,24 +391,17 @@ function NewScopeDialog({
   })
   const set = (k: keyof typeof form, v: string) => setForm({ ...form, [k]: v })
   const create = () => {
-    const id = runAction((lab) => {
-      const r = addScope(lab, device.id, {
-        name: form.name,
-        start: form.start,
-        end: form.end,
-        mask: form.mask,
-        leaseDuration: form.lease
-      })
-      if (!r.ok) return r
-      const split = (v: string) => v.split(/[,; ]+/).filter((x) => x)
-      if (!form.router && !form.dns && !form.domain) return r
-      const opts = setDhcpOptions(r.state, device.id, r.value, {
-        router: split(form.router),
-        dnsServers: split(form.dns),
-        dnsDomain: form.domain || null
-      })
-      return opts.ok ? { ok: true as const, state: opts.state, value: r.value } : opts
-    })
+    const split = (v: string) => v.split(/[,; ]+/).filter((x) => x)
+    const id = runCommand(
+      command(
+        'dhcp.createScope',
+        device.id,
+        { name: form.name, start: form.start, end: form.end, mask: form.mask, leaseDuration: form.lease },
+        form.router || form.dns || form.domain
+          ? { router: split(form.router), dnsServers: split(form.dns), dnsDomain: form.domain || null }
+          : null
+      )
+    )
     if (id) {
       useUiStore.getState().notify('success', `Étendue ${id} créée et activée.`)
       onCreated(id)

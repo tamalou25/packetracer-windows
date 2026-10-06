@@ -5,24 +5,16 @@
 import { useState } from 'react'
 import { Folder, FolderKey, Globe, Monitor, User, UserX, Users, type LucideIcon } from 'lucide-react'
 import {
-  addGroup,
-  addGroupMembers,
-  addOrganizationalUnit,
-  addUser,
   allObjects,
   containerDn,
-  moveObject,
   objectDn,
-  removeGroupMembers,
-  removeObject,
-  resetPassword,
-  setAccountEnabled,
   type AdObject,
   type Domain,
-  type HostDevice
+  type HostDevice,
+  command
 } from '@engine/index'
 import { requireAdmin } from '../../lib/directory'
-import { runAction } from '../../lib/run'
+import { runCommand } from '../../lib/run'
 import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
 import { FormDialog, type FormField, type FormValues } from '../common/FormDialog'
@@ -116,8 +108,8 @@ export function AducApp({ device }: { device: HostDevice }) {
       ],
       submit: (v) =>
         ok(
-          runAction((l) =>
-            addOrganizationalUnit(l, domain.name, {
+          runCommand(
+            command('adds.addOrganizationalUnit', domain.name, {
               name: String(v['name']),
               path,
               protectedFromDeletion: v['protected'] === true
@@ -147,8 +139,8 @@ export function AducApp({ device }: { device: HostDevice }) {
           return false
         }
         const name = `${String(v['given'])} ${String(v['surname'])}`.trim() || String(v['sam'])
-        const result = runAction((l) =>
-          addUser(l, domain.name, {
+        const result = runCommand(
+          command('adds.addUser', domain.name, {
             name,
             sam: String(v['sam']),
             givenName: String(v['given']),
@@ -194,8 +186,8 @@ export function AducApp({ device }: { device: HostDevice }) {
       ],
       submit: (v) =>
         ok(
-          runAction((l) =>
-            addGroup(l, domain.name, {
+          runCommand(
+            command('adds.addGroup', domain.name, {
               name: String(v['name']),
               scope: String(v['scope']) as 'Global',
               category: String(v['category']) as 'Security',
@@ -223,15 +215,14 @@ export function AducApp({ device }: { device: HostDevice }) {
           return false
         }
         return ok(
-          runAction(
-            (l) =>
-              resetPassword(
-                l,
-                domain.name,
-                objectDn(domain, current),
-                String(v['password']),
-                v['mustChange'] === true
-              ),
+          runCommand(
+            command(
+              'adds.resetPassword',
+              domain.name,
+              objectDn(domain, current),
+              String(v['password']),
+              v['mustChange'] === true
+            ),
             { success: 'Le mot de passe a été modifié.' }
           )
         )
@@ -243,7 +234,9 @@ export function AducApp({ device }: { device: HostDevice }) {
       submit: (v) =>
         !!current &&
         ok(
-          runAction((l) => addGroupMembers(l, domain.name, objectDn(domain, current), [String(v['member'])]))
+          runCommand(
+            command('adds.addGroupMembers', domain.name, objectDn(domain, current), [String(v['member'])])
+          )
         )
     },
     addToGroup: {
@@ -252,9 +245,12 @@ export function AducApp({ device }: { device: HostDevice }) {
       submit: (v) =>
         !!current &&
         ok(
-          runAction((l) => addGroupMembers(l, domain.name, String(v['group']), [objectDn(domain, current)]), {
-            success: 'Ajouté au groupe.'
-          })
+          runCommand(
+            command('adds.addGroupMembers', domain.name, String(v['group']), [objectDn(domain, current)]),
+            {
+              success: 'Ajouté au groupe.'
+            }
+          )
         )
     },
     move: {
@@ -268,7 +264,8 @@ export function AducApp({ device }: { device: HostDevice }) {
         }
       ],
       submit: (v) =>
-        !!current && ok(runAction((l) => moveObject(l, domain.name, current.obj.id, String(v['target']))))
+        !!current &&
+        ok(runCommand(command('adds.moveObject', domain.name, current.obj.id, String(v['target']))))
     }
   }
 
@@ -294,7 +291,9 @@ export function AducApp({ device }: { device: HostDevice }) {
           </div>
           <MmcAction
             onClick={guard(() =>
-              runAction((l) => setAccountEnabled(l, domain.name, current.obj.sam, !current.obj.enabled))
+              runCommand(
+                command('adds.setAccountEnabled', domain.name, current.obj.sam, !current.obj.enabled)
+              )
             )}
           >
             {current.obj.enabled ? 'Désactiver le compte' : 'Activer le compte'}
@@ -319,7 +318,7 @@ export function AducApp({ device }: { device: HostDevice }) {
           <MmcAction
             danger
             onClick={guard(() => {
-              if (runAction((l) => removeObject(l, domain.name, current.obj.id, true)) !== undefined)
+              if (runCommand(command('adds.removeObject', domain.name, current.obj.id, true)) !== undefined)
                 setObjectId(null)
             })}
           >
@@ -378,7 +377,7 @@ export function AducApp({ device }: { device: HostDevice }) {
               object={current}
               onRemoveMember={(m) =>
                 guard(() =>
-                  runAction((l) => removeGroupMembers(l, domain.name, objectDn(domain, current), [m]))
+                  runCommand(command('adds.removeGroupMembers', domain.name, objectDn(domain, current), [m]))
                 )()
               }
             />

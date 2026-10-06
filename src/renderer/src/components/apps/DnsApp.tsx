@@ -3,17 +3,8 @@
  */
 import { useState } from 'react'
 import { ArrowRightLeft, BookOpen, FolderTree, Server } from 'lucide-react'
-import {
-  addPrimaryZone,
-  addRecord,
-  isDomainController,
-  removeRecord,
-  removeZone,
-  setForwarders,
-  type DnsZone,
-  type ServerDevice
-} from '@engine/index'
-import { runAction } from '../../lib/run'
+import { isDomainController, type DnsZone, type ServerDevice, command } from '@engine/index'
+import { runCommand } from '../../lib/run'
 import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
 import { Button, inputClass } from '../common/ui'
@@ -64,8 +55,8 @@ export function DnsApp({ device }: { device: ServerDevice }) {
 
   const submitZone = (v: FormValues): boolean => {
     const reverse = v['kind'] === 'reverse'
-    const name = runAction((l) =>
-      addPrimaryZone(l, device.id, {
+    const name = runCommand(
+      command('dns.addPrimaryZone', device.id, {
         ...(reverse ? { networkId: String(v['value']) } : { name: String(v['value']) }),
         adIntegrated: v['ad'] === true,
         dynamicUpdate: String(v['dynamic']) as 'None' | 'Secure' | 'NonsecureAndSecure'
@@ -79,8 +70,8 @@ export function DnsApp({ device }: { device: ServerDevice }) {
     (type: 'A' | 'CNAME' | 'PTR') =>
     (v: FormValues): boolean => {
       if (!zone) return false
-      const result = runAction((l) =>
-        addRecord(l, device.id, zone.name, {
+      const result = runCommand(
+        command('dns.addRecord', device.id, zone.name, {
           name: String(v['name']),
           type,
           data: String(v['data']),
@@ -191,7 +182,8 @@ export function DnsApp({ device }: { device: ServerDevice }) {
         <MmcAction
           danger
           onClick={() => {
-            if (runAction((l) => removeZone(l, device.id, zone.name)) !== undefined) setSelected('server')
+            if (runCommand(command('dns.removeZone', device.id, zone.name)) !== undefined)
+              setSelected('server')
           }}
         >
           Supprimer la zone
@@ -228,7 +220,7 @@ export function DnsApp({ device }: { device: ServerDevice }) {
                   type="button"
                   className="text-red-600 hover:underline"
                   onClick={() =>
-                    runAction((l) => removeRecord(l, device.id, zone.name, r.name, r.type, r.data))
+                    runCommand(command('dns.removeRecord', device.id, zone.name, r.name, r.type, r.data))
                   }
                 >
                   Supprimer
@@ -280,7 +272,7 @@ function ForwardersView({ device, forwarders }: { device: ServerDevice; forwarde
         <Button
           variant="primary"
           onClick={() =>
-            runAction((l) => setForwarders(l, device.id, value.split(/[,; ]+/)), {
+            runCommand(command('dns.setForwarders', device.id, value.split(/[,; ]+/)), {
               success: 'Redirecteurs enregistrés.'
             })
           }

@@ -1,10 +1,10 @@
 /**
  * Commandes du menu Édition, partagées entre le menu natif et le clavier.
  */
-import { disconnect, duplicateDevices, removeDevices } from '@engine/index'
+import { command } from '@engine/index'
 import { useLabStore } from '../store/lab'
 import { useUiStore } from '../store/ui'
-import { runAction } from './run'
+import { runCommand } from './run'
 
 /** Vrai si le focus est dans un champ de saisie (le clavier doit alors garder son comportement natif). */
 export function isEditableTarget(target: EventTarget | null): boolean {
@@ -32,10 +32,10 @@ export function deleteSelection(): void {
   const ui = useUiStore.getState()
   const { devices, link } = ui.selection
   if (devices.length > 0) {
-    runAction((lab) => removeDevices(lab, devices))
+    runCommand(command('topology.removeDevices', devices))
     for (const id of devices) ui.closeWindow(id)
   } else if (link) {
-    runAction((lab) => disconnect(lab, link))
+    runCommand(command('topology.disconnect', link))
   }
   ui.clearSelection()
 }
@@ -56,7 +56,7 @@ export function paste(): void {
   const clip = ui.clipboard
   if (!clip) return
   const offset = ui.nextPasteOffset()
-  const created = runAction((lab) => duplicateDevices(lab, clip, { x: offset, y: offset }))
+  const created = runCommand(command('topology.duplicateDevices', clip, { x: offset, y: offset }))
   if (created) ui.select({ devices: created, link: null })
 }
 

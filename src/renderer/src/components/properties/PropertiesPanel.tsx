@@ -18,25 +18,22 @@ import {
   type LucideIcon
 } from 'lucide-react'
 import {
-  addServerInterface,
   DEVICE_KIND_INFO,
   DEVICE_KINDS,
-  disconnect,
   endStatus,
   FEATURES,
   isHostDevice,
   linkStatus,
-  removeDevices,
-  setPower,
   type Device,
   type HostDevice,
   type LabState,
   type Link,
-  type RouterDevice
+  type RouterDevice,
+  command
 } from '@engine/index'
 import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
-import { runAction } from '../../lib/run'
+import { runCommand } from '../../lib/run'
 import { DEVICE_ICONS, KIND_STRIPE } from '../../lib/devices'
 import { formatSimTime } from '../../lib/format'
 import { deviceHealth, type DeviceHealth } from '../../lib/health'
@@ -173,7 +170,7 @@ function DeviceProperties({ device }: { device: Device }) {
             icon={Power}
             label={device.powered ? 'Éteindre' : 'Allumer'}
             onClick={() =>
-              runAction((l) => setPower(l, device.id, !device.powered), {
+              runCommand(command('topology.setPower', device.id, !device.powered), {
                 success: device.powered ? `${device.name} éteint` : `${device.name} démarré`
               })
             }
@@ -184,7 +181,7 @@ function DeviceProperties({ device }: { device: Device }) {
             icon={Trash2}
             label="Supprimer l’équipement"
             onClick={() => {
-              runAction((l) => removeDevices(l, [device.id]))
+              runCommand(command('topology.removeDevices', [device.id]))
               ui().closeWindow(device.id)
               ui().clearSelection()
             }}
@@ -212,7 +209,7 @@ function DeviceProperties({ device }: { device: Device }) {
           device.kind === 'server' ? (
             <button
               type="button"
-              onClick={() => runAction((l) => addServerInterface(l, device.id))}
+              onClick={() => runCommand(command('topology.addServerInterface', device.id))}
               title="Ajouter une carte réseau"
               aria-label="Ajouter une carte réseau"
               className="flex h-6 w-6 items-center justify-center rounded text-fg-muted hover:bg-surface-2 hover:text-fg"
@@ -419,9 +416,9 @@ function MultiProperties({ devices }: { devices: Device[] }) {
       <Button
         variant="danger"
         onClick={() => {
-          runAction((lab) =>
-            removeDevices(
-              lab,
+          runCommand(
+            command(
+              'topology.removeDevices',
               devices.map((d) => d.id)
             )
           )
@@ -460,7 +457,7 @@ function LinkProperties({ link }: { link: Link }) {
       <Button
         variant="danger"
         onClick={() => {
-          runAction((l) => disconnect(l, link.id))
+          runCommand(command('topology.disconnect', link.id))
           useUiStore.getState().clearSelection()
         }}
       >

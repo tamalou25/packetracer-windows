@@ -5,9 +5,9 @@
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Computer, Trash2, type LucideIcon } from 'lucide-react'
-import { logoff, restartComputer, setPower, type HostDevice } from '@engine/index'
+import { type HostDevice, command } from '@engine/index'
 import { launch, setDesktopArea } from '../../lib/desktop'
-import { runAction } from '../../lib/run'
+import { runCommand } from '../../lib/run'
 import { desktopBackground } from '../../lib/wallpapers'
 import { activeWindow, useDesktopStore } from '../../store/desktop'
 import { useLabStore } from '../../store/lab'
@@ -119,19 +119,19 @@ export function DesktopShell({ device }: { device: HostDevice }) {
     if (action === 'lock') store.setLocked(device.id, true)
     else if (action === 'logoff') {
       store.closeAll(device.id)
-      useLabStore.getState().run((lab) => ({ ok: true, state: logoff(lab, device.id), value: undefined }))
+      useLabStore.getState().dispatch(command('adds.logoff', device.id))
     } else if (device.kind === 'server') {
       // Suivi des événements d'arrêt : un serveur demande la raison
       setShutdown(action)
-    } else if (action === 'restart') runAction((lab) => restartComputer(lab, device.id))
-    else runAction((lab) => setPower(lab, device.id, false))
+    } else if (action === 'restart') runCommand(command('system.restartComputer', device.id))
+    else runCommand(command('topology.setPower', device.id, false))
   }
 
   const confirmShutdown = () => {
     const action = shutdown
     setShutdown(null)
-    if (action === 'restart') runAction((lab) => restartComputer(lab, device.id, reason))
-    else if (action === 'shutdown') runAction((lab) => setPower(lab, device.id, false))
+    if (action === 'restart') runCommand(command('system.restartComputer', device.id, reason))
+    else if (action === 'shutdown') runCommand(command('topology.setPower', device.id, false))
   }
 
   return (

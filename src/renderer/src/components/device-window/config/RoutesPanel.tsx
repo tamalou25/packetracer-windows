@@ -3,16 +3,10 @@
  */
 import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
-import {
-  addStaticRoute,
-  prefixToMask,
-  removeStaticRoute,
-  routingTable,
-  type RouterDevice
-} from '@engine/index'
+import { prefixToMask, routingTable, type RouterDevice, command } from '@engine/index'
 import { useLabStore } from '../../../store/lab'
 import { useUiStore } from '../../../store/ui'
-import { runAction } from '../../../lib/run'
+import { runCommand } from '../../../lib/run'
 import { Button, Section, inputClass } from '../../common/ui'
 
 const SOURCE_LABEL = { connected: 'C', static: 'S', default: 'S*' } as const
@@ -25,7 +19,7 @@ export function RoutesPanel({ device }: { device: RouterDevice }) {
   const table = routingTable(lab, device)
 
   const add = () => {
-    const result = runAction((l) => addStaticRoute(l, device.id, { network, mask, nextHop }))
+    const result = runCommand(command('net.addStaticRoute', device.id, { network, mask, nextHop }))
     if (!result) return
     result.warnings.forEach((w) => useUiStore.getState().notify('warning', w))
     setNetwork('')
@@ -63,7 +57,7 @@ export function RoutesPanel({ device }: { device: RouterDevice }) {
                     type="button"
                     className="rounded p-1 text-fg-subtle hover:bg-danger-soft hover:text-danger"
                     title="Supprimer la route"
-                    onClick={() => runAction((l) => removeStaticRoute(l, device.id, i))}
+                    onClick={() => runCommand(command('net.removeStaticRoute', device.id, i))}
                   >
                     <Trash2 size={13} />
                   </button>

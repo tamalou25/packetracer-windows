@@ -2,14 +2,8 @@
  * Configuration d'une interface de routeur ou du lien WAN du nuage (adressage statique).
  */
 import { useEffect, useState } from 'react'
-import {
-  prefixToMask,
-  setInterfaceEnabled,
-  setInterfaceIpv4,
-  type Device,
-  type NetInterface
-} from '@engine/index'
-import { runAction } from '../../../lib/run'
+import { prefixToMask, type Device, type NetInterface, command } from '@engine/index'
+import { runCommand } from '../../../lib/run'
 import { useUiStore } from '../../../store/ui'
 import { Button, Section, inputClass } from '../../common/ui'
 
@@ -22,8 +16,8 @@ export function RouterInterfaceForm({ device, iface }: { device: Device; iface: 
   }, [iface])
 
   const apply = (clear = false) => {
-    const result = runAction((lab) =>
-      setInterfaceIpv4(lab, device.id, iface.id, {
+    const result = runCommand(
+      command('net.setInterfaceIpv4', device.id, iface.id, {
         addressing: 'static',
         address: clear ? '' : address,
         mask: clear ? '' : mask
@@ -43,7 +37,7 @@ export function RouterInterfaceForm({ device, iface }: { device: Device; iface: 
             type="checkbox"
             checked={iface.enabled}
             onChange={(e) =>
-              runAction((lab) => setInterfaceEnabled(lab, device.id, iface.id, e.target.checked))
+              runCommand(command('net.setInterfaceEnabled', device.id, iface.id, e.target.checked))
             }
           />
           Interface activée

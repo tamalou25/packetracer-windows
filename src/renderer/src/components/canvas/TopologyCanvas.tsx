@@ -14,17 +14,10 @@ import {
   type NodeTypes,
   type EdgeTypes
 } from '@xyflow/react'
-import {
-  addDevice,
-  DEVICE_KINDS,
-  disconnect,
-  moveDevice,
-  removeDevices,
-  type DeviceKind
-} from '@engine/index'
+import { DEVICE_KINDS, type DeviceKind, command } from '@engine/index'
 import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
-import { runAction } from '../../lib/run'
+import { runCommand } from '../../lib/run'
 import { sendSimplePdu } from '../../lib/network'
 import { pickCablePort } from '../../lib/cabling'
 import { ICON_CENTER, setFlowInstance } from '../../lib/flow'
@@ -129,8 +122,8 @@ export function TopologyCanvas() {
         measured[change.id] = change.dimensions
       } else if (change.type === 'position' && change.position) {
         const { id, position } = change
-        // Déplacement transitoire : l'historique est mémorisé au début du glisser
-        useLabStore.getState().run((lab) => moveDevice(lab, id, position), { undoable: false })
+        // Déplacement transitoire : une seule entrée du journal à la fin du glisser
+        useLabStore.getState().dispatch(command('topology.moveDevice', id, position))
       } else if (change.type === 'select') {
         selectionChanged = true
         selected = change.selected
@@ -163,8 +156,8 @@ export function TopologyCanvas() {
   const placeDevice = useCallback(
     (kind: DeviceKind, screen: { x: number; y: number }) => {
       const p = flow.screenToFlowPosition(screen)
-      const id = runAction((lab) =>
-        addDevice(lab, {
+      const id = runCommand(
+        command('topology.addDevice', {
           kind,
           position: { x: Math.round(p.x - ICON_CENTER.x), y: Math.round(p.y - ICON_CENTER.y) }
         })
@@ -224,7 +217,7 @@ export function TopologyCanvas() {
           sendSimplePdu(source, node.id)
         }
       } else if (ui.tool === 'delete') {
-        runAction((lab) => removeDevices(lab, [node.id]))
+        runCommand(command('topology.removeDevices', [node.id]))
         ui.closeWindow(node.id)
         ui.clearSelection()
       }
@@ -243,7 +236,7 @@ export function TopologyCanvas() {
 
   const onEdgeClick = useCallback((_e: MouseEvent, edge: CableFlowEdge) => {
     if (useUiStore.getState().tool === 'delete') {
-      runAction((lab) => disconnect(lab, edge.id))
+      runCommand(command('topology.disconnect', edge.id))
       useUiStore.getState().clearSelection()
     }
   }, [])
@@ -284,7 +277,15 @@ export function TopologyCanvas() {
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onNodeDragStart={() => useLabStore.getState().checkpoint()}
+        onNodeDragStart={() => useLabStore.getState().beginTransaction()}
+        onNodeDragStop={(_event, _node, nodes) =>
+          useLabStore.getState().commitTransaction(
+            command(
+              'topology.moveDevices',
+              nodes.map((n) => ({ id: n.id, position: n.position }))
+            )
+          )
+        }
         onNodeClick={onNodeClick}
         onNodeDoubleClick={(_e, node) => useUiStore.getState().openWindow(node.id)}
         onEdgeClick={onEdgeClick}

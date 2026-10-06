@@ -4,10 +4,10 @@
  */
 import { useState } from 'react'
 import { Monitor } from 'lucide-react'
-import { joinDomain, leaveDomain, renameComputer, restartComputer, type HostDevice } from '@engine/index'
+import { type HostDevice, command } from '@engine/index'
 import { launch } from '../../../lib/desktop'
-import { runDirectoryOperation } from '../../../lib/directory'
-import { runAction } from '../../../lib/run'
+import { runDirectoryCommand } from '../../../lib/directory'
+import { runCommand } from '../../../lib/run'
 import { useLabStore } from '../../../store/lab'
 import { useAppWindow } from '../shell/AppWindow'
 import {
@@ -92,8 +92,12 @@ export function SystemProperties({ device }: { device: HostDevice }) {
               testId: 'restart-now',
               onClick: () => {
                 setRestart(false)
-                runAction((lab) =>
-                  restartComputer(lab, device.id, 'Système d’exploitation : reconfiguration (planifiée)')
+                runCommand(
+                  command(
+                    'system.restartComputer',
+                    device.id,
+                    'Système d’exploitation : reconfiguration (planifiée)'
+                  )
                 )
               }
             },
@@ -152,7 +156,7 @@ export function ComputerNameDialog({ device }: { device: HostDevice }) {
 
   const ok = () => {
     const renamed = name.trim().toUpperCase() !== currentName.toUpperCase()
-    if (renamed && runAction((lab) => renameComputer(lab, device.id, name)) === undefined) return
+    if (renamed && runCommand(command('system.renameComputer', device.id, name)) === undefined) return
     const joining = member === 'domain' && domain.trim().toLowerCase() !== (device.host.domain ?? '')
     const leaving = member === 'workgroup' && !!device.host.domain
     if (joining) {
@@ -160,8 +164,9 @@ export function ComputerNameDialog({ device }: { device: HostDevice }) {
       return
     }
     if (leaving) {
-      const op = leaveDomain(useLabStore.getState().lab, device.id)
-      runDirectoryOperation(op, () => (op.ok ? done(op.message) : error(op.message)))
+      runDirectoryCommand(command('adds.leaveDomain', device.id), (op) =>
+        op.success ? done(op.message) : error(op.message)
+      )
       return
     }
     if (renamed) done('Vous devez redémarrer cet ordinateur pour appliquer ces modifications.')
@@ -170,8 +175,10 @@ export function ComputerNameDialog({ device }: { device: HostDevice }) {
 
   const join = () => {
     setCredentials(false)
-    const op = joinDomain(useLabStore.getState().lab, device.id, { domain: domain.trim(), user, password })
-    runDirectoryOperation(op, () => (op.ok ? done(op.message) : error(op.message)))
+    runDirectoryCommand(
+      command('adds.joinDomain', device.id, { domain: domain.trim(), user, password }),
+      (op) => (op.success ? done(op.message) : error(op.message))
+    )
   }
 
   return (

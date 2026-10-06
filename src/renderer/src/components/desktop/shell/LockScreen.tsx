@@ -6,17 +6,9 @@
  */
 import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { ArrowRight, Keyboard, Power, RotateCcw, UserRound, UsersRound } from 'lucide-react'
-import {
-  changePasswordAndLogon,
-  formatClockParts,
-  logon,
-  restartComputer,
-  setPower,
-  verifyCredentials,
-  type HostDevice
-} from '@engine/index'
-import { runDirectoryOperation } from '../../../lib/directory'
-import { runAction } from '../../../lib/run'
+import { formatClockParts, verifyCredentials, type HostDevice, command } from '@engine/index'
+import { runDirectoryCommand } from '../../../lib/directory'
+import { runCommand } from '../../../lib/run'
 import { useDesktopStore } from '../../../store/desktop'
 import { useLabStore } from '../../../store/lab'
 
@@ -112,18 +104,19 @@ export function LockScreen({ device, mode }: { device: HostDevice; mode: 'logon'
         fail('Les mots de passe ne correspondent pas.', 'change')
         return
       }
-      const op = changePasswordAndLogon(lab, device.id, { ...account, password, newPassword })
       setStage('busy')
-      runDirectoryOperation(op, () => {
-        if (!op.ok) fail(op.message, 'change')
-        else useDesktopStore.getState().setLocked(device.id, false)
-      })
+      runDirectoryCommand(
+        command('adds.changePasswordAndLogon', device.id, { ...account, password, newPassword }),
+        (op) => {
+          if (!op.success) fail(op.message, 'change')
+          else useDesktopStore.getState().setLocked(device.id, false)
+        }
+      )
       return
     }
-    const op = logon(lab, device.id, { ...account, password })
     setStage('busy')
-    runDirectoryOperation(op, () => {
-      if (op.ok) {
+    runDirectoryCommand(command('adds.logon', device.id, { ...account, password }), (op) => {
+      if (op.success) {
         useDesktopStore.getState().setLocked(device.id, false)
         return
       }
@@ -154,7 +147,7 @@ export function LockScreen({ device, mode }: { device: HostDevice; mode: 'logon'
         type="button"
         title="Redémarrer"
         className="rounded p-2 hover:bg-white/15"
-        onClick={() => runAction((l) => restartComputer(l, device.id, 'Autre (non planifié)'))}
+        onClick={() => runCommand(command('system.restartComputer', device.id, 'Autre (non planifié)'))}
       >
         <RotateCcw size={16} />
       </button>
@@ -162,7 +155,7 @@ export function LockScreen({ device, mode }: { device: HostDevice; mode: 'logon'
         type="button"
         title="Arrêter"
         className="rounded p-2 hover:bg-white/15"
-        onClick={() => runAction((l) => setPower(l, device.id, false))}
+        onClick={() => runCommand(command('topology.setPower', device.id, false))}
       >
         <Power size={16} />
       </button>

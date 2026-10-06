@@ -18,31 +18,23 @@ import {
 } from 'lucide-react'
 import {
   AUTHENTICATED_USERS_SID,
-  createGpo,
-  deleteGpo,
   describeSettings,
   formatShortDate,
   gpoPrecedence,
   GPO_STATUS_LABELS,
   GPO_STATUSES,
-  linkGpo,
   linksAt,
   linksOfGpo,
   objectById,
-  renameGpo,
-  setGpoSecurityFilter,
-  setGpoStatus,
-  setInheritanceBlocked,
-  unlinkGpo,
-  updateGpoLink,
   type Domain,
   type Gpo,
   type GpoStatus,
-  type HostDevice
+  type HostDevice,
+  command
 } from '@engine/index'
 import { launch } from '../../lib/desktop'
 import { requireAdmin } from '../../lib/directory'
-import { runAction, runActionOk } from '../../lib/run'
+import { runCommand, runCommandOk } from '../../lib/run'
 import { useLabStore } from '../../store/lab'
 import { DialogBody, DialogFooter, MessageBox, TabStrip, WinButton, WinInput } from '../desktop/shell/classic'
 import { Mmc, MmcAction, MmcTable, type MmcNode } from '../mmc/Mmc'
@@ -190,7 +182,7 @@ export function GpmcApp({ device }: { device: HostDevice }) {
         {ou && (
           <MmcAction
             onClick={admin(() =>
-              runAction((l) => setInheritanceBlocked(l, domain.name, ou.id, !ou.blockInheritance))
+              runCommand(command('gpo.setInheritanceBlocked', domain.name, ou.id, !ou.blockInheritance))
             )}
             testId="gpmc-block"
           >
@@ -242,8 +234,8 @@ export function GpmcApp({ device }: { device: HostDevice }) {
               </MmcAction>
               <MmcAction
                 onClick={admin(() =>
-                  runAction((l) =>
-                    updateGpoLink(l, domain.name, gpo.id, sel.targetId, { enforced: !link.enforced })
+                  runCommand(
+                    command('gpo.updateLink', domain.name, gpo.id, sel.targetId, { enforced: !link.enforced })
                   )
                 )}
                 testId="gpmc-enforce"
@@ -252,8 +244,8 @@ export function GpmcApp({ device }: { device: HostDevice }) {
               </MmcAction>
               <MmcAction
                 onClick={admin(() =>
-                  runAction((l) =>
-                    updateGpoLink(l, domain.name, gpo.id, sel.targetId, { enabled: !link.enabled })
+                  runCommand(
+                    command('gpo.updateLink', domain.name, gpo.id, sel.targetId, { enabled: !link.enabled })
                   )
                 )}
                 testId="gpmc-link-enabled"
@@ -388,8 +380,10 @@ function ContainerView({
   const move = (delta: number) => {
     const index = links.findIndex((l) => l.gpoId === row)
     if (index < 0 || !requireAdmin(device)) return
-    runAction((l) =>
-      updateGpoLink(l, domain.name, links[index]?.gpoId ?? '', targetId, { order: index + 1 + delta })
+    runCommand(
+      command('gpo.updateLink', domain.name, links[index]?.gpoId ?? '', targetId, {
+        order: index + 1 + delta
+      })
     )
   }
   return (
@@ -566,7 +560,7 @@ function GpoView({
                     if (!filterRow || !requireAdmin(device)) return
                     const identity =
                       filterRow === AUTHENTICATED_USERS_SID ? filterRow : principalSam(domain, filterRow)
-                    runAction((l) => setGpoSecurityFilter(l, domain.name, gpo.id, identity, false))
+                    runCommand(command('gpo.setSecurityFilter', domain.name, gpo.id, identity, false))
                     setFilterRow(null)
                   }}
                   data-testid="gpmc-filter-remove"
@@ -606,7 +600,8 @@ function GpoView({
                     value={gpo.status}
                     onChange={(e) => {
                       const status = e.target.value as GpoStatus
-                      if (requireAdmin(device)) runAction((l) => setGpoStatus(l, domain.name, gpo.id, status))
+                      if (requireAdmin(device))
+                        runCommand(command('gpo.setStatus', domain.name, gpo.id, status))
                     }}
                     className="h-6 border border-[#7a7a7a] bg-white px-1"
                     data-testid="gpmc-status"
@@ -711,8 +706,8 @@ function GpmcDialog({
             onClick: () => {
               const ok =
                 dialog.kind === 'deleteLink'
-                  ? runActionOk((l) => unlinkGpo(l, domain.name, dialog.gpo.id, dialog.targetId))
-                  : runActionOk((l) => deleteGpo(l, domain.name, dialog.gpo.id))
+                  ? runCommandOk(command('gpo.unlink', domain.name, dialog.gpo.id, dialog.targetId))
+                  : runCommandOk(command('gpo.delete', domain.name, dialog.gpo.id))
               onClose()
               if (ok) onDeleted()
             }
@@ -752,20 +747,12 @@ function GpmcDialog({
     )
     submit = () => {
       if (dialog.kind === 'rename') {
-        if (runActionOk((l) => renameGpo(l, domain.name, dialog.gpo.id, name))) onClose()
+        if (runCommandOk(command('gpo.rename', domain.name, dialog.gpo.id, name))) onClose()
         return
       }
       const targetId = dialog.targetId
-      let createdId: string | undefined
-      const ok = runAction((l) => {
-        const created = createGpo(l, domain.name, { name })
-        if (!created.ok) return created
-        createdId = created.value
-        if (targetId === undefined) return created
-        const linked = linkGpo(created.state, domain.name, created.value, targetId)
-        return linked.ok ? { ok: true as const, state: linked.state, value: created.value } : linked
-      })
-      if (ok !== undefined && createdId) {
+      const createdId = runCommand(command('gpo.createAndLink', domain.name, { name }, targetId))
+      if (createdId) {
         onClose()
         onCreated(createdId, targetId)
       }
@@ -797,7 +784,7 @@ function GpmcDialog({
     )
     submit = () => {
       if (!pick) return
-      if (runAction((l) => linkGpo(l, domain.name, pick, dialog.targetId)) !== undefined) {
+      if (runCommand(command('gpo.link', domain.name, pick, dialog.targetId)) !== undefined) {
         onClose()
         onCreated(pick, dialog.targetId)
       }
@@ -830,7 +817,7 @@ function GpmcDialog({
     )
     submit = () => {
       if (!pick) return
-      if (runAction((l) => setGpoSecurityFilter(l, domain.name, dialog.gpo.id, pick, true)) !== undefined)
+      if (runCommand(command('gpo.setSecurityFilter', domain.name, dialog.gpo.id, pick, true)) !== undefined)
         onClose()
     }
   }

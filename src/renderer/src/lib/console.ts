@@ -4,6 +4,7 @@
  * appliqué immédiatement (Temps réel) ou à la fin de la lecture des paquets (Simulation).
  */
 import {
+  command,
   createShellSession,
   executeLine,
   shellBanner,
@@ -31,9 +32,20 @@ export function promptOf(session: ShellSession | null): string {
   return session ? shellPrompt(session) : '> '
 }
 
-function commitState(base: LabState, next: LabState): void {
-  if (next === base) return
-  useLabStore.getState().run(() => ({ ok: true, state: next, value: undefined }))
+/** Valide l'état produit par une ligne de console, journalisée comme commande `shell.exec`. */
+function commitLine(
+  base: LabState,
+  result: ShellResult,
+  session: ShellSession,
+  line: string,
+  answers: string[]
+): void {
+  if (result.state === base) return
+  useLabStore.getState().commit({
+    command: command('shell.exec', session, line, answers),
+    base,
+    result: { ok: true, state: result.state, value: result, entry: null }
+  })
 }
 
 /** Ouvre une nouvelle session dans la console (l'affichage précédent est conservé). */
@@ -86,7 +98,7 @@ function finalize(
   if (final.clear) store.clear(key)
   store.append(key, final.output.slice(displayed))
   const sessionBefore = useConsoleStore.getState().terminals[key]?.session ?? null
-  commitState(base, final.state)
+  commitLine(base, final, session, line, answers)
   const sessionAfter = useConsoleStore.getState().terminals[key]?.session ?? null
   if (sessionAfter !== sessionBefore) {
     // Nouvelle session ouverte par le changement d'utilisateur : rien d'autre à appliquer

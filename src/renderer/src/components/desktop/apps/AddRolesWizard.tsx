@@ -10,13 +10,12 @@ import {
   effectiveIpv4,
   featureInfo,
   FEATURES,
-  installFeatures,
-  uninstallFeatures,
   type FeatureInfo,
-  type ServerDevice
+  type ServerDevice,
+  command
 } from '@engine/index'
 import { launch } from '../../../lib/desktop'
-import { runAction } from '../../../lib/run'
+import { runCommand } from '../../../lib/run'
 import { useAppWindow } from '../shell/AppWindow'
 import { WinButton } from '../shell/classic'
 import { NoteList, WizardFrame, type WizardStep } from './Wizard'
@@ -138,8 +137,8 @@ export function AddRolesWizard({ device, mode = 'install' }: { device: ServerDev
   const install = () => {
     const value =
       mode === 'install'
-        ? runAction((lab) => installFeatures(lab, device.id, added, { includeManagementTools: false }))
-        : runAction((lab) => uninstallFeatures(lab, device.id, removed))
+        ? runCommand(command('system.installFeatures', device.id, added, { includeManagementTools: false }))
+        : runCommand(command('system.uninstallFeatures', device.id, removed))
     if (!value) return
     setResult(value.installed)
     go('results')

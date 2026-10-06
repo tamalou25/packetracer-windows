@@ -11,15 +11,15 @@ import {
   isIpv4,
   ping,
   prefixToMask,
-  setInterfaceEnabled,
   setInterfaceIpv4,
   type HostDevice,
   type LabState,
-  type NetInterface
+  type NetInterface,
+  command
 } from '@engine/index'
 import { launch } from '../../../lib/desktop'
 import { adapterStatus, type AdapterStatus } from '../../../lib/netstatus'
-import { runAction } from '../../../lib/run'
+import { runCommand } from '../../../lib/run'
 import { useDesktopStore } from '../../../store/desktop'
 import { useLabStore } from '../../../store/lab'
 import { useAppWindow } from '../shell/AppWindow'
@@ -103,15 +103,15 @@ export function NetworkConnections({ device }: { device: HostDevice }) {
   const current = adapters.find((a) => a.iface.id === selected)
 
   const openStatus = (a: AdapterStatus) => {
-    if (a.state === 'disabled') runAction((l) => setInterfaceEnabled(l, device.id, a.iface.id, true))
+    if (a.state === 'disabled') runCommand(command('net.setInterfaceEnabled', device.id, a.iface.id, true))
     else launch(device.id, 'netstatus', { arg: a.iface.id, parent: win?.win.id })
   }
   const openProperties = (a: AdapterStatus) =>
     launch(device.id, 'netprops', { arg: a.iface.id, parent: win?.win.id })
   const toggle = (a: AdapterStatus) =>
-    runAction((l) => setInterfaceEnabled(l, device.id, a.iface.id, a.state === 'disabled'))
+    runCommand(command('net.setInterfaceEnabled', device.id, a.iface.id, a.state === 'disabled'))
 
-  const command = (label: string, onClick: () => void, testId: string) => (
+  const toolbarButton = (label: string, onClick: () => void, testId: string) => (
     <button type="button" onClick={onClick} className="px-2 py-1 hover:bg-[#e5f3ff]" data-testid={testId}>
       {label}
     </button>
@@ -138,7 +138,7 @@ export function NetworkConnections({ device }: { device: HostDevice }) {
         <span className="px-2 py-1 text-[#333]">Organiser ▾</span>
         {current && (
           <>
-            {command(
+            {toolbarButton(
               current.state === 'disabled'
                 ? 'Activer ce périphérique réseau'
                 : 'Désactiver ce périphérique réseau',
@@ -146,14 +146,18 @@ export function NetworkConnections({ device }: { device: HostDevice }) {
               'ncpa-toggle'
             )}
             {current.state !== 'disabled' &&
-              command(
+              toolbarButton(
                 'Diagnostiquer cette connexion',
                 () => showDiagnosis(device, current.iface),
                 'ncpa-diagnose'
               )}
             {current.state !== 'disabled' &&
-              command('Afficher le statut de cette connexion', () => openStatus(current), 'ncpa-status')}
-            {command(
+              toolbarButton(
+                'Afficher le statut de cette connexion',
+                () => openStatus(current),
+                'ncpa-status'
+              )}
+            {toolbarButton(
               'Modifier les paramètres de cette connexion',
               () => openProperties(current),
               'ncpa-properties'
@@ -280,7 +284,9 @@ export function AdapterStatusDialog({ device, ifaceId }: { device: HostDevice; i
           <WinButton onClick={() => launch(device.id, 'netprops', { arg: iface.id, parent: win?.win.id })}>
             Propriétés
           </WinButton>
-          <WinButton onClick={() => runAction((l) => setInterfaceEnabled(l, device.id, iface.id, false))}>
+          <WinButton
+            onClick={() => runCommand(command('net.setInterfaceEnabled', device.id, iface.id, false))}
+          >
             Désactiver
           </WinButton>
           <WinButton onClick={() => showDiagnosis(device, iface)}>Diagnostiquer</WinButton>
@@ -480,7 +486,7 @@ export function Ipv4PropertiesDialog({ device, ifaceId }: { device: HostDevice; 
   })
 
   const commit = () => {
-    const result = runAction((lab) => setInterfaceIpv4(lab, device.id, iface.id, input()))
+    const result = runCommand(command('net.setInterfaceIpv4', device.id, iface.id, input()))
     if (result === undefined) return
     win?.close()
     // Conflit d'adresse : signalé après application, comme le système

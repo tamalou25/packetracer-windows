@@ -3,9 +3,9 @@
  * dossier (créé s'il n'existe pas), nom du partage, description et autorisations de partage.
  */
 import { useState } from 'react'
-import { createItem, createShare, findNode, type ServerDevice } from '@engine/index'
+import { type ServerDevice, command } from '@engine/index'
 import { explorerToken } from '../../../lib/explorer'
-import { runActionOk } from '../../../lib/run'
+import { runCommandOk } from '../../../lib/run'
 import { useLabStore } from '../../../store/lab'
 import { useAppWindow } from '../shell/AppWindow'
 import { DialogBody, DialogFooter, GroupBox, WinButton, WinInput } from '../shell/classic'
@@ -28,20 +28,15 @@ export function NewShareDialog({ device }: { device: ServerDevice }) {
     const lab = useLabStore.getState().lab
     const token = explorerToken(lab, device)
     const shareName = name.trim() || path.replace(/\\$/, '').split('\\').pop() || ''
-    const ok = runActionOk((l) => {
-      // Le dossier est créé s'il n'existe pas encore, comme dans l'assistant
-      const exists = findNode((l.devices[device.id] as ServerDevice).storage, path) !== undefined
-      const created = exists
-        ? { ok: true as const, state: l, value: '' }
-        : createItem(l, device.id, path, 'folder', token, { parents: true })
-      if (!created.ok) return created
-      return createShare(
-        created.state,
+    // Le dossier est créé s'il n'existe pas encore, comme dans l'assistant
+    const ok = runCommandOk(
+      command(
+        'files.shareFolder',
         device.id,
         { name: shareName, path, description, full: PRESETS[preset].full },
         token
       )
-    })
+    )
     if (ok) win?.close()
   }
   return (

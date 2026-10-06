@@ -2,9 +2,9 @@
  * Câblage port à port : premier port choisi, puis second port → câble créé dans le moteur.
  * Utilisé par le menu de ports et par le panneau de ports affiché au survol des nœuds.
  */
-import { connect } from '@engine/index'
+import { command } from '@engine/index'
 import { useUiStore } from '../store/ui'
-import { runAction } from './run'
+import { runCommand } from './run'
 
 /** Choisit un port pendant le câblage (outil Câble). */
 export function pickCablePort(deviceId: string, ifaceId: string): void {
@@ -21,6 +21,6 @@ export function pickCablePort(deviceId: string, ifaceId: string): void {
     return
   }
   ui.setCableStart(null)
-  const linkId = runAction((lab) => connect(lab, start, end))
+  const linkId = runCommand(command('topology.connect', start, end))
   if (linkId) ui.select({ link: linkId, devices: [] })
 }
