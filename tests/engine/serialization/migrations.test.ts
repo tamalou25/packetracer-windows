@@ -1,0 +1,164 @@
+/**
+ * Migrations du format .slab : chaque fichier de référence (fixtures/vN.slab, produit par le code
+ * de la version N) doit toujours s'ouvrir, migrer jusqu'au format courant et rester utilisable.
+ */
+import { existsSync } from 'node:fs'
+import { describe, expect, it } from 'vitest'
+import {
+  CURRENT_SCHEMA_VERSION,
+  DEFAULT_DC_POLICY_ID,
+  DEFAULT_DOMAIN_POLICY_ID,
+  evaluateCheck,
+  migrateDocument,
+  migrations,
+  parseSlab,
+  processGroupPolicy,
+  serializeSlab,
+  type LabState,
+  type SlabDocument
+} from '@engine/index'
+import { fixtureUrl, readFixture } from './fixtures'
+import { REFERENCE_SAVED_AT } from './reference-lab'
+
+const VERSIONS = Array.from({ length: CURRENT_SCHEMA_VERSION }, (_, i) => i + 1)
+
+function open(version: number): SlabDocument {
+  const parsed = parseSlab(readFixture(version))
+  if (!parsed.ok) throw new Error(`v${version}.slab : ${parsed.message}`)
+  return parsed.doc
+}
+
+const deviceId = (lab: LabState, name: string) =>
+  Object.values(lab.devices).find((d) => d.name === name)?.id ?? ''
+
+describe('fichiers .slab de référence', () => {
+  it('un fichier de référence existe pour chaque version du format', () => {
+    for (const v of VERSIONS)
+      expect(
+        existsSync(fixtureUrl(v)),
+        `fixtures/v${v}.slab manquant : générez-le avec « npm run fixture:slab » (voir CLAUDE.md)`
+      ).toBe(true)
+  })
+
+  it('chaque migration est déclarée (n → n + 1)', () => {
+    for (const v of VERSIONS.slice(0, -1))
+      expect(migrations[v], `migration ${v} → ${v + 1}`).toBeTypeOf('function')
+  })
+
+  for (const version of VERSIONS) {
+    describe(`v${version}.slab`, () => {
+      it('est bien un fichier de sa version, jamais régénéré', () => {
+        const raw = JSON.parse(readFixture(version)) as { schemaVersion: number; savedAt: string }
+        expect(raw.schemaVersion).toBe(version)
+        expect(raw.savedAt).toBe(REFERENCE_SAVED_AT)
+      })
+
+      it('s’ouvre, migre jusqu’au format courant et conserve le lab', () => {
+        const doc = open(version)
+        expect(doc.schemaVersion).toBe(CURRENT_SCHEMA_VERSION)
+        expect(doc.meta.labId).toBe('')
+        expect(doc.ui.viewport).toEqual({ x: 0, y: 0, zoom: 1 })
+        const lab = doc.lab
+        expect(
+          Object.values(lab.devices)
+            .map((d) => d.name)
+            .sort()
+        ).toEqual(['PC1', 'PC2', 'R1', 'SRV1', 'SW1'])
+        expect(Object.keys(lab.links)).toHaveLength(4)
+        const domain = lab.domains['lab.local']
+        expect(domain?.users.map((u) => u.sam)).toContain('jdupont')
+        expect(domain?.groups.find((g) => g.name === 'GG_Compta')?.members).toHaveLength(1)
+        // Stratégies par défaut présentes (ajoutées par la migration 1 → 2 pour un fichier v1)
+        expect(domain?.gpos.map((g) => g.id)).toEqual(
+          expect.arrayContaining([DEFAULT_DOMAIN_POLICY_ID, DEFAULT_DC_POLICY_ID])
+        )
+      })
+
+      it('reste utilisable : réseau, DNS, domaine et stratégies de groupe', () => {
+        const lab = open(version).lab
+        expect(evaluateCheck(lab, { type: 'ping', from: 'PC2', to: '192.168.10.1' })).toBe(true)
+        expect(
+          evaluateCheck(lab, {
+            type: 'nslookup',
+            client: 'PC2',
+            name: 'intranet.lab.local',
+            address: '192.168.10.1'
+          })
+        ).toBe(true)
+        expect(evaluateCheck(lab, { type: 'domainJoined', device: 'PC1', domain: 'lab.local' })).toBe(true)
+        expect(evaluateCheck(lab, { type: 'dhcpLease', client: 'PC1', server: 'SRV1' })).toBe(true)
+        const gp = processGroupPolicy(lab, deviceId(lab, 'PC1'), { computer: true, user: false })
+        expect(gp.error).toBeNull()
+        expect(gp.computer).toBe('ok')
+        expect(
+          evaluateCheck(gp.state, {
+            type: 'gpoApplied',
+            device: 'PC1',
+            gpo: 'Default Domain Policy',
+            part: 'computer'
+          })
+        ).toBe(true)
+      })
+
+      it('se réenregistre au format courant sans perte', () => {
+        const doc = open(version)
+        const again = parseSlab(serializeSlab(doc.lab, { savedAt: REFERENCE_SAVED_AT, appVersion: 'test' }))
+        expect(again.ok && again.doc.lab).toEqual(doc.lab)
+      })
+    })
+  }
+})
+
+describe('migration 1 → 2 (stratégies de groupe par défaut)', () => {
+  const v1 = () => JSON.parse(readFixture(1)) as Record<string, unknown>
+  const domainOf = (doc: Record<string, unknown>) =>
+    (doc['lab'] as { domains: Record<string, Record<string, unknown>> }).domains['lab.local']!
+
+  it('ajoute les deux GPO par défaut et leurs liaisons', () => {
+    const migrated = migrations[1]!(v1())
+    expect(migrated['schemaVersion']).toBe(2)
+    const domain = domainOf(migrated)
+    expect((domain['gpos'] as { id: string }[]).map((g) => g.id)).toEqual([
+      DEFAULT_DOMAIN_POLICY_ID,
+      DEFAULT_DC_POLICY_ID
+    ])
+    expect(domain['gpLinks']).toEqual([{ gpoId: DEFAULT_DOMAIN_POLICY_ID, enabled: true, enforced: false }])
+    const dcs = (domain['containers'] as Record<string, unknown>[]).find(
+      (c) => c['name'] === 'Domain Controllers' && c['parentId'] === null
+    )
+    expect(dcs?.['gpLinks']).toEqual([{ gpoId: DEFAULT_DC_POLICY_ID, enabled: true, enforced: false }])
+  })
+
+  it('ne touche pas un domaine qui a déjà des GPO', () => {
+    const doc = v1()
+    const domain = domainOf(doc)
+    domain['gpos'] = []
+    domain['gpLinks'] = []
+    const migrated = domainOf(migrations[1]!(doc))
+    expect(migrated['gpos']).toEqual([])
+    expect(migrated['gpLinks']).toEqual([])
+  })
+
+  it('accepte un lab sans domaine ni conteneur', () => {
+    const doc = v1()
+    ;(doc['lab'] as Record<string, unknown>)['domains'] = { 'vide.local': { name: 'vide.local' } }
+    const migrated = migrations[1]!(doc)
+    expect(migrated['schemaVersion']).toBe(2)
+  })
+})
+
+describe('migration 2 → 3 (identifiant du lab pédagogique)', () => {
+  it('ajoute un identifiant vide et conserve un identifiant existant', () => {
+    const doc = JSON.parse(readFixture(2)) as Record<string, unknown>
+    expect(migrations[2]!(doc)['meta']).toMatchObject({ labId: '' })
+    const withId = { ...doc, meta: { labId: 'lab-01-adressage' } }
+    expect(migrations[2]!(withId)['meta']).toMatchObject({ labId: 'lab-01-adressage' })
+  })
+})
+
+describe('migrateDocument', () => {
+  it('refuse un numéro de version absent ou invalide', () => {
+    for (const schemaVersion of [undefined, 0, 1.5, '2'])
+      expect(migrateDocument({ app: 'ServerLab', schemaVersion }).ok).toBe(false)
+  })
+})

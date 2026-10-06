@@ -60,7 +60,8 @@ npm run dist         # installeur local via electron-builder → dist/
 4. **Sécurité Electron** : `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, CSP stricte,
    preload minimal, arguments IPC validés dans le main, aucun accès disque générique exposé.
 5. **Fichiers `.slab`** : JSON versionné (`schemaVersion`), validé par zod, migrations dans
-   `src/engine/serialization/migrations.ts`. Toute évolution du format = nouvelle migration.
+   `src/engine/serialization/migrations.ts`. Toute évolution du format = nouvelle migration
+   - nouveau fichier de référence (recette « Faire évoluer le format .slab »).
 
 ## Conventions
 
@@ -114,6 +115,18 @@ La roadmap est dans `ROADMAP.md` ; ses milestones, labels et issues sont décrit
    Windows (NSIS) et Linux (AppImage) envoyés par electron-builder, puis publication.
 2. La version de l'application est celle du tag (alignée dans le workflow). Mises à jour :
    `src/main/updater.ts` (electron-updater, releases GitHub publiques, aucun jeton embarqué).
+
+### Faire évoluer le format .slab
+
+Un ancien lab doit toujours s'ouvrir. Les fichiers `tests/engine/serialization/fixtures/vN.slab`
+(un par version, jamais modifiés) le garantissent.
+
+1. Modifier le schéma, incrémenter `CURRENT_SCHEMA_VERSION` et ajouter `migrations[N]` (N → N + 1)
+   dans `src/engine/serialization/migrations.ts`.
+2. Adapter `tests/engine/serialization/reference-lab.ts` si le scénario doit couvrir la nouveauté,
+   puis `npm run fixture:slab` : écrit `fixtures/v<N+1>.slab` (refuse d'écraser un fichier existant).
+3. Ajouter un test unitaire de la migration dans `tests/engine/serialization/migrations.test.ts` ;
+   `npm test` vérifie que chaque fichier de référence s'ouvre, migre et reste utilisable.
 
 ### Ajouter un critère de lab
 
