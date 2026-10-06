@@ -1,0 +1,114 @@
+{
+  "formatVersion": 1,
+  "id": "lab-09-hyperv",
+  "title": "Virtualisation avec Hyper-V",
+  "difficulty": "Avancé",
+  "duration": "40 min",
+  "summary": "Créer des machines virtuelles, isoler un réseau de test sur un commutateur privé et publier une VM sur le réseau physique.",
+  "statement": "# Contexte\n\n**SRV1** devient hôte de virtualisation. L’équipe veut un réseau de test totalement isolé du réseau de l’entreprise, et une machine virtuelle de production joignable depuis les postes.\n\n## Travail demandé\n\n1. Sur SRV1, installez le rôle **Hyper-V** avec ses outils de gestion.\n2. Créez le commutateur virtuel **privé** `LAN-Test`, puis les machines virtuelles `VMTEST1` et `VMTEST2` connectées à ce commutateur. Démarrez-les et adressez-les en `192.168.50.1/24` et `192.168.50.2/24`.\n3. Créez le commutateur virtuel **externe** `Externe` lié à la carte `Ethernet0` (en la partageant avec le système de gestion), puis la machine virtuelle `VMWEB` connectée à ce commutateur. Démarrez-la et adressez-la en `192.168.10.50/24`.\n4. Vérifiez par des ping que les VM de test se joignent entre elles mais pas PC1, et que PC1 joint VMWEB.\n\n> Astuce : « Se connecter » dans le Gestionnaire Hyper-V ouvre la fenêtre de la VM (console, Bureau) ; sur le canvas, les liaisons virtuelles sont en pointillés.",
+  "start": {
+    "devices": [
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 330,
+        "y": 100,
+        "ip": "192.168.10.1/24"
+      },
+      {
+        "kind": "switch",
+        "name": "SW1",
+        "x": 330,
+        "y": 300
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 600,
+        "y": 300,
+        "ip": "192.168.10.10/24"
+      }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/2"]
+    ]
+  },
+  "criteria": [
+    {
+      "id": "role",
+      "label": "Le rôle Hyper-V est installé sur SRV1",
+      "hint": "Le rôle porte le même nom que l’hyperviseur ; ajoutez les outils de gestion pour obtenir le Gestionnaire et le module PowerShell.",
+      "check": {
+        "type": "featureInstalled",
+        "device": "SRV1",
+        "feature": "Hyper-V"
+      }
+    },
+    {
+      "id": "private",
+      "label": "Le commutateur virtuel du réseau de test est de type privé",
+      "hint": "Un commutateur privé ne relie que les machines virtuelles entre elles, sans carte virtuelle pour l’hôte.",
+      "check": {
+        "type": "vmSwitch",
+        "host": "SRV1",
+        "name": "LAN-Test",
+        "switchType": "Private"
+      }
+    },
+    {
+      "id": "vm-test",
+      "label": "VMTEST1 est démarrée et connectée au réseau de test",
+      "hint": "Une machine virtuelle est créée arrêtée ; vérifiez aussi le commutateur choisi pour sa carte réseau.",
+      "check": {
+        "type": "virtualMachine",
+        "host": "SRV1",
+        "name": "VMTEST1",
+        "running": true,
+        "switch": "LAN-Test"
+      }
+    },
+    {
+      "id": "test-ping",
+      "label": "Les deux machines de test se joignent",
+      "hint": "Les deux machines doivent être démarrées, sur le même commutateur et dans le même sous-réseau.",
+      "check": {
+        "type": "ping",
+        "from": "VMTEST1",
+        "to": "VMTEST2"
+      }
+    },
+    {
+      "id": "isolated",
+      "label": "Le réseau de test est isolé du réseau de l’entreprise",
+      "hint": "Même avec une adresse du bon sous-réseau, une machine sur un commutateur privé n’atteint aucun équipement physique.",
+      "check": {
+        "type": "ping",
+        "from": "VMTEST1",
+        "to": "PC1",
+        "success": false
+      }
+    },
+    {
+      "id": "external",
+      "label": "Le commutateur virtuel lié à la carte physique est externe",
+      "hint": "Un seul type de commutateur relie les machines virtuelles au réseau physique, par l’intermédiaire d’une carte réseau de l’hôte.",
+      "check": {
+        "type": "vmSwitch",
+        "host": "SRV1",
+        "name": "Externe",
+        "switchType": "External"
+      }
+    },
+    {
+      "id": "web",
+      "label": "PC1 joint la machine virtuelle de production",
+      "hint": "La machine doit être démarrée, connectée au bon commutateur et adressée dans le sous-réseau du poste.",
+      "check": {
+        "type": "ping",
+        "from": "PC1",
+        "to": "VMWEB"
+      }
+    }
+  ]
+}

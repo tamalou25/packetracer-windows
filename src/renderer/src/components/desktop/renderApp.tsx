@@ -9,6 +9,7 @@ import { DhcpApp } from '../apps/DhcpApp'
 import { DnsApp } from '../apps/DnsApp'
 import { GpmcApp } from '../apps/GpmcApp'
 import { GpoEditor } from '../apps/GpoEditor'
+import { HyperVApp } from '../apps/HyperVApp'
 import { IisApp } from '../apps/IisApp'
 import { RdsApp } from '../apps/RdsApp'
 import { WsusApp } from '../apps/WsusApp'
@@ -93,6 +94,8 @@ export function renderApp(win: DesktopWindow, device: HostDevice): ReactNode {
       return server ? <WsusApp device={server} /> : unavailable()
     case 'inetmgr':
       return server ? <IisApp device={server} /> : unavailable()
+    case 'hypervmgr':
+      return server ? <HyperVApp device={server} /> : unavailable()
     case 'rdsmgr':
       return server ? <RdsApp device={server} /> : unavailable()
     case 'mstsc':

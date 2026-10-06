@@ -1,6 +1,7 @@
 /**
  * Couche 2 : domaines de diffusion à travers les switchs.
- * Un switch est transparent (pas de VLAN ni de spanning-tree en v1).
+ * Un switch est transparent (pas de VLAN ni de spanning-tree en v1). Un commutateur virtuel Hyper-V
+ * est un switch hébergé ; s'il est externe, la carte physique liée de l'hôte fait office de pont.
  */
 import type { LabState, Link, NetInterface, Device } from '../model/schema'
 
@@ -108,16 +109,25 @@ export function l2Segment(state: LabState, origin: PortRef): SegmentMember[] {
     const current = queue.shift() as SegmentMember
     const resolved = resolvePort(state, current.port)
     if (!resolved || !resolved.device.powered || !resolved.iface.enabled) continue
-    const { device } = resolved
-    if (device.kind !== 'switch') {
+    const { device, iface } = resolved
+    // Switch, ou carte physique d'un hôte liée à un commutateur virtuel externe Hyper-V (pont)
+    let sw: Device | undefined
+    let fromUplink = false
+    if (device.kind === 'switch') sw = device
+    else if (iface.bridge) {
+      sw = state.devices[iface.bridge]
+      fromUplink = true
+      if (!sw || sw.kind !== 'switch' || !sw.powered) continue
+    } else {
       members.push(current)
       continue
     }
-    if (visitedSwitches.has(device.id)) continue
-    visitedSwitches.add(device.id)
-    for (const iface of device.interfaces) {
-      if (iface.id === current.port.ifaceId || !iface.enabled) continue
-      const out: PortRef = { deviceId: device.id, ifaceId: iface.id }
+    if (visitedSwitches.has(sw.id)) continue
+    visitedSwitches.add(sw.id)
+    const enteredBy = fromUplink ? null : current.port.ifaceId
+    for (const port of sw.interfaces) {
+      if (port.id === enteredBy || !port.enabled) continue
+      const out: PortRef = { deviceId: sw.id, ifaceId: port.id }
       const link = linkAt(state, out)
       if (!link) continue
       const next = peerOf(link, out)
@@ -125,15 +135,32 @@ export function l2Segment(state: LabState, origin: PortRef): SegmentMember[] {
         port: next,
         path: [
           ...current.path,
-          {
-            linkId: link.id,
-            from: device.id,
-            fromIfaceId: iface.id,
-            to: next.deviceId,
-            toIfaceId: next.ifaceId
-          }
+          { linkId: link.id, from: sw.id, fromIfaceId: port.id, to: next.deviceId, toIfaceId: next.ifaceId }
         ]
       })
+    }
+    // Commutateur virtuel externe : sortie par la carte physique de l'hôte
+    if (!fromUplink && sw.hostedBy) {
+      const host = state.devices[sw.hostedBy]
+      const uplink = host?.interfaces.find((i) => i.bridge === sw.id && i.enabled)
+      const out = host && uplink && host.powered ? { deviceId: host.id, ifaceId: uplink.id } : null
+      const link = out ? linkAt(state, out) : undefined
+      if (out && link) {
+        const next = peerOf(link, out)
+        queue.push({
+          port: next,
+          path: [
+            ...current.path,
+            {
+              linkId: link.id,
+              from: out.deviceId,
+              fromIfaceId: out.ifaceId,
+              to: next.deviceId,
+              toIfaceId: next.ifaceId
+            }
+          ]
+        })
+      }
     }
   }
   return members

@@ -61,3 +61,18 @@ Ce journal permet à une nouvelle session de reprendre le travail là où il s'e
   New/Get/Remove-RDRemoteApp, Get-RDUserSession) et Add/Remove/Get-LocalGroupMember (groupe
   Utilisateurs du Bureau à distance) ; console « Services Bureau à distance », Connexion Bureau à distance (mstsc).
 - Lab `lab-08-rds`, critères `rdsCollection` et `rdpSession`.
+
+### #18 Hyper-V
+
+- Modèle (premier cas d'équipements imbriqués) : une VM est un serveur ou un poste du lab avec
+  `hostedBy` = l'hôte ; un commutateur virtuel est un switch hébergé dont les ports sont créés à la
+  demande ; les liaisons VM ↔ commutateur sont des câbles `virtual` (pointillés sur le canvas).
+  Commutateur externe : la carte physique de l'hôte devient un pont (`bridge`, sans adresse IP) et sa
+  configuration IP passe sur `vEthernet (Nom)` ; `l2Segment` traverse le pont.
+- Garde-fous de topologie : pas de câble vers une VM ou un commutateur virtuel, pas de suppression
+  directe (Gestionnaire Hyper-V) ; supprimer l'hôte supprime ses équipements virtuels ; éteindre l'hôte
+  arrête ses VM.
+- Moteur `roles/hyperv/` : New/Remove-VMSwitch, New/Remove/Start/Stop/Set-VM, Get-VM, cartes réseau
+  (Get/Add/Connect/Disconnect-VMNetworkAdapter), MAC 00-15-5D ; critères `vmSwitch`, `virtualMachine`
+  et option `success: false` du critère `ping` (isolement) ; lab `lab-09-hyperv`.
+- Format .slab : champs `hostedBy`, `virtual`, `bridge` avec valeurs par défaut (format 5 du milestone).

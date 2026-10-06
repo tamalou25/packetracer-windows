@@ -40,13 +40,22 @@ const CORE_CRITERIA: CriterionType[] = [
       )
     }
   ),
-  defineCriterion(z.object({ type: z.literal('ping'), from: z.string(), to: z.string() }), (state, check) => {
-    const from = byName(state, check.from)
-    const ip = targetIp(state, check.to)
-    if (!from || !ip) return false
-    const r = ping(state, from.id, ip, { count: 1 })
-    return r.ok && r.value.success
-  }),
+  defineCriterion(
+    z.object({
+      type: z.literal('ping'),
+      from: z.string(),
+      to: z.string(),
+      /** false : le ping doit échouer (isolement d'un réseau, filtrage). */
+      success: z.boolean().default(true)
+    }),
+    (state, check) => {
+      const from = byName(state, check.from)
+      const ip = targetIp(state, check.to)
+      if (!from || !ip) return false
+      const r = ping(state, from.id, ip, { count: 1 })
+      return r.ok && r.value.success === (check.success !== false)
+    }
+  ),
   defineCriterion(
     z.object({ type: z.literal('featureInstalled'), device: z.string(), feature: z.string() }),
     (state, check) => !!hostByName(state, check.device)?.host.features.includes(check.feature)

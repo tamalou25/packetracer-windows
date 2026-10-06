@@ -46,7 +46,12 @@ export const NetInterfaceSchema = z.object({
   dnsServers: z.array(z.string()).default([]),
   dhcpLease: DhcpClientLeaseSchema.nullable().default(null),
   /** Bail libéré manuellement (ipconfig /release) : plus d'adresse jusqu'au prochain renouvellement. */
-  dhcpReleased: z.boolean().default(false)
+  dhcpReleased: z.boolean().default(false),
+  /**
+   * Carte physique liée à un commutateur virtuel externe Hyper-V (identifiant du commutateur) :
+   * elle ne porte plus d'adresse IP et transmet les trames du commutateur sur son câble.
+   */
+  bridge: z.string().nullable().default(null)
 })
 
 /** Entrée du journal d'événements (Observateur d'événements simplifié). */
@@ -422,7 +427,9 @@ const deviceBase = {
   name: z.string(),
   position: PositionSchema,
   powered: z.boolean().default(true),
-  interfaces: z.array(NetInterfaceSchema)
+  interfaces: z.array(NetInterfaceSchema),
+  /** Hôte Hyper-V d'une machine virtuelle ou d'un commutateur virtuel (null : équipement physique). */
+  hostedBy: z.string().nullable().default(null)
 }
 
 export const ServerDeviceSchema = z.object({
@@ -456,7 +463,9 @@ export const LinkEndSchema = z.object({ deviceId: z.string(), ifaceId: z.string(
 export const LinkSchema = z.object({
   id: z.string(),
   a: LinkEndSchema,
-  b: LinkEndSchema
+  b: LinkEndSchema,
+  /** Liaison virtuelle à l'intérieur d'un hôte Hyper-V (carte de VM ou vEthernet ↔ commutateur virtuel). */
+  virtual: z.boolean().default(false)
 })
 
 // ---------------------------------------------------------------------------
