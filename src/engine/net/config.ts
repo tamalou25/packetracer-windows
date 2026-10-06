@@ -230,3 +230,33 @@ export function clearInterfaceAddress(state: LabState, deviceId: string, ifaceId
     return undefined
   })
 }
+
+/** Nombre maximal d'adresses de relais DHCP par interface. */
+const MAX_HELPERS = 4
+
+/**
+ * Agent de relais DHCP (ip helper-address) : les diffusions DHCP reçues sur cette interface de
+ * routeur sont retransmises en unicast aux serveurs indiqués (liste vide : relais désactivé).
+ */
+export function setHelperAddresses(
+  state: LabState,
+  deviceId: string,
+  ifaceId: string,
+  addresses: string[]
+): EngineResult {
+  return transact(state, (draft) => {
+    const device = requireDevice(draft, deviceId)
+    if (device.kind !== 'router') raise('NotSupported', 'Seul un routeur peut relayer les requêtes DHCP.')
+    const iface = device.interfaces.find((i) => i.id === ifaceId)
+    if (!iface) raise('InterfaceNotFound', 'Interface introuvable.')
+    const list = [...new Set(addresses.map((a) => a.trim()).filter(Boolean))]
+    if (list.length > MAX_HELPERS) raise('InvalidAddress', `${MAX_HELPERS} adresses de relais au maximum.`)
+    for (const a of list) {
+      if (!isIpv4(a) || hostAddressError(a, 32) !== null)
+        raise('InvalidAddress', `« ${a} » n’est pas une adresse de serveur DHCP valide.`)
+    }
+    if (list.length === 0) delete iface.helperAddresses
+    else iface.helperAddresses = list
+    return undefined
+  })
+}

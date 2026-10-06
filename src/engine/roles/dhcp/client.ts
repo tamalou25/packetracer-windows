@@ -9,7 +9,15 @@ import type { DhcpScope } from './schema'
 import { effectiveIpv4 } from '../../net/addressing'
 import { formatIpv4, inNetwork, parseIpv4, prefixToMask } from '../../net/ipv4'
 import { carrierUp, l2Segment, reversePath, type PortRef, type SegmentMember } from '../../net/segment'
-import { createContext, recordBroadcast, recordUnicast, type SimContext } from '../../sim/forward'
+import {
+  createContext,
+  recordBroadcast,
+  recordUnicast,
+  sendIp,
+  setLastOutcome,
+  sourceAddressFor,
+  type SimContext
+} from '../../sim/forward'
 import {
   BROADCAST_MAC,
   createRecorder,
@@ -68,6 +76,91 @@ function scopeFor(server: ServerDevice, port: PortRef): DhcpScope | null {
   )
 }
 
+/** Options effectives d'une étendue (options du serveur complétées par celles de l'étendue). */
+function scopeOptions(server: ServerDevice, scope: DhcpScope) {
+  return effectiveOptions(
+    dhcpServerOf(server) ?? {
+      authorized: true,
+      configured: true,
+      scopes: [],
+      serverOptions: { router: [], dnsServers: [], dnsDomain: null }
+    },
+    scope
+  )
+}
+
+/** Champs DHCP d'une offre ou d'un accusé de réception (adresse et options). */
+function offerFields(
+  server: ServerDevice,
+  scope: DhcpScope,
+  ip: string,
+  serverIp: string
+): [string, string][] {
+  const opts = scopeOptions(server, scope)
+  return [
+    ['Adresse proposée', ip],
+    ['Masque (option 1)', prefixToMask(scope.prefixLength)],
+    ['Routeur (option 003)', opts.router.join(', ') || '—'],
+    ['Serveurs DNS (option 006)', opts.dnsServers.join(', ') || '—'],
+    ['Domaine DNS (option 015)', opts.dnsDomain ?? '—'],
+    ['Durée du bail', formatLeaseDuration(scope.leaseDurationSec)],
+    ['Serveur DHCP', serverIp]
+  ]
+}
+
+/** Trajet routé entre l'agent de relais et le serveur DHCP (UDP 67 → 67, giaddr renseigné). */
+function relayLeg(
+  ctx: SimContext,
+  from: string,
+  packet: {
+    src: string
+    dst: string
+    type: string
+    summary: string
+    giaddr: string
+    fields: [string, string][]
+  }
+) {
+  return sendIp(ctx, from, {
+    src: packet.src,
+    dst: packet.dst,
+    ttl: 128,
+    protocol: 'DHCP',
+    ipProtocol: '17 (UDP)',
+    summary: packet.summary,
+    upper: [
+      udpLayer(67, 67),
+      dhcpLayer(packet.type, [...packet.fields, ['Agent relais (giaddr)', packet.giaddr]])
+    ]
+  })
+}
+
+/** Étendue active qui couvre l'adresse de l'agent de relais (giaddr). */
+function scopeForRelay(server: ServerDevice, giaddr: string): DhcpScope | null {
+  return (
+    dhcpServerOf(server)?.scopes.find(
+      (s) => s.state === 'Active' && inNetwork(giaddr, s.scopeId, s.prefixLength)
+    ) ?? null
+  )
+}
+
+/** Interface de routeur, agent de relais DHCP (ip helper-address), atteinte par la diffusion. */
+interface Relay {
+  member: SegmentMember
+  /** Adresse de l'interface du relais : champ giaddr, choix de l'étendue par le serveur. */
+  giaddr: string
+  helpers: string[]
+}
+
+function relayOf(state: LabState, member: SegmentMember): Relay | null {
+  const dev = state.devices[member.port.deviceId]
+  if (dev?.kind !== 'router') return null
+  const iface = dev.interfaces.find((i) => i.id === member.port.ifaceId)
+  const giaddr = iface ? effectiveIpv4(iface)?.address : undefined
+  const helpers = iface?.helperAddresses ?? []
+  return giaddr && helpers.length > 0 ? { member, giaddr, helpers } : null
+}
+
 /** Adresse utilisée sur le segment par un autre hôte que le client. */
 function inUse(state: LabState, serverPort: PortRef, clientMac: string, ip: string): boolean {
   return (
@@ -121,11 +214,14 @@ function pickAddress(
 }
 
 interface Chosen {
+  /** Membre du segment du client qui répond : le serveur, ou l'agent de relais. */
   member: SegmentMember
   server: ServerDevice
   scope: DhcpScope
   ip: string
   bad: string[]
+  /** Échange relayé : agent de relais et adresse du serveur. */
+  relay: { giaddr: string; serverIp: string } | null
 }
 
 function noChange(state: LabState, outcome: DhcpOutcome, message: string): DhcpOperation {
@@ -172,6 +268,13 @@ export function dhcpAcquire(
   const selection: { chosen: Chosen | null } = { chosen: null }
   const unauthorized: string[] = []
   const exhausted: { serverId: string; scopeId: string }[] = []
+  const relays: Relay[] = []
+  const discoverFields: [string, string][] = [
+    ['Transaction', xid],
+    ['MAC client', iface.mac],
+    ['Adresse demandée', requested ?? '—'],
+    ['Nom d’hôte', client.name]
+  ]
 
   recordBroadcast(
     ctx,
@@ -183,17 +286,20 @@ export function dhcpAcquire(
         ethernetLayer(iface.mac, BROADCAST_MAC, 'IPv4'),
         ipv4Layer('0.0.0.0', '255.255.255.255', 128, '17 (UDP)'),
         udpLayer(68, 67),
-        dhcpLayer('DHCPDISCOVER', [
-          ['Transaction', xid],
-          ['MAC client', iface.mac],
-          ['Adresse demandée', requested ?? '—'],
-          ['Nom d’hôte', client.name]
-        ])
+        dhcpLayer('DHCPDISCOVER', discoverFields)
       ]
     },
     (member) => {
       const dev = state.devices[member.port.deviceId]
       const name = dev?.name ?? '?'
+      const relay = relayOf(state, member)
+      if (relay) {
+        relays.push(relay)
+        return {
+          outcome: 'delivered',
+          note: `${name} est agent de relais DHCP (ip helper-address) : il retransmet la requête en unicast à ${relay.helpers.join(', ')}, en indiquant son adresse ${relay.giaddr} (giaddr).`
+        }
+      }
       if (!dev || dev.kind !== 'server' || !dev.host.features.includes('DHCP') || !dhcpServerOf(dev))
         return { outcome: 'ignored', note: `${name} n’est pas un serveur DHCP : la diffusion est ignorée.` }
       const scope = scopeFor(dev, member.port)
@@ -228,13 +334,97 @@ export function dhcpAcquire(
           note: `${name} n’a plus d’adresse disponible dans l’étendue ${scope.scopeId}.`
         }
       }
-      selection.chosen = { member, server: dev, scope, ip: pick.ip, bad: pick.bad }
+      selection.chosen = { member, server: dev, scope, ip: pick.ip, bad: pick.bad, relay: null }
       return {
         outcome: 'delivered',
         note: `${name} dispose de l’étendue « ${scope.name} » : il réserve ${pick.ip} et prépare une offre.`
       }
     }
   )
+
+  // Aucun serveur sur le segment : les agents de relais transmettent la découverte
+  for (const relay of selection.chosen ? [] : relays) {
+    for (const helper of relay.helpers) {
+      if (selection.chosen) break
+      const delivery = relayLeg(ctx, relay.member.port.deviceId, {
+        src: relay.giaddr,
+        dst: helper,
+        type: 'DHCPDISCOVER',
+        summary: `DHCP Discover relayé (giaddr ${relay.giaddr})`,
+        giaddr: relay.giaddr,
+        fields: discoverFields
+      })
+      if (delivery.kind !== 'delivered') continue
+      const dev = state.devices[delivery.deviceId]
+      const name = dev?.name ?? '?'
+      if (!dev || dev.kind !== 'server' || !dev.host.features.includes('DHCP') || !dhcpServerOf(dev)) {
+        setLastOutcome(ctx, 'dropped', `${name} n’est pas un serveur DHCP : la requête relayée est rejetée.`)
+        continue
+      }
+      if (!dhcpAuthorized(dev)) {
+        unauthorized.push(dev.id)
+        setLastOutcome(
+          ctx,
+          'dropped',
+          `${name} n’est pas autorisé dans Active Directory : son service DHCP ne distribue aucune adresse.`
+        )
+        continue
+      }
+      const scope = scopeForRelay(dev, relay.giaddr)
+      if (!scope) {
+        setLastOutcome(
+          ctx,
+          'dropped',
+          `${name} n’a aucune étendue active pour le réseau de l’agent de relais ${relay.giaddr} : la requête est ignorée.`
+        )
+        continue
+      }
+      const pick = pickAddress(state, scope, relay.member.port, iface.mac, requested)
+      if (!pick.ip) {
+        exhausted.push({ serverId: dev.id, scopeId: scope.scopeId })
+        setLastOutcome(
+          ctx,
+          'dropped',
+          `${name} n’a plus d’adresse disponible dans l’étendue ${scope.scopeId}.`
+        )
+        continue
+      }
+      setLastOutcome(
+        ctx,
+        'delivered',
+        `${name} choisit l’étendue « ${scope.name} » (${scope.scopeId}) d’après l’adresse de l’agent de relais ${relay.giaddr} : il réserve ${pick.ip}.`
+      )
+      // L'offre repart vers l'agent de relais : le serveur doit avoir une route vers son réseau
+      const serverIp = sourceAddressFor(state, dev, relay.giaddr)
+      const offer = serverIp
+        ? relayLeg(ctx, dev.id, {
+            src: serverIp,
+            dst: relay.giaddr,
+            type: 'DHCPOFFER',
+            summary: `DHCP Offer ${pick.ip} (vers l’agent de relais)`,
+            giaddr: relay.giaddr,
+            fields: [['Transaction', xid], ...offerFields(dev, scope, pick.ip, serverIp)]
+          })
+        : null
+      if (!serverIp || offer?.kind !== 'delivered') {
+        if (!serverIp)
+          setLastOutcome(
+            ctx,
+            'dropped',
+            `${name} n’a aucune route vers l’agent de relais ${relay.giaddr} (passerelle par défaut ?) : son offre ne peut pas partir.`
+          )
+        continue
+      }
+      selection.chosen = {
+        member: relay.member,
+        server: dev,
+        scope,
+        ip: pick.ip,
+        bad: pick.bad,
+        relay: { giaddr: relay.giaddr, serverIp }
+      }
+    }
+  }
 
   const pickResult = selection.chosen
   const logAnomalies = (draft: Parameters<Parameters<typeof transact>[1]>[0]) => {
@@ -278,28 +468,15 @@ export function dhcpAcquire(
     }
   }
 
-  const { member, server, scope, ip, bad } = pickResult
-  const serverIface = server.interfaces.find((i) => i.id === member.port.ifaceId)
-  const serverIp = serverIface ? (effectiveIpv4(serverIface)?.address ?? '') : ''
-  const serverMac = serverIface?.mac ?? ''
-  const opts = effectiveOptions(
-    dhcpServerOf(server) ?? {
-      authorized: true,
-      configured: true,
-      scopes: [],
-      serverOptions: { router: [], dnsServers: [], dnsDomain: null }
-    },
-    scope
-  )
-  const optionFields: [string, string][] = [
-    ['Adresse proposée', ip],
-    ['Masque (option 1)', prefixToMask(scope.prefixLength)],
-    ['Routeur (option 003)', opts.router.join(', ') || '—'],
-    ['Serveurs DNS (option 006)', opts.dnsServers.join(', ') || '—'],
-    ['Domaine DNS (option 015)', opts.dnsDomain ?? '—'],
-    ['Durée du bail', formatLeaseDuration(scope.leaseDurationSec)],
-    ['Serveur DHCP', serverIp]
-  ]
+  const { member, server, scope, ip, bad, relay } = pickResult
+  // Sur le segment du client, l'interlocuteur est le serveur ou l'agent de relais
+  const peerIface = state.devices[member.port.deviceId]?.interfaces.find((i) => i.id === member.port.ifaceId)
+  const peerIp = peerIface ? (effectiveIpv4(peerIface)?.address ?? '') : ''
+  const serverIp = relay ? relay.serverIp : peerIp
+  const serverMac = peerIface?.mac ?? ''
+  const relayName = state.devices[member.port.deviceId]?.name ?? '?'
+  const opts = scopeOptions(server, scope)
+  const optionFields = offerFields(server, scope, ip, serverIp)
   const back = reversePath(member.path)
   recordUnicast(
     ctx,
@@ -309,13 +486,15 @@ export function dhcpAcquire(
       summary: `DHCP Offer ${ip} (de ${serverIp})`,
       layers: [
         ethernetLayer(serverMac, iface.mac, 'IPv4'),
-        ipv4Layer(serverIp, '255.255.255.255', 128, '17 (UDP)'),
+        ipv4Layer(relay ? peerIp : serverIp, '255.255.255.255', 128, '17 (UDP)'),
         udpLayer(67, 68),
         dhcpLayer('DHCPOFFER', [['Transaction', xid], ...optionFields])
       ]
     },
     'delivered',
-    `${client.name} reçoit l’offre ${ip} de ${server.name}.`
+    relay
+      ? `${client.name} reçoit l’offre ${ip} de ${server.name}, retransmise par l’agent de relais ${relayName}.`
+      : `${client.name} reçoit l’offre ${ip} de ${server.name}.`
   )
   recordBroadcast(
     ctx,
@@ -336,6 +515,11 @@ export function dhcpAcquire(
     },
     (m) => {
       const dev = state.devices[m.port.deviceId]
+      if (relay && dev && dev.id === member.port.deviceId && m.port.ifaceId === member.port.ifaceId)
+        return {
+          outcome: 'delivered',
+          note: `${dev.name} retransmet la requête à ${server.name} (${serverIp}).`
+        }
       if (dev && dev.id === server.id && m.port.ifaceId === member.port.ifaceId)
         return {
           outcome: 'delivered',
@@ -349,6 +533,29 @@ export function dhcpAcquire(
       return { outcome: 'ignored', note: `${dev?.name ?? '?'} ignore la requête DHCP.` }
     }
   )
+  if (relay) {
+    relayLeg(ctx, member.port.deviceId, {
+      src: relay.giaddr,
+      dst: serverIp,
+      type: 'DHCPREQUEST',
+      summary: `DHCP Request ${ip} relayé`,
+      giaddr: relay.giaddr,
+      fields: [
+        ['Transaction', xid],
+        ['Adresse demandée', ip],
+        ['Identificateur du serveur', serverIp]
+      ]
+    })
+    setLastOutcome(ctx, 'delivered', `${server.name} valide le bail de ${ip}.`)
+    relayLeg(ctx, server.id, {
+      src: serverIp,
+      dst: relay.giaddr,
+      type: 'DHCPACK',
+      summary: `DHCP Ack ${ip} (vers l’agent de relais)`,
+      giaddr: relay.giaddr,
+      fields: [['Transaction', xid], ...optionFields]
+    })
+  }
   recordUnicast(
     ctx,
     back,
@@ -357,7 +564,7 @@ export function dhcpAcquire(
       summary: `DHCP Ack ${ip}`,
       layers: [
         ethernetLayer(serverMac, iface.mac, 'IPv4'),
-        ipv4Layer(serverIp, ip, 128, '17 (UDP)'),
+        ipv4Layer(relay ? peerIp : serverIp, ip, 128, '17 (UDP)'),
         udpLayer(67, 68),
         dhcpLayer('DHCPACK', [['Transaction', xid], ...optionFields])
       ]
