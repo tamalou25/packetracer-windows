@@ -7,7 +7,7 @@ import { setPower } from '../../../topology/actions'
 import { psError } from '../errors'
 import type { CmdContext } from '../interpreter'
 import type { CmdletDef } from '../registry'
-import { flatten, psObject, psToString } from '../values'
+import { flatten, psObject, psToString, wildcardToRegExp } from '../values'
 import { onServer } from './helpers'
 
 const featureNames = () => allFeatures().map((f) => f.name)
@@ -40,7 +40,7 @@ export const systemCmdlets: CmdletDef[] = [
     available: onServer,
     run(ctx, args) {
       const patterns = args['Name']
-        ? flatten([args['Name']]).map((p) => new RegExp(`^${psToString(p).replace(/\*/g, '.*')}$`, 'i'))
+        ? flatten([args['Name']]).map((p) => wildcardToRegExp(psToString(p)))
         : null
       const installed = ctx.host.host.features
       const rows = allFeatures().filter((f) => !patterns || patterns.some((p) => p.test(f.name)))

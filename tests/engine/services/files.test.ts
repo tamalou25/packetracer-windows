@@ -15,6 +15,9 @@ import {
   localToken,
   logon,
   openUnc,
+  removeObject,
+  removeNtfs,
+  principalName,
   removeItem,
   restartComputer,
   setNtfsInheritance,
@@ -162,6 +165,48 @@ describe('Fichiers : NTFS', () => {
   })
 })
 
+describe('Fichiers : noms', () => {
+  it('noms de périphériques réservés refusés, avec ou sans extension', () => {
+    const { s, ids } = lab()
+    const create = (path: string) => createItem(s, ids.SRV1!, path, 'folder', admin(s))
+    for (const bad of ['C:\\CON', 'C:\\nul.txt', 'C:\\Com1', 'C:\\LPT9.log', 'C:\\AUX']) {
+      const r = create(bad)
+      expect(r.ok, bad).toBe(false)
+      if (!r.ok)
+        expect(r.error.message).toBe(
+          'La syntaxe du nom de fichier, de répertoire ou de volume est incorrecte.'
+        )
+    }
+    for (const good of ['C:\\CONSOLE', 'C:\\Data.txt', 'C:\\.config', 'C:\\COM10', 'C:\\prn-2026'])
+      expect(create(good).ok, good).toBe(true)
+  })
+
+  it('points et espaces finaux retirés : « Data. » désigne « Data »', () => {
+    const { s: base, ids } = lab()
+    const s = unwrap(createItem(base, ids.SRV1!, 'C:\\Data.', 'folder', admin(base))).state
+    expect(findNode(server(s, ids.SRV1!).storage, 'C:\\Data')?.name).toBe('Data')
+    const again = createItem(s, ids.SRV1!, 'C:\\Data', 'folder', admin(s))
+    expect(again.ok).toBe(false)
+    if (!again.ok) expect(again.error.message).toBe('Un élément nommé « Data » existe déjà.')
+    expect(createItem(s, ids.SRV1!, 'C:\\Data. .', 'folder', admin(s)).ok).toBe(false)
+  })
+})
+
+describe('Fichiers : compte supprimé', () => {
+  it('l’entrée NTFS d’un compte supprimé peut être retirée (bouton Supprimer de l’onglet Sécurité)', () => {
+    const { s: base, ids } = shared()
+    const group = domainOf(base).groups.find((g) => g.name === 'GG_Compta')!
+    const s = unwrap(removeObject(base, 'lab.local', group.id)).state
+    const acl = (state: LabState) => findNode(server(state, ids.SRV1!).storage, 'C:\\Partages\\Compta')!.acl
+    // L'entrée reste (SID inconnu sous Windows) ; l'interface la désigne par principalName
+    expect(acl(s).some((a) => a.principal === group.id)).toBe(true)
+    const name = principalName(s, server(s, ids.SRV1!), group.id)
+    const removed = unwrap(removeNtfs(s, ids.SRV1!, 'C:\\Partages\\Compta', name, 'all', admin(s))).state
+    expect(acl(removed).some((a) => a.principal === group.id)).toBe(false)
+    expect(acl(removed).length).toBe(acl(s).length - 1)
+  })
+})
+
 describe('Fichiers : partages et accès réseau', () => {
   it('droits effectifs = le plus restrictif du partage et du NTFS', () => {
     const fixture = shared()
@@ -296,6 +341,11 @@ describe('Fichiers : consoles', () => {
     expect(srv(r.state, 'icacls C:\\Partages\\Compta /grant LAB\\personne:R').errors).toContain(
       'Aucun mappage'
     )
+    // Compte inconnu : erreur système 1332 (ERROR_NONE_MAPPED), aucun partage créé
+    const unknown = srv(r.state, 'net share Inconnu=C:\\Partages /grant:personne,FULL')
+    expect(unknown.errors).toContain('Erreur système 1332.')
+    expect(unknown.errors).toContain('Aucun mappage entre les noms de compte et les ID de sécurité')
+    expect(unknown.state).toBe(r.state)
     const shares = srv(r.state, 'net share')
     expect(shares.text).toMatch(/Compta\s+C:\\Partages\\Compta/)
     expect(shares.text).toMatch(/C\$\s+C:\\\s+Partage par défaut/)

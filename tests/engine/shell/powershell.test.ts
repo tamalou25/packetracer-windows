@@ -57,6 +57,45 @@ describe('PowerShell : erreurs réalistes', () => {
     )
   })
 
+  it('-in, -notin, -contains, -notcontains avec une liste séparée par des virgules', () => {
+    const { s, ids } = lab()
+    const where = (filter: string) => {
+      const r = run(s, ids.SRV1!, `Get-NetAdapter | Where-Object { ${filter} } | Select-Object Name`)
+      expect(r.errors).toBe('')
+      return r.text.includes('Ethernet0')
+    }
+    expect(where("$_.Name -in 'Ethernet0','Ethernet1'")).toBe(true)
+    expect(where("$_.Name -in 'Ethernet1','Ethernet2'")).toBe(false)
+    expect(where("$_.Name -notin 'Ethernet1','Ethernet2'")).toBe(true)
+    expect(where("$_.Name -notin 'ethernet0','Ethernet2'")).toBe(false)
+    expect(where("'Wi-Fi','Ethernet0' -contains $_.Name")).toBe(true)
+    expect(where("'Wi-Fi','Ethernet9' -notcontains $_.Name -and $_.Name -like 'Eth*'")).toBe(true)
+  })
+
+  it('-Name de Get-Command et Get-WindowsFeature : jokers * et ?, autres caractères littéraux', () => {
+    const { s, ids } = lab()
+    const cmd = (line: string) => run(s, ids.SRV1!, line)
+    expect(cmd('Get-Command -Name Get-NetAdapte?').text).toContain('Get-NetAdapter')
+    expect(cmd("Get-Command -Name 'Get-Net('").errors).toContain("n'est pas reconnu")
+    expect(cmd('Get-WindowsFeature -Name DH?P').text).toContain('DHCP')
+    expect(cmd("Get-WindowsFeature -Name 'D.CP'").text).not.toContain('DHCP')
+    expect(cmd("Get-WindowsFeature -Name 'DHCP('").text.trim()).toBe('')
+  })
+
+  it('expression régulière invalide (-match, -notmatch) : erreur PowerShell, pas de plantage', () => {
+    const { s, ids } = lab()
+    for (const op of ['-match', '-notmatch']) {
+      const r = run(s, ids.SRV1!, `Get-NetAdapter | Where-Object { $_.Name ${op} '(' }`)
+      expect(r.errors).toContain('Le modèle d’expression régulière ( n’est pas valide.')
+      expect(r.errors).toContain('FullyQualifiedErrorId : InvalidRegularExpression')
+      expect(r.state).toBe(s)
+    }
+    // Une expression valide fonctionne toujours
+    expect(run(s, ids.SRV1!, "Get-NetAdapter | Where-Object { $_.Name -match '^eth' }").text).toContain(
+      'Ethernet0'
+    )
+  })
+
   it('demande les paramètres obligatoires manquants', () => {
     const { s, ids } = lab()
     const r = run(s, ids.SRV1!, 'Rename-Computer', { answers: ['SRV-AD'] })

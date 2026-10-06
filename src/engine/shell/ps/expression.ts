@@ -3,6 +3,7 @@
  *  - Where-Object { $_.Name -like 'J*' -and $_.Enabled }
  *  - les filtres Active Directory (-Filter "Name -like 'J*'")
  */
+import { psError } from './errors'
 import { PsSyntaxError, tokenize, type Token } from './lexer'
 import { getProp, psEquals, psLike, psToBool, psToString, type PsValue } from './values'
 
@@ -37,6 +38,22 @@ function compareNumbers(a: PsValue, b: PsValue): number {
   return psToString(a).localeCompare(psToString(b), 'fr', { sensitivity: 'base' })
 }
 
+/** Expression régulière de -match / -notmatch ; un modèle invalide est une erreur PowerShell. */
+function matchPattern(right: PsValue): RegExp {
+  const pattern = psToString(right)
+  try {
+    return new RegExp(pattern, 'i')
+  } catch {
+    throw psError(
+      `Le modèle d’expression régulière ${pattern} n’est pas valide.`,
+      'InvalidOperation',
+      'InvalidRegularExpression',
+      pattern,
+      'RuntimeException'
+    )
+  }
+}
+
 export function compare(op: string, left: PsValue, right: PsValue): boolean {
   switch (op) {
     case 'eq':
@@ -48,9 +65,9 @@ export function compare(op: string, left: PsValue, right: PsValue): boolean {
     case 'notlike':
       return !psLike(left, right)
     case 'match':
-      return new RegExp(psToString(right), 'i').test(psToString(left))
+      return matchPattern(right).test(psToString(left))
     case 'notmatch':
-      return !new RegExp(psToString(right), 'i').test(psToString(left))
+      return !matchPattern(right).test(psToString(left))
     case 'gt':
       return compareNumbers(left, right) > 0
     case 'ge':
@@ -129,14 +146,26 @@ class ExprParser {
   }
 
   private comparison(): PsValue {
-    const left = this.operand(true)
+    const left = this.list(true)
     const t = this.peek()
     if (t.type === 'param' && COMPARATORS.has(t.value.toLowerCase())) {
       this.next()
-      const right = this.operand(false)
+      const right = this.list(false)
       return compare(t.value.toLowerCase(), left, right)
     }
     return left
+  }
+
+  /** Opérande ou liste séparée par des virgules ('a','b' : tableau, prioritaire sur les comparaisons). */
+  private list(leftSide: boolean): PsValue {
+    const first = this.operand(leftSide)
+    if (this.peek().type !== 'comma') return first
+    const items: PsValue[] = [first]
+    while (this.peek().type === 'comma') {
+      this.next()
+      items.push(this.operand(leftSide))
+    }
+    return items
   }
 
   private operand(leftSide: boolean): PsValue {

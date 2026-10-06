@@ -71,9 +71,28 @@ export function isWithin(storage: Storage, id: string | null, ancestorId: string
   return false
 }
 
+/**
+ * Noms de périphériques réservés, avec ou sans extension (CON, NUL.txt, COM1…) : Microsoft Learn,
+ * « Naming Files, Paths, and Namespaces ».
+ */
+const RESERVED_NAME = /^(CON|PRN|AUX|NUL|COM[0-9¹²³]|LPT[0-9¹²³])(\.[^.]*)?$/i
+
+/**
+ * Nom normalisé comme par Windows : points et espaces finaux retirés (Microsoft Learn, « File path
+ * formats on Windows systems », Trim characters). « Data. » désigne donc « Data ».
+ */
+export function normalizeItemName(name: string): string {
+  return /^\.+$/.test(name.trim()) ? name : name.replace(/[. ]+$/, '')
+}
+
 /** Nom de fichier ou de dossier valide sur le système simulé. */
 export function validItemName(name: string): boolean {
-  return name.trim().length > 0 && !/[\\/:*?"<>|]/.test(name) && !/^\.+$/.test(name.trim())
+  return (
+    name.trim().length > 0 &&
+    !/[\\/:*?"<>|]/.test(name) &&
+    !/^\.+$/.test(name.trim()) &&
+    !RESERVED_NAME.test(name)
+  )
 }
 
 /** Chemin réseau : \\serveur\partage\reste. */
