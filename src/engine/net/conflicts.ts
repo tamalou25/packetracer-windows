@@ -4,14 +4,16 @@
 import type { LabState } from '../model/schema'
 import { effectiveIpv4 } from './addressing'
 import { isApipa } from './ipv4'
+import { memoByNetwork } from './network-key'
 import { l2Segment, type PortRef } from './segment'
 
-const cache = new WeakMap<LabState, Set<string>>()
+/**
+ * Ensemble des ports (« équipement/port ») dont l'adresse est en conflit avec un autre hôte.
+ * Recalculé seulement quand le réseau change (pas quand un équipement est déplacé).
+ */
+export const ipConflicts: (state: LabState) => Set<string> = memoByNetwork(computeConflicts)
 
-/** Ensemble des ports (« équipement/port ») dont l'adresse est en conflit avec un autre hôte. */
-export function ipConflicts(state: LabState): Set<string> {
-  const cached = cache.get(state)
-  if (cached) return cached
+function computeConflicts(state: LabState): Set<string> {
   const conflicts = new Set<string>()
   for (const device of Object.values(state.devices)) {
     if (!device.powered) continue
@@ -29,7 +31,6 @@ export function ipConflicts(state: LabState): Set<string> {
       }
     }
   }
-  cache.set(state, conflicts)
   return conflicts
 }
 

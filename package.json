@@ -19,6 +19,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "fixture:slab": "vitest run tests/engine/serialization/fixture-write.test.ts --mode fixture",
+    "perf:measure": "vitest run tests/engine/perf/measure.test.ts --mode perf",
     "test:e2e": "electron-vite build && playwright test",
     "icon": "node scripts/build-icon.mjs",
     "dist": "electron-vite build && electron-builder",

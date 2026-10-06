@@ -1,6 +1,7 @@
 /**
  * Module du rôle Serveur DHCP (et du client DHCP des ordinateurs).
  */
+import { networkDeps } from '../../net/network-key'
 import { defineRole } from '../types'
 import { dhcpCmdlets } from './cmdlets'
 import { dhcpCommands } from './commands'
@@ -32,7 +33,20 @@ export const dhcpRole = defineRole({
   criteria: dhcpCriteria,
   backgroundTasks: [
     // Le client DHCP des cartes configurées en automatique demande un bail
-    { id: 'dhcp.client', label: 'Client DHCP', run: autoConfigureDhcp }
+    {
+      id: 'dhcp.client',
+      label: 'Client DHCP',
+      // Réseau, domaines (autorisation) et serveurs DHCP : pas de nouvel essai sans changement
+      deps: (state) => [
+        state.links,
+        state.domains,
+        ...Object.values(state.devices).flatMap((d) => [
+          ...networkDeps(d),
+          ...(d.kind === 'server' ? [d.roles, d.host.features, d.host.domain] : [])
+        ])
+      ],
+      run: autoConfigureDhcp
+    }
   ],
   events: { sources: ['DhcpServer'] },
   services: [{ display: 'Serveur DHCP', name: 'DHCPServer', when: 'installed' }]

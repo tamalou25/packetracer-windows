@@ -1,6 +1,7 @@
 /**
  * Module Stratégies de groupe : GPO du domaine (`state.domains`), application sur les membres.
  */
+import { networkDeps } from '../../net/network-key'
 import { defineRole } from '../types'
 import { gpoCmdlets } from './cmdlets'
 import { gpoCommands } from './commands'
@@ -34,7 +35,23 @@ export const gpoRole = defineRole({
   criteria: gpoCriteria,
   backgroundTasks: [
     // Les membres du domaine appliquent leurs stratégies après un démarrage ou une ouverture de session
-    { id: 'gpo.refresh', label: 'Application des stratégies de groupe', run: autoGroupPolicy }
+    {
+      id: 'gpo.refresh',
+      label: 'Application des stratégies de groupe',
+      // Réseau, domaines (GPO, liaisons), DNS des contrôleurs, démarrages et sessions des membres
+      deps: (state) => [
+        state.links,
+        state.domains,
+        ...Object.values(state.devices).flatMap((d) => [
+          ...networkDeps(d),
+          ...(d.kind === 'server' ? [d.roles] : []),
+          ...(d.kind === 'server' || d.kind === 'client'
+            ? [d.host.domain, d.host.bootedAt, d.host.session, d.host.policy]
+            : [])
+        ])
+      ],
+      run: autoGroupPolicy
+    }
   ],
   events: { sources: [GP_SOURCE] },
   services: []

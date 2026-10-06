@@ -20,6 +20,7 @@ import {
 import {
   allFeatures,
   command,
+  deviceHealth,
   DEVICE_KIND_INFO,
   DEVICE_KINDS,
   dhcpServerOf,
@@ -28,6 +29,7 @@ import {
   isHostDevice,
   linkStatus,
   type Device,
+  type DeviceHealth,
   type HostDevice,
   type LabState,
   type Link,
@@ -38,7 +40,6 @@ import { useUiStore } from '../../store/ui'
 import { runCommand } from '../../lib/run'
 import { DEVICE_ICONS, KIND_STRIPE } from '../../lib/devices'
 import { formatSimTime } from '../../lib/format'
-import { deviceHealth, type DeviceHealth } from '../../lib/health'
 import { EditableName } from '../common/EditableName'
 import { Button, StatusDot } from '../common/ui'
 import { InterfaceList } from './InterfaceList'
