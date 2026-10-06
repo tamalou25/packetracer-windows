@@ -1,0 +1,110 @@
+{
+  "formatVersion": 1,
+  "id": "lab-06-wsus",
+  "title": "Mises à jour centralisées avec WSUS",
+  "difficulty": "Avancé",
+  "duration": "40 min",
+  "summary": "Installer WSUS, cibler les postes par stratégie de groupe et n’approuver que les mises à jour voulues.",
+  "statement": "# Contexte\n\nLe domaine `lab.local` veut maîtriser les mises à jour de ses postes : **PC1** ne doit recevoir que les mises à jour validées par l’équipe informatique, depuis un serveur interne plutôt qu’Internet.\n\nCompte d’administration : `LAB\\Administrateur` / `P@ssw0rd`.\n\n## Travail demandé\n\n1. Sur **SRV1**, installez le rôle **Services WSUS** avec ses outils, terminez la post-installation (contenu dans `C:\\WSUS`) puis synchronisez le serveur.\n2. Dans la console WSUS, créez le groupe d’ordinateurs **Postes** et choisissez le **ciblage côté client** (Options > Ordinateurs).\n3. Créez une GPO liée au domaine qui :\n   - indique l’emplacement intranet du service de mise à jour : `http://srv1.lab.local:8530` ;\n   - active le ciblage côté client vers le groupe **Postes**.\n4. Approuvez la mise à jour de sécurité cumulative du **système client** pour le seul groupe **Postes**.\n5. Sur PC1, appliquez la stratégie (`gpupdate /force`) puis ouvrez **Windows Update** et recherchez les mises à jour.\n\n> Astuce : `Get-WsusComputer` et `Get-WsusUpdate -Approval Approved` permettent de vérifier le résultat côté serveur.",
+  "start": {
+    "devices": [
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 330,
+        "y": 100,
+        "ip": "192.168.10.1/24",
+        "dns": ["127.0.0.1"]
+      },
+      {
+        "kind": "switch",
+        "name": "SW1",
+        "x": 330,
+        "y": 300
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 330,
+        "y": 470,
+        "ip": "192.168.10.10/24",
+        "dns": ["192.168.10.1"]
+      }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/2"]
+    ],
+    "domain": {
+      "name": "lab.local",
+      "netbios": "LAB",
+      "dc": "SRV1",
+      "join": ["PC1"]
+    }
+  },
+  "criteria": [
+    {
+      "id": "role",
+      "label": "Le rôle Services WSUS est installé sur SRV1",
+      "hint": "Le nom technique du rôle se trouve avec Get-WindowsFeature ; pensez aux outils de gestion (console et module PowerShell).",
+      "check": {
+        "type": "featureInstalled",
+        "device": "SRV1",
+        "feature": "UpdateServices"
+      }
+    },
+    {
+      "id": "sync",
+      "label": "SRV1 a synchronisé des mises à jour",
+      "hint": "La synchronisation n’est possible qu’une fois les tâches de post-installation terminées (emplacement du contenu).",
+      "check": {
+        "type": "wsusSynchronized",
+        "server": "SRV1"
+      }
+    },
+    {
+      "id": "group",
+      "label": "PC1 est dans le groupe d’ordinateurs WSUS demandé",
+      "hint": "Le poste doit d’abord contacter le serveur (stratégie appliquée, URL et port exacts), puis le groupe doit exister et le mode de ciblage correspondre à la méthode choisie.",
+      "check": {
+        "type": "wsusComputerGroup",
+        "server": "SRV1",
+        "computer": "PC1",
+        "group": "Postes"
+      }
+    },
+    {
+      "id": "approval",
+      "label": "La mise à jour de sécurité du système client est approuvée pour le groupe des postes",
+      "hint": "Dans la console, une approbation vaut pour un groupe précis : vérifiez le groupe choisi avant d’approuver.",
+      "check": {
+        "type": "wsusApproval",
+        "server": "SRV1",
+        "update": "KB9100102",
+        "group": "Postes"
+      }
+    },
+    {
+      "id": "received",
+      "label": "PC1 reçoit la mise à jour approuvée",
+      "hint": "Ouvrez Windows Update sur le poste : le message d’erreur indique si le serveur est injoignable ou mal désigné.",
+      "check": {
+        "type": "wsusClientUpdate",
+        "client": "PC1",
+        "update": "KB9100102",
+        "received": true
+      }
+    },
+    {
+      "id": "only",
+      "label": "PC1 ne reçoit pas les mises à jour non approuvées pour son groupe",
+      "hint": "Une approbation donnée à « Tous les ordinateurs » est héritée par tous les groupes.",
+      "check": {
+        "type": "wsusClientUpdate",
+        "client": "PC1",
+        "update": "KB9100201",
+        "received": false
+      }
+    }
+  ]
+}

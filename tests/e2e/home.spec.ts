@@ -4,9 +4,9 @@
  * « Afficher l'accueil au démarrage ».
  */
 import { expect, test, type Page } from '@playwright/test'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { addDevice, createLab, serializeSlab, unwrap } from '../../src/engine/index'
 import { clickMenu, launchApp } from './helpers'
 
@@ -28,7 +28,9 @@ test('premier lancement : accueil, labs fournis, nouveau lab, Fichier > Accueil'
     await expect(home(page)).toContainText('Ctrl+N')
 
     // Labs fournis : titre, difficulté, durée
-    await expect(page.locator('[data-testid^="home-lab-"]')).toHaveCount(5)
+    await expect(page.locator('[data-testid^="home-lab-"]')).toHaveCount(
+      readdirSync(resolve(__dirname, '../../labs')).filter((f) => f.endsWith('.json')).length
+    )
     const first = page.getByTestId('home-lab-lab-01-adressage')
     await expect(first).toContainText('Adressage IP et routage entre deux réseaux')
     await expect(first).toContainText('Débutant')

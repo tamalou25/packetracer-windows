@@ -9,6 +9,7 @@ import { DhcpApp } from '../apps/DhcpApp'
 import { DnsApp } from '../apps/DnsApp'
 import { GpmcApp } from '../apps/GpmcApp'
 import { GpoEditor } from '../apps/GpoEditor'
+import { WsusApp } from '../apps/WsusApp'
 import { Terminal } from '../console/Terminal'
 import { AddRolesWizard } from './apps/AddRolesWizard'
 import { CmdDisabled } from './apps/CmdDisabled'
@@ -30,6 +31,7 @@ import { ComputerNameDialog, SystemProperties } from './apps/System'
 import { Explorer } from './apps/Explorer'
 import { FileProperties } from './apps/FileProperties'
 import { NewShareDialog } from './apps/NewShareDialog'
+import { WindowsUpdate } from './apps/WindowsUpdate'
 
 function unavailable(): ReactNode {
   return <div className="p-6 text-sm text-slate-500">Application indisponible sur cet ordinateur.</div>
@@ -83,6 +85,10 @@ export function renderApp(win: DesktopWindow, device: HostDevice): ReactNode {
       return <FileProperties device={device} path={win.arg} />
     case 'newshare':
       return server ? <NewShareDialog device={server} /> : unavailable()
+    case 'wsus':
+      return server ? <WsusApp device={server} /> : unavailable()
+    case 'wuclient':
+      return <WindowsUpdate device={device} />
     case 'run':
       return <RunDialog device={device} />
     case 'addroles':

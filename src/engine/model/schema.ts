@@ -114,6 +114,22 @@ export const WallpaperPolicySchema = z.object({
   style: z.enum(WALLPAPER_STYLES).default('Fill')
 })
 
+/**
+ * « Spécifier l’emplacement intranet du service de mise à jour Microsoft »
+ * (Configuration ordinateur > Modèles d'administration > Composants Windows > Windows Update).
+ */
+export const WuServerPolicySchema = z.object({
+  state: PolicyStateSchema.default('NotConfigured'),
+  /** Service intranet de détection des mises à jour (http://srv1.lab.local:8530). */
+  url: z.string().default('')
+})
+
+/** « Autoriser le ciblage côté client » : groupe d'ordinateurs WSUS demandé par le poste. */
+export const WuTargetGroupPolicySchema = z.object({
+  state: PolicyStateSchema.default('NotConfigured'),
+  group: z.string().default('')
+})
+
 /** Préférence « Lecteur mappé » (Configuration utilisateur > Préférences > Mappages de lecteurs). */
 export const DriveMapSchema = z.object({
   action: z.enum(['Create', 'Replace', 'Update', 'Delete']).default('Update'),
@@ -135,7 +151,11 @@ export const GpoComputerSettingsSchema = z.object({
   /** Ouverture de session interactive : titre du message (null = non défini). */
   logonMessageTitle: z.string().nullable().default(null),
   /** Ouverture de session interactive : texte du message (null = non défini). */
-  logonMessageText: z.string().nullable().default(null)
+  logonMessageText: z.string().nullable().default(null),
+  /** Windows Update : serveur WSUS intranet. */
+  wuServer: WuServerPolicySchema.default(() => ({ state: 'NotConfigured' as const, url: '' })),
+  /** Windows Update : ciblage côté client (groupe WSUS). */
+  wuTargetGroup: WuTargetGroupPolicySchema.default(() => ({ state: 'NotConfigured' as const, group: '' }))
 })
 
 /** Partie « Configuration utilisateur » d'une GPO (sous-ensemble simulé). */
@@ -159,7 +179,9 @@ const noComputerSettings = (): z.infer<typeof GpoComputerSettingsSchema> => ({
   minPasswordLength: null,
   passwordComplexity: null,
   logonMessageTitle: null,
-  logonMessageText: null
+  logonMessageText: null,
+  wuServer: { state: 'NotConfigured', url: '' },
+  wuTargetGroup: { state: 'NotConfigured', group: '' }
 })
 const noUserSettings = (): z.infer<typeof GpoUserSettingsSchema> => ({
   wallpaper: { state: 'NotConfigured', path: '', style: 'Fill' },

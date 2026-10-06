@@ -5,7 +5,7 @@
  */
 import { DEFAULT_DC_POLICY_ID, DEFAULT_DOMAIN_POLICY_ID, defaultDomainGpos } from '../roles/gpo/defaults'
 
-export const CURRENT_SCHEMA_VERSION = 4
+export const CURRENT_SCHEMA_VERSION = 5
 
 type RawDocument = Record<string, unknown>
 
@@ -67,11 +67,21 @@ function moveServicesToRoles(doc: RawDocument): RawDocument {
   return { ...doc, schemaVersion: 4 }
 }
 
+/**
+ * Version 5 (ServerLab 2.1) : rôles de la v2.1 (WSUS…) et nouveaux paramètres de stratégie
+ * (Windows Update). Rien à transformer : les nouveaux champs reçoivent les valeurs par défaut de
+ * leur schéma ; le numéro de version empêche une version 2.0 d'ouvrir (et de tronquer) ces labs.
+ */
+function addV21Roles(doc: RawDocument): RawDocument {
+  return { ...doc, schemaVersion: 5 }
+}
+
 /** migrations[n] migre un document de la version n vers n + 1. */
 export const migrations: Record<number, (doc: RawDocument) => RawDocument> = {
   1: addDefaultGpos,
   2: addLabId,
-  3: moveServicesToRoles
+  3: moveServicesToRoles,
+  4: addV21Roles
 }
 
 export type MigrationResult = { ok: true; doc: RawDocument } | { ok: false; message: string }

@@ -5,6 +5,7 @@
  */
 import {
   AppWindow,
+  CloudDownload,
   FileCog,
   FolderCog,
   FolderSymlink,
@@ -12,6 +13,7 @@ import {
   HardDrive,
   ScrollText,
   Server,
+  RefreshCw,
   ShieldCheck,
   UsersRound,
   Waypoints,
@@ -19,7 +21,7 @@ import {
 } from 'lucide-react'
 import type { DesktopApp } from './apps'
 
-type ViewStyle = Pick<DesktopApp, 'icon' | 'color' | 'size'> & Partial<Pick<DesktopApp, 'title'>>
+type ViewStyle = Pick<DesktopApp, 'icon' | 'color' | 'size'> & Partial<Pick<DesktopApp, 'title' | 'start'>>
 
 const STYLES: Record<string, ViewStyle> = {
   dhcp: { icon: Waypoints, color: 'text-teal-500', size: { w: 920, h: 580 } },
@@ -35,7 +37,9 @@ const STYLES: Record<string, ViewStyle> = {
     size: { w: 440, h: 560 },
     title: (_d, arg) => `Propriétés de : ${arg?.replace(/\\$/, '').split('\\').pop() || arg || ''}`
   },
-  newshare: { icon: FolderSymlink, color: 'text-amber-500', size: { w: 520, h: 470 } }
+  newshare: { icon: FolderSymlink, color: 'text-amber-500', size: { w: 520, h: 470 } },
+  wsus: { icon: CloudDownload, color: 'text-emerald-600', size: { w: 980, h: 600 } },
+  wuclient: { icon: RefreshCw, color: 'text-sky-600', size: { w: 640, h: 520 }, start: 'system' }
 }
 
 /** Apparence par défaut d'une vue de rôle sans style dédié. */
@@ -51,7 +55,8 @@ const ROLE_ICONS: Record<string, LucideIcon> = {
   dhcp: Waypoints,
   dns: Globe,
   files: HardDrive,
-  gpo: ScrollText
+  gpo: ScrollText,
+  wsus: CloudDownload
 }
 
 export function roleIcon(roleId: string): LucideIcon {

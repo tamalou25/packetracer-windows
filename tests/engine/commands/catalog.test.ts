@@ -349,6 +349,22 @@ describe('catalogue des commandes', () => {
     done(r)
   })
 
+  it('WSUS : post-installation, synchronisation, classifications, groupes, ciblage, approbations', () => {
+    const r = runner()
+    const srv = r.id('SRV1')
+    r.run(command('system.installFeatures', srv, ['UpdateServices'], { includeManagementTools: true }))
+    r.run(command('wsus.postInstall', srv, 'C:\\WSUS'))
+    r.run(command('wsus.setClassification', srv, 'drivers', true))
+    r.run(command('wsus.synchronize', srv))
+    r.run(command('wsus.addGroup', srv, 'Postes'))
+    r.run(command('wsus.assignComputer', srv, r.id('PC1'), 'Postes'))
+    r.run(command('wsus.approve', srv, 'KB9100102', 'Postes', true))
+    r.run(command('wsus.decline', srv, 'KB9100401', true))
+    r.run(command('wsus.setTargeting', srv, 'client'))
+    r.run(command('wsus.removeGroup', srv, 'Postes'))
+    done(r)
+  })
+
   it('toute commande du catalogue est couverte par ce fichier', () => {
     const missing = Object.keys(commandDefinitions()).filter((t) => !covered.has(t))
     expect(missing).toEqual([])

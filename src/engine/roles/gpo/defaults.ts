@@ -16,7 +16,9 @@ export function emptyComputerSettings(): GpoComputerSettings {
     minPasswordLength: null,
     passwordComplexity: null,
     logonMessageTitle: null,
-    logonMessageText: null
+    logonMessageText: null,
+    wuServer: { state: 'NotConfigured', url: '' },
+    wuTargetGroup: { state: 'NotConfigured', group: '' }
   }
 }
 

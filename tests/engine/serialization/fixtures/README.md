@@ -10,6 +10,7 @@ switch, routeur, poste en DHCP joint au domaine, poste statique, OU, utilisateur
 | `v2.slab` | 2      | commit `4379438` (GPO + fichiers, avant les labs)  |
 | `v3.slab` | 3      | ServerLab 1.0.0 (`npm run fixture:slab`)           |
 | `v4.slab` | 4      | modules de rôles, données dans `roles` (issue #4)  |
+| `v5.slab` | 5      | ServerLab 2.1 : WSUS, stratégies Windows Update    |
 
 Ces fichiers ne doivent **jamais** être modifiés ni régénérés : ils représentent les fichiers que
 des utilisateurs ont réellement enregistrés. `../migrations.test.ts` vérifie que chacun s'ouvre,
