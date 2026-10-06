@@ -5,26 +5,26 @@ Une nouvelle session reprend **uniquement** à partir de ce fichier (lire aussi 
 
 ## État
 
-| Clé              | Valeur                                                                                                                                               |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Étape en cours   | 9 — Release 2.0.1 (préparée, tag sur accord de Gary)                                                                                                 |
-| Base de travail  | `main` @ `ee85a79` (merge PR #51), `package.json` = 2.0.0                                                                                            |
-| Prochaine action | Gary : fusion de #68, #70, de la PR « étapes 5 → 8 » et de la PR de release 2.0.1 ; actions A2 → A6 (voir « Actions restantes ») ; puis tag `v2.0.1` |
+| Clé              | Valeur                                                                 |
+| ---------------- | ---------------------------------------------------------------------- |
+| Étape en cours   | Mission terminée côté code (2026-10-06) ; reste les actions de Gary    |
+| Base de travail  | `main` @ `ee85a79` (merge PR #51), `package.json` = 2.0.0              |
+| Prochaine action | Gary : A2 → A7 (« Actions restantes »), puis tags `v2.0.0` et `v2.0.1` |
 
 ## Étapes
 
-| #   | Étape                      | Statut                                                 |
-| --- | -------------------------- | ------------------------------------------------------ |
-| 0   | Hygiène du dépôt           | validée (OK le 2026-10-06), actions Gary en cours      |
-| 1   | État des lieux             | validée (OK le 2026-10-06)                             |
-| 2   | Preuve des acquis 2.0.0    | validée (OK le 2026-10-06)                             |
-| 3   | Couverture                 | validée (OK le 2026-10-06)                             |
-| 4   | Chasse aux bugs par rôle   | validée (OK le 2026-10-06)                             |
-| 5   | Fichiers .slab             | terminée (Gary : « continue sans t’arrêter »)          |
-| 6   | Labs                       | terminée                                               |
-| 7   | Mises à jour automatiques  | terminée : chaîne correcte, bloquée par le dépôt privé |
-| 8   | Fidélité                   | terminée (`docs/fidelite.md`)                          |
-| 9   | Release 2.0.1 (sur accord) | préparée, tag sur accord                               |
+| #   | Étape                      | Statut                                                             |
+| --- | -------------------------- | ------------------------------------------------------------------ |
+| 0   | Hygiène du dépôt           | validée (OK le 2026-10-06), actions Gary en cours                  |
+| 1   | État des lieux             | validée (OK le 2026-10-06)                                         |
+| 2   | Preuve des acquis 2.0.0    | validée (OK le 2026-10-06)                                         |
+| 3   | Couverture                 | validée (OK le 2026-10-06)                                         |
+| 4   | Chasse aux bugs par rôle   | validée (OK le 2026-10-06)                                         |
+| 5   | Fichiers .slab             | terminée (Gary : « continue sans t’arrêter »)                      |
+| 6   | Labs                       | terminée                                                           |
+| 7   | Mises à jour automatiques  | terminée : chaîne correcte, bloquée par le dépôt privé             |
+| 8   | Fidélité                   | terminée (`docs/fidelite.md`)                                      |
+| 9   | Release 2.0.1 (sur accord) | CHANGELOG + version 2.0.1 fusionnés (#72) ; tag à pousser par Gary |
 
 ## Constats de l'étape 0 (2026-10-06)
 
@@ -248,6 +248,25 @@ pages archivées). B9 (#69 / #70) corrigé sur source.
 | A6  | Supprimer les branches fusionnées (`feat/*`, `claude/ui-v2-*`, `release/v2.0.0`, `fix/*` fusionnées) | à faire |
 | A7  | Décider : dépôt public ou dépôt public de releases (mises à jour automatiques)                       | à faire |
 | A8  | Fusionner #68, #70, la PR « étapes 5 → 8 », la PR release 2.0.1 ; puis `git push origin v2.0.1`      | à faire |
+
+## Bilan final (2026-10-06)
+
+| Indicateur                    | Avant (`ee85a79`) | Après                                                                               |
+| ----------------------------- | ----------------- | ----------------------------------------------------------------------------------- |
+| Bugs trouvés / corrigés       | —                 | 9 / 9 (B1 → B9, une issue et une PR chacun)                                         |
+| Bugs restants connus          | —                 | 0 (1 point mineur : fichier invalide ajouté aux récents)                            |
+| Couverture moteur, lignes     | 78,5 %            | 90,7 %                                                                              |
+| Couverture moteur, branches   | 63,6 %            | 73,2 %                                                                              |
+| Tests moteur / E2E            | 265 / 31          | 332 / 35                                                                            |
+| Acquis « Consolider » prouvés | —                 | 22/22 points ; G1 → G3 couverts ; G4 (journal consultable) = fonctionnalité absente |
+| Points de fidélité            | —                 | 5 corrigés, 1 sourcé à planifier, 22 à vérifier                                     |
+
+Ce qui bloque l'ouverture du prochain milestone :
+
+1. Release 2.0.1 publiée (tags `v2.0.0` puis `v2.0.1`, release « V2 » supprimée).
+2. Mises à jour automatiques : dépôt privé (décision A7).
+3. Renumérotation des milestones (A2) puis alignement de `roadmap.json`, `ROADMAP.md`, `CLAUDE.md`.
+4. Validation de la mission par Gary.
 
 ## Points de fidélité relevés (historique ; état à jour : `docs/fidelite.md`)
 
