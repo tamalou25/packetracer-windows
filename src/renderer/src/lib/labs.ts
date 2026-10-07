@@ -3,6 +3,7 @@
  * critères, reprise depuis le départ.
  */
 import { buildLabStart, checkLab, type LabDefinition } from '@engine/index'
+import { useExamStore } from '../store/exam'
 import { useLabStore } from '../store/lab'
 import { useLabsStore } from '../store/labs'
 import { useUiStore } from '../store/ui'
@@ -21,6 +22,9 @@ export async function openLab(lab: LabDefinition): Promise<boolean> {
     })
     return false
   }
+  // Résultat d'un examen précédent effacé ; un examen en cours est noté comme abandonné au
+  // chargement du nouveau lab (son résultat reste affiché)
+  useExamStore.getState().set({ result: null })
   resetDocumentUi()
   useLabStore.getState().load(start, { path: null, name: `${lab.id}.slab` })
   useLabsStore.getState().setActive(lab)

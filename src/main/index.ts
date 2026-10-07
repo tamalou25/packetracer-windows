@@ -17,7 +17,8 @@ import { DEFAULT_SETTINGS } from '../shared/persisted'
 import { resolveTheme } from '../shared/theme'
 import { FileService, findSlabArg } from './files'
 import { buildMenu } from './menu'
-import { exportLabFile, importLabFile } from './labfiles'
+import { exportExamResult, exportLabFile, importLabFile } from './labfiles'
+import { fetchLibraryIndex, fetchLibraryLab } from './library'
 import { exportAuditPdf } from './report'
 import { applyGlobalSecurity } from './security'
 import { isThemePreference, loadSettings, saveSettings, THEME_BACKGROUND, type Settings } from './settings'
@@ -240,6 +241,11 @@ function registerIpc(): void {
   ipcMain.handle(IPC.auditExportPdf, (_e, report: unknown) => exportAuditPdf(win(), report))
   ipcMain.handle(IPC.labImport, () => importLabFile(win()))
   ipcMain.handle(IPC.labExport, (_e, content: unknown, name: unknown) => exportLabFile(win(), content, name))
+  ipcMain.handle(IPC.libraryIndex, () => fetchLibraryIndex())
+  ipcMain.handle(IPC.libraryLab, (_e, file: unknown) => fetchLibraryLab(file))
+  ipcMain.handle(IPC.examExport, (_e, content: unknown, name: unknown) =>
+    exportExamResult(win(), content, name)
+  )
   ipcMain.on(IPC.closeConfirmed, () => {
     closeConfirmed = true
     closeIntent = intentAfterSave

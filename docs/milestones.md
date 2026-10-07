@@ -304,14 +304,14 @@ Milestone terminé : `CHANGELOG.md` [2.3.0], `package.json` 2.3.0 ; tag `v2.3.0`
 
 ## v2.4 — Pédagogie avancée
 
-| Issue | Sujet                      | Branche              | PR  | État     |
-| ----- | -------------------------- | -------------------- | --- | -------- |
-| #33   | Éditeur de labs intégré    | `feat/33-lab-editor` |     | en cours |
-| #34   | Mode examen                |                      |     | à faire  |
-| #35   | Bibliothèque communautaire |                      |     | à faire  |
-| #36   | Client Linux simulé        |                      |     | à faire  |
-| #37   | Interface FR / EN (i18n)   |                      |     | à faire  |
-| #38   | Signature de code          |                      |     | gelée    |
+| Issue | Sujet                      | Branche                | PR   | État     |
+| ----- | -------------------------- | ---------------------- | ---- | -------- |
+| #33   | Éditeur de labs intégré    | `feat/33-lab-editor`   | #97  | fusionné |
+| #34   | Mode examen                | `feat/34-exam-mode`    | #98  | fusionné |
+| #35   | Bibliothèque communautaire | `feat/35-lab-library`  | #100 | fusionné |
+| #36   | Client Linux simulé        | `feat/36-linux-client` | #99  | en cours |
+| #37   | Interface FR / EN (i18n)   |                        |      | à faire  |
+| #38   | Signature de code          |                        |      | gelée    |
 
 ### #33 Éditeur de labs intégré
 
@@ -329,6 +329,31 @@ Milestone terminé : `CHANGELOG.md` [2.3.0], `package.json` 2.3.0 ; tag `v2.3.0`
   Exporter / Importer / Essayer) et **Importer un lab…** ; onglet Lab : « Indice suivant ».
 - Main (`main/labfiles.ts`) : import / export JSON par dialogues natifs, 1 Mo au plus.
 - Limite : un lab importé n'est pas conservé dans le `.slab` enregistré (seuls les labs fournis le sont).
+
+### #34 Mode examen
+
+- Moteur (`labs/exam.ts`) : `startExam` (durée tirée de la durée indicative du lab : « 25 min », « 1 h 30 »),
+  `remainingMs`, `recordExamEvent` (perte et retour du focus, une sortie par absence), `finishExam`
+  (vérification finale unique, note sur 20 au dixième, détail par critère, fin : terminé, temps écoulé —
+  durée bornée à l'échéance — ou abandon), `examResultText` (résultat exporté). Le temps réel est fourni
+  par l'interface.
+- Interface : onglet Lab › **Examen** (le lab repart de son départ), bandeau du chronomètre, indices et
+  résultats intermédiaires masqués, **Terminer l'examen** ; résultat (note, critères, durée, fin, sorties
+  horodatées) et **Exporter le résultat…** (texte, dialogue natif). Sorties signalées : fenêtre quittée
+  (blur), lab fermé ou autre document ouvert (abandon, noté sur l'état d'avant), temps écoulé.
+
+### #35 Bibliothèque communautaire de labs
+
+- Moteur : `labs/sha256.ts` (SHA-256 en TypeScript pur, UTF-8, vecteurs FIPS 180-4), `labs/library.ts`
+  (index strict : identifiants uniques, chemins `labs/<nom>.json`, empreinte ; `verifyLibraryLab` :
+  empreinte, schéma des labs, identifiant).
+- Main (`main/library.ts`, `shared/library.ts`) : `net.fetch` sur la racine du dépôt public uniquement,
+  sans redirection, 15 s, 256 Ko (index) / 1 Mo (lab), UTF-8 strict ; serveur local de test par
+  `SERVERLAB_LIBRARY_URL` (127.0.0.1 / localhost seulement).
+- Interface : sélecteur de labs › onglet **Bibliothèque** (titre, auteur, difficulté, version ; Ouvrir ;
+  erreurs claires, Réessayer).
+- **Dépôt public `tamalou25/serverlab-labs` à créer par Gary** (procédure : `docs/bibliotheque.md`) : sans
+  lui, l'onglet affiche « Fichier introuvable dans la bibliothèque (HTTP 404) ».
 
 ### #36 Client Linux simulé
 

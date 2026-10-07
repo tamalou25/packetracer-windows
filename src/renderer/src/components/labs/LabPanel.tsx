@@ -2,10 +2,13 @@
  * Onglet Lab : énoncé, objectifs à valider, bouton Vérifier (✅ / ❌ et indice en cas d'échec).
  */
 import { useEffect, useRef } from 'react'
-import { CircleCheck, CircleDashed, CircleX, ClipboardCheck, RotateCcw, X } from 'lucide-react'
+import { CircleCheck, CircleDashed, CircleX, ClipboardCheck, Flag, RotateCcw, Timer, X } from 'lucide-react'
+import { askFinishExam, askStartExam } from '../../lib/exam'
 import { restartLab, verifyLab } from '../../lib/labs'
+import { useExamStore } from '../../store/exam'
 import { useLabsStore } from '../../store/labs'
 import { Button } from '../common/ui'
+import { ExamBanner } from './Exam'
 import { Markdown } from './Markdown'
 
 const DIFFICULTY_CLASS: Record<string, string> = {
@@ -16,7 +19,10 @@ const DIFFICULTY_CLASS: Record<string, string> = {
 
 export function LabPanel() {
   const lab = useLabsStore((s) => s.active)
-  const progress = useLabsStore((s) => s.progress)
+  const verified = useLabsStore((s) => s.progress)
+  // Examen : ni résultat intermédiaire ni indice jusqu'à la vérification finale
+  const exam = useExamStore((s) => s.session !== null)
+  const progress = exam ? null : verified
   const objectives = useRef<HTMLHeadingElement>(null)
   // Après une vérification, les objectifs (et leurs indices) sont amenés à l'écran
   useEffect(() => {
@@ -27,6 +33,7 @@ export function LabPanel() {
   const percent = progress ? Math.round((progress.passed / progress.total) * 100) : 0
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="lab-panel">
+      {exam && <ExamBanner />}
       <div className="border-b border-line px-4 py-3">
         <div className="mb-1 flex items-center gap-2">
           <span
@@ -97,14 +104,31 @@ export function LabPanel() {
             style={{ width: `${percent}%` }}
           />
         </div>
-        <div className="flex gap-2">
-          <Button variant="primary" onClick={verifyLab} data-testid="lab-check" className="flex-1">
-            <ClipboardCheck size={14} /> Vérifier
+        {exam ? (
+          <Button variant="primary" onClick={askFinishExam} data-testid="exam-finish" className="w-full">
+            <Flag size={14} /> Terminer l’examen
           </Button>
-          <Button onClick={restartLab} data-testid="lab-restart" title="Recommencer depuis l’état de départ">
-            <RotateCcw size={14} />
-          </Button>
-        </div>
+        ) : (
+          <div className="flex gap-2">
+            <Button variant="primary" onClick={verifyLab} data-testid="lab-check" className="flex-1">
+              <ClipboardCheck size={14} /> Vérifier
+            </Button>
+            <Button
+              onClick={askStartExam}
+              data-testid="exam-start"
+              title="Mode examen : chronomètre, sans indice"
+            >
+              <Timer size={14} /> Examen
+            </Button>
+            <Button
+              onClick={restartLab}
+              data-testid="lab-restart"
+              title="Recommencer depuis l’état de départ"
+            >
+              <RotateCcw size={14} />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )

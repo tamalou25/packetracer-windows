@@ -60,7 +60,11 @@ const api: ServerLabApi = {
   exportAuditPdf: (report) => ipcRenderer.invoke(IPC.auditExportPdf, report),
 
   importLab: () => ipcRenderer.invoke(IPC.labImport),
-  exportLab: (content, suggestedName) => ipcRenderer.invoke(IPC.labExport, content, suggestedName)
+  exportLab: (content, suggestedName) => ipcRenderer.invoke(IPC.labExport, content, suggestedName),
+  exportExamResult: (content, suggestedName) => ipcRenderer.invoke(IPC.examExport, content, suggestedName),
+
+  libraryIndex: () => ipcRenderer.invoke(IPC.libraryIndex),
+  libraryLab: (file) => ipcRenderer.invoke(IPC.libraryLab, file)
 }
 
 contextBridge.exposeInMainWorld('serverlab', api)

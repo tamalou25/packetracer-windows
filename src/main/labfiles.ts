@@ -51,3 +51,30 @@ export async function exportLabFile(
     return { ok: false, error: e instanceof Error ? e.message : String(e) }
   }
 }
+
+/** Résultat d'examen : dialogue « Enregistrer sous » puis fichier texte. */
+export async function exportExamResult(
+  win: BrowserWindow,
+  content: unknown,
+  suggestedName: unknown
+): Promise<FileResult<string>> {
+  if (typeof content !== 'string' || Buffer.byteLength(content, 'utf8') > MAX_LAB_BYTES)
+    return { ok: false, error: 'Paramètres invalides.' }
+  const name =
+    typeof suggestedName === 'string' && /^[^\\/:*?"<>|]{1,80}$/.test(suggestedName)
+      ? suggestedName
+      : 'resultat-examen'
+  const res = await dialog.showSaveDialog(win, {
+    title: 'Exporter le résultat de l’examen',
+    defaultPath: join(app.getPath('documents'), `${name}.txt`),
+    filters: [{ name: 'Texte', extensions: ['txt'] }]
+  })
+  if (res.canceled || !res.filePath) return { ok: false, canceled: true }
+  const path = extname(res.filePath).toLowerCase() === '.txt' ? res.filePath : `${res.filePath}.txt`
+  try {
+    await fs.writeFile(path, content, 'utf8')
+    return { ok: true, value: path }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+  }
+}
