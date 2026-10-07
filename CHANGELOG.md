@@ -6,6 +6,35 @@ La planification des versions suivantes est dans [ROADMAP.md](ROADMAP.md).
 
 ## [Non publié]
 
+## [2.2.0] — 2026-10-07
+
+Milestone « v2.2 — Réseau d'entreprise » de la roadmap. Format `.slab` 6 (les labs 2.1 s'ouvrent ;
+une version 2.1 refuse les labs 2.2). Écarts connus avec Windows Server : `docs/fidelite.md` (F53 à F86).
+
+### Ajouté
+
+- **VLAN** : base VLAN des switchs, ports d'accès et trunk (VLAN natif, VLAN autorisés), sous-interfaces
+  de routeur (router-on-a-stick), en-tête 802.1Q visible en mode Simulation (#22).
+- **Relais DHCP** : `ip helper-address` sur les interfaces de routeur, étendue choisie d'après le champ
+  giaddr, échange relayé tracé (#23).
+- **Pare-feu Windows Defender** : profils domaine/privé/public, règles prédéfinies des rôles, règles
+  locales et par GPO, console `wf.msc`, cmdlets NetSecurity et `netsh advfirewall` ; paquets bloqués
+  expliqués en Simulation (#24).
+- **Accès à distance (RRAS)** : NAT vers Internet (traduction expliquée en Simulation), serveur VPN SSTP
+  avec pool d'adresses, client VPN (Paramètres › VPN, `Add-VpnConnection`, `rasdial`) (#25).
+- **NPS / RADIUS** : clients RADIUS, stratégies réseau par groupe AD, authentification RADIUS des clients
+  VPN, journal Sécurité 6272 / 6273, console `nps.msc` (#26).
+- **Multi-sites AD** : sites, sous-réseaux et liens de sites (`dssite.msc`), contrôleur supplémentaire
+  (`Install-ADDSDomainController`), réplication (`repadmin`), rôles FSMO (`netdom query fsmo`, transfert,
+  prise de force), authentification auprès du contrôleur du site du client (#27).
+- Six nouveaux labs (13 à 18), un par fonctionnalité.
+
+### Corrigé
+
+- `$env:LOGONSERVER` désigne le contrôleur qui a authentifié la session (et non le nom du domaine).
+- Événement RemoteAccess 20271 et message de l'erreur VPN 691 conformes au texte de Windows.
+- Résolution DNS insensible à la casse des noms.
+
 ## [2.1.0] — 2026-10-06
 
 Milestone « v2.1 — Nouveaux rôles serveur » de la roadmap. Format `.slab` 5 (les labs 2.0 s'ouvrent ;
