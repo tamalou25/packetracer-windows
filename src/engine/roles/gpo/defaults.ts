@@ -22,7 +22,12 @@ export function emptyComputerSettings(): GpoComputerSettings {
     autoEnrollment: 'NotConfigured',
     firewallDomain: 'NotConfigured',
     firewallStandard: 'NotConfigured',
-    firewallRules: []
+    firewallRules: [],
+    lockoutThreshold: null,
+    lockoutDuration: null,
+    lockoutReset: null,
+    auditLogon: null,
+    auditAccountManagement: null
   }
 }
 

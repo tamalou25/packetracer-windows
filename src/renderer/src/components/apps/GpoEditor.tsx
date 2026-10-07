@@ -363,23 +363,41 @@ function SettingDialog({
   const c = gpo.computer
   const u = gpo.user
   const initialState: PolicyState = templateState(info.key, c, u) ?? 'NotConfigured'
+  // Paramètres de sécurité (« Définir ce paramètre de stratégie ») : valeur actuelle de la GPO
+  const numberKey =
+    info.key === 'minPasswordLength' ||
+    info.key === 'lockoutThreshold' ||
+    info.key === 'lockoutDuration' ||
+    info.key === 'lockoutReset'
+      ? info.key
+      : null
+  const auditKey = info.key === 'auditLogon' || info.key === 'auditAccountManagement' ? info.key : null
   const initialDefined =
-    info.key === 'minPasswordLength'
-      ? c.minPasswordLength !== null
-      : info.key === 'passwordComplexity'
-        ? c.passwordComplexity !== null
-        : info.key === 'logonMessageTitle'
-          ? c.logonMessageTitle !== null
-          : info.key === 'logonMessageText'
-            ? c.logonMessageText !== null
-            : false
+    numberKey !== null
+      ? c[numberKey] !== null
+      : auditKey !== null
+        ? c[auditKey] !== null
+        : info.key === 'passwordComplexity'
+          ? c.passwordComplexity !== null
+          : info.key === 'logonMessageTitle'
+            ? c.logonMessageTitle !== null
+            : info.key === 'logonMessageText'
+              ? c.logonMessageText !== null
+              : false
+  const initialAudit = auditKey ? c[auditKey] : null
   const [state, setState] = useState<PolicyState>(initialState)
   const [defined, setDefined] = useState(initialDefined)
   const [path, setPath] = useState(u.wallpaper.path)
   const [style, setStyle] = useState<WallpaperStyle>(u.wallpaper.style)
   const [wuUrl, setWuUrl] = useState(c.wuServer.url)
   const [wuGroup, setWuGroup] = useState(c.wuTargetGroup.group)
-  const [length, setLength] = useState(String(c.minPasswordLength ?? 7))
+  const [length, setLength] = useState(String((numberKey ? c[numberKey] : null) ?? info.number?.initial ?? 0))
+  const [auditSuccess, setAuditSuccess] = useState(
+    initialAudit === 'Success' || initialAudit === 'SuccessAndFailure'
+  )
+  const [auditFailure, setAuditFailure] = useState(
+    initialAudit === 'Failure' || initialAudit === 'SuccessAndFailure'
+  )
   const [complexity, setComplexity] = useState(c.passwordComplexity ?? true)
   const [text, setText] = useState(
     (info.key === 'logonMessageTitle'
@@ -411,7 +429,25 @@ function SettingDialog({
           }
         }
       case 'minPasswordLength':
-        return { computer: { minPasswordLength: defined ? Number(length) : null } }
+      case 'lockoutThreshold':
+      case 'lockoutDuration':
+      case 'lockoutReset':
+        return { computer: { [info.key]: defined ? Number(length) : null } }
+      case 'auditLogon':
+      case 'auditAccountManagement':
+        return {
+          computer: {
+            [info.key]: defined
+              ? auditSuccess && auditFailure
+                ? 'SuccessAndFailure'
+                : auditSuccess
+                  ? 'Success'
+                  : auditFailure
+                    ? 'Failure'
+                    : 'None'
+              : null
+          }
+        }
       case 'passwordComplexity':
         return { computer: { passwordComplexity: defined ? complexity : null } }
       case 'logonMessageTitle':
@@ -513,21 +549,46 @@ function SettingDialog({
                 />
                 Définir ce paramètre de stratégie
               </label>
-              {info.kind === 'number' && (
-                <label className="flex items-center gap-2">
-                  Le mot de passe doit comporter au moins :
+              {info.kind === 'number' && info.number && (
+                <label className="flex flex-wrap items-center gap-2">
+                  {info.number.before}
                   <WinInput
                     type="number"
-                    min={0}
-                    max={14}
+                    min={info.number.min}
+                    max={info.number.max}
                     value={length}
                     disabled={!defined}
                     onChange={(e) => setLength(e.target.value)}
-                    className="!w-16"
+                    className="!w-20"
                     data-testid="policy-number"
                   />
-                  caractères
+                  {info.number.after}
                 </label>
+              )}
+              {info.kind === 'audit' && (
+                <div className="flex flex-col gap-1.5">
+                  <span>Auditer ces tentatives :</span>
+                  <label className="flex items-center gap-1.5 pl-4">
+                    <input
+                      type="checkbox"
+                      disabled={!defined}
+                      checked={auditSuccess}
+                      onChange={(e) => setAuditSuccess(e.target.checked)}
+                      data-testid="policy-audit-success"
+                    />
+                    Succès
+                  </label>
+                  <label className="flex items-center gap-1.5 pl-4">
+                    <input
+                      type="checkbox"
+                      disabled={!defined}
+                      checked={auditFailure}
+                      onChange={(e) => setAuditFailure(e.target.checked)}
+                      data-testid="policy-audit-failure"
+                    />
+                    Échec
+                  </label>
+                </div>
               )}
               {info.kind === 'boolean' && (
                 <div className="flex flex-col gap-1.5">

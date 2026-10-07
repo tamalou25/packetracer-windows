@@ -2,7 +2,7 @@
  * Gestion des objets de l'annuaire : unités d'organisation, utilisateurs, groupes, membres.
  */
 import type { Draft } from 'immer'
-import { logEvent } from '../../core/eventlog'
+import { logAudited } from '../gpo/auditpolicy'
 import { raise, transact, type EngineResult } from '../../core/result'
 import type { AdGroup, Domain, LabState } from '../../model/schema'
 import {
@@ -147,13 +147,16 @@ export function addUser(
       builtin: false,
       passwordNeverExpires: !!input.passwordNeverExpires,
       whenCreated: draft.clock,
-      lastLogon: null
+      lastLogon: null,
+      badPwdCount: 0,
+      lastBadPassword: null,
+      lockoutTime: null
     })
     // Groupe principal : Utilisateurs du domaine
     domain.groups.find((g) => g.name === 'Utilisateurs du domaine')?.members.push(id)
     const dc = domain.controllers[0]
     if (dc)
-      logEvent(draft, dc, {
+      logAudited(draft, dc, 'accountManagement', 'success', {
         level: 'information',
         source: 'Security-Auditing',
         eventId: 4720,
@@ -228,7 +231,7 @@ function logMembership(
   const dc = domain.controllers[0]
   if (!dc || group.category !== 'Security') return
   const ev = MEMBERSHIP_EVENTS[group.scope]
-  logEvent(draft, dc, {
+  logAudited(draft, dc, 'accountManagement', 'success', {
     level: 'information',
     source: 'Security-Auditing',
     eventId: added ? ev.added : ev.removed,
@@ -571,6 +574,22 @@ export function setAccountActivity(
     if (activity.lastLogonDaysAgo !== undefined)
       user.lastLogon =
         activity.lastLogonDaysAgo === null ? null : draft.clock - activity.lastLogonDaysAgo * day
+    return undefined
+  })
+}
+
+/** Déverrouille un compte (Unlock-ADAccount, « Déverrouiller le compte » de la console AD). */
+export function unlockAccount(state: LabState, domainName: string, identity: string): EngineResult {
+  return transact(state, (draft) => {
+    const domain = requireDomain(draft, domainName)
+    const found = findPrincipal(domain as Domain, identity)
+    if (!found || found.kind !== 'user') notFound(domain as Domain, identity)
+    const user = domain.users.find((u) => u.id === found.obj.id)
+    if (user) {
+      user.lockoutTime = null
+      user.badPwdCount = 0
+      user.lastBadPassword = null
+    }
     return undefined
   })
 }

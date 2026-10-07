@@ -43,7 +43,8 @@ import {
   restoreDeletedObject,
   setAccountActivity,
   setAccountEnabled,
-  setUserProperties
+  setUserProperties,
+  unlockAccount
 } from './objects'
 
 /** Résultat métier d'une opération d'annuaire (jonction, ouverture de session…). */
@@ -103,6 +104,7 @@ export const addsCommands = {
     setAccountActivity,
     (_s, _d, identity) => `Historique du compte ${identity}`
   ),
+  'adds.unlockAccount': def(unlockAccount, (_s, _d, identity) => `Déverrouiller le compte ${identity}`),
   'adds.setUserProperties': def(
     setUserProperties,
     (_s, _d, identity) => `Modifier les propriétés de ${identity}`
