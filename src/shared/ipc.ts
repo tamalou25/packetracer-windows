@@ -133,7 +133,9 @@ export const IPC = {
   auditExportPdf: 'audit:exportPdf',
   labImport: 'lab:import',
   labExport: 'lab:export',
-  examExport: 'exam:export'
+  examExport: 'exam:export',
+  libraryIndex: 'library:index',
+  libraryLab: 'library:lab'
 } as const
 
 /** Taille maximale acceptée pour un fichier .slab (protection contre les fichiers aberrants). */
@@ -200,4 +202,9 @@ export interface ServerLabApi {
   exportLab(content: string, suggestedName: string): Promise<FileResult<string>>
   /** Mode examen : dialogue « Enregistrer sous » puis résultat en texte. */
   exportExamResult(content: string, suggestedName: string): Promise<FileResult<string>>
+
+  /** Bibliothèque communautaire : texte de l'index (validé ensuite par le moteur). */
+  libraryIndex(): Promise<FileResult<string>>
+  /** Bibliothèque communautaire : texte d'un lab (labs/<nom>.json), vérifié ensuite par le moteur. */
+  libraryLab(file: string): Promise<FileResult<string>>
 }

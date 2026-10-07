@@ -177,6 +177,10 @@ critères typés). Chaque lab est couvert par un test qui applique sa solution e
 départ capturée sur le lab courant, critères construits sans code et testés aussitôt, indices à plusieurs
 niveaux. Le lab s'exporte en JSON et se partage ; **Importer un lab…** l'ouvre comme un lab fourni.
 
+L'onglet **Bibliothèque** du sélecteur liste les labs partagés par la communauté (dépôt public, voir
+[`docs/bibliotheque.md`](docs/bibliotheque.md)) : chaque lab est vérifié (empreinte SHA-256, format) avant
+ouverture.
+
 Le **mode examen** (onglet Lab › Examen) reproduit les conditions d'épreuve : chronomètre, aucun indice,
 une seule vérification finale, note sur 20 détaillée par critère et exportable ; toute sortie de
 l'application ou abandon est signalé dans le résultat.

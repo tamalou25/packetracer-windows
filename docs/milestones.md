@@ -341,3 +341,16 @@ Milestone terminé : `CHANGELOG.md` [2.3.0], `package.json` 2.3.0 ; tag `v2.3.0`
   résultats intermédiaires masqués, **Terminer l'examen** ; résultat (note, critères, durée, fin, sorties
   horodatées) et **Exporter le résultat…** (texte, dialogue natif). Sorties signalées : fenêtre quittée
   (blur), lab fermé ou autre document ouvert (abandon, noté sur l'état d'avant), temps écoulé.
+
+### #35 Bibliothèque communautaire de labs
+
+- Moteur : `labs/sha256.ts` (SHA-256 en TypeScript pur, UTF-8, vecteurs FIPS 180-4), `labs/library.ts`
+  (index strict : identifiants uniques, chemins `labs/<nom>.json`, empreinte ; `verifyLibraryLab` :
+  empreinte, schéma des labs, identifiant).
+- Main (`main/library.ts`, `shared/library.ts`) : `net.fetch` sur la racine du dépôt public uniquement,
+  sans redirection, 15 s, 256 Ko (index) / 1 Mo (lab), UTF-8 strict ; serveur local de test par
+  `SERVERLAB_LIBRARY_URL` (127.0.0.1 / localhost seulement).
+- Interface : sélecteur de labs › onglet **Bibliothèque** (titre, auteur, difficulté, version ; Ouvrir ;
+  erreurs claires, Réessayer).
+- **Dépôt public `tamalou25/serverlab-labs` à créer par Gary** (procédure : `docs/bibliotheque.md`) : sans
+  lui, l'onglet affiche « Fichier introuvable dans la bibliothèque (HTTP 404) ».

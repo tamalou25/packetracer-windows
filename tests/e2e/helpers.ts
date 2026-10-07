@@ -26,6 +26,8 @@ export interface LaunchOptions {
    */
   home?: boolean
   tutorial?: boolean
+  /** Variables d'environnement supplémentaires (ex. SERVERLAB_LIBRARY_URL : bibliothèque locale). */
+  env?: Record<string, string>
 }
 
 export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedApp> {
@@ -44,7 +46,7 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
     ...(packaged
       ? { executablePath: resolve(packaged), args: ['--no-sandbox'] }
       : { args: [resolve(__dirname, '../../out/main/index.js'), '--no-sandbox'] }),
-    env: { ...process.env, SERVERLAB_USER_DATA: userData, NODE_ENV: 'production' }
+    env: { ...process.env, ...options.env, SERVERLAB_USER_DATA: userData, NODE_ENV: 'production' }
   })
   const page = await app.firstWindow()
   const consoleErrors: string[] = []
