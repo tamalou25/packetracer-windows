@@ -226,13 +226,13 @@ Milestone terminé : `CHANGELOG.md` [2.2.0], `package.json` 2.2.0 ; tag `v2.2.0`
 
 ## v2.3 — Cybersécurité (défensif)
 
-| Issue | Sujet                           | Branche         | PR  | État     |
-| ----- | ------------------------------- | --------------- | --- | -------- |
-| #28   | Mode Audit                      | `feat/28-audit` | #89 | fusionné |
-| #29   | Labs de durcissement            |                 |     | à faire  |
-| #30   | Journaux de sécurité filtrables |                 |     | à faire  |
-| #31   | Verrouillage et audit par GPO   |                 |     | à faire  |
-| #32   | Rapport d'audit PDF             |                 |     | à faire  |
+| Issue | Sujet                           | Branche                  | PR  | État     |
+| ----- | ------------------------------- | ------------------------ | --- | -------- |
+| #28   | Mode Audit                      | `feat/28-audit`          | #89 | fusionné |
+| #29   | Labs de durcissement            | `feat/29-hardening-labs` |     | en cours |
+| #30   | Journaux de sécurité filtrables |                          |     | à faire  |
+| #31   | Verrouillage et audit par GPO   |                          |     | à faire  |
+| #32   | Rapport d'audit PDF             |                          |     | à faire  |
 
 ### #28 Mode Audit
 
