@@ -226,13 +226,13 @@ Milestone terminé : `CHANGELOG.md` [2.2.0], `package.json` 2.2.0 ; tag `v2.2.0`
 
 ## v2.3 — Cybersécurité (défensif)
 
-| Issue | Sujet                           | Branche                 | PR  | État     |
-| ----- | ------------------------------- | ----------------------- | --- | -------- |
-| #28   | Mode Audit                      | `feat/28-audit`         |     | en cours |
-| #29   | Labs de durcissement            |                         |     | à faire  |
-| #30   | Journaux de sécurité filtrables | `feat/30-security-logs` |     | en cours |
-| #31   | Verrouillage et audit par GPO   |                         |     | à faire  |
-| #32   | Rapport d'audit PDF             |                         |     | à faire  |
+| Issue | Sujet                           | Branche                  | PR  | État     |
+| ----- | ------------------------------- | ------------------------ | --- | -------- |
+| #28   | Mode Audit                      | `feat/28-audit`          | #89 | fusionné |
+| #29   | Labs de durcissement            | `feat/29-hardening-labs` | #90 | fusionné |
+| #30   | Journaux de sécurité filtrables | `feat/30-security-logs`  | #91 | en cours |
+| #31   | Verrouillage et audit par GPO   |                          |     | à faire  |
+| #32   | Rapport d'audit PDF             |                          |     | à faire  |
 
 ### #28 Mode Audit
 
@@ -246,6 +246,17 @@ Milestone terminé : `CHANGELOG.md` [2.2.0], `package.json` 2.2.0 ; tag `v2.2.0`
 - Format 7 : `passwordNeverExpires`, `whenCreated`, `lastLogon` des comptes ; `smb1` des ordinateurs.
   `Get/Set-SmbServerConfiguration`, `New/Set-ADUser -PasswordNeverExpires`, propriétés `LastLogonDate`,
   `whenCreated`. Onglet **Audit** du panneau latéral (score en direct, recommandations, objets, correction).
+
+### #29 Labs de durcissement
+
+- Critères `auditScore` (score ≥ N) et `auditRule` (règle respectée ou non) du système de base.
+- Format des labs : `smb1`, `firewallDisabled`, `shares` (dossiers partagés et autorisations) par ordinateur ;
+  `passwordNeverExpires`, `memberOf` (groupes existants), `createdDaysAgo`, `lastLogonDaysAgo` par compte ;
+  `passwordPolicy` du domaine. Commandes `adds.setAccountActivity` (historique d'un compte) et
+  `adds.setUserProperties` (case « Le mot de passe n'expire jamais » de la console AD, dernière ouverture de
+  session affichée).
+- Labs `lab-19-durcissement-ad`, `lab-20-durcissement-partages`, `lab-21-durcissement-pare-feu` : départ sous
+  100 avec toutes les règles ciblées enfreintes (testé), solution appliquée par les consoles → 100 %.
 
 ### #30 Journaux de sécurité filtrables
 

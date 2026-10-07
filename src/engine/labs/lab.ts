@@ -8,6 +8,9 @@ import { dispatch } from '../commands/dispatch'
 import { createLab } from '../model/factory'
 import { DEVICE_KINDS } from '../model/kinds'
 import type { LabState } from '../model/schema'
+import { FIREWALL_PROFILES } from '../model/schema'
+import { localToken } from '../roles/files/acl'
+import { DEFAULT_DOMAIN_POLICY_ID } from '../roles/gpo/defaults'
 import { CriterionSchema, evaluateCriteria, type CriterionResult } from './criteria'
 
 export const LAB_FORMAT_VERSION = 1
@@ -32,7 +35,23 @@ export const LabDeviceSchema = z.object({
   /** Nombre de cartes réseau d'un serveur (Ethernet0, Ethernet1…). */
   nics: z.number().int().min(1).max(4).optional(),
   /** Rôles et fonctionnalités installés (avec les outils de gestion). */
-  features: z.array(z.string()).optional()
+  features: z.array(z.string()).optional(),
+  /** Protocole SMB 1.0 activé (labs de durcissement). */
+  smb1: z.boolean().optional(),
+  /** Profils du pare-feu désactivés. */
+  firewallDisabled: z.array(z.enum(FIREWALL_PROFILES)).optional(),
+  /** Dossiers partagés (créés au besoin) : comptes par niveau d'autorisation. */
+  shares: z
+    .array(
+      z.object({
+        name: z.string(),
+        path: z.string(),
+        full: z.array(z.string()).optional(),
+        change: z.array(z.string()).optional(),
+        read: z.array(z.string()).optional()
+      })
+    )
+    .optional()
 })
 
 export const LabDomainSchema = z.object({
@@ -58,10 +77,20 @@ export const LabDomainSchema = z.object({
         sam: z.string(),
         ou: z.string().optional(),
         password: z.string(),
-        enabled: z.boolean().default(true)
+        enabled: z.boolean().default(true),
+        passwordNeverExpires: z.boolean().optional(),
+        /** Groupes existants (Admins du domaine…) dont le compte est membre. */
+        memberOf: z.array(z.string()).optional(),
+        /** Compte créé il y a N jours ; dernière ouverture de session il y a N jours (null : jamais). */
+        createdDaysAgo: z.number().int().nonnegative().optional(),
+        lastLogonDaysAgo: z.number().int().nonnegative().nullable().optional()
       })
     )
     .default([]),
+  /** Stratégie de mot de passe de la Default Domain Policy. */
+  passwordPolicy: z
+    .object({ minLength: z.number().int().min(0).max(14).optional(), complexity: z.boolean().optional() })
+    .optional(),
   /** Postes et serveurs joints au domaine (redémarrés). */
   join: z.array(z.string()).default([])
 })
@@ -205,6 +234,24 @@ export function buildLabStart(start: LabStart): LabState {
       )
     if (d.features?.length)
       apply(command('system.installFeatures', id, d.features, { includeManagementTools: true }))
+    if (d.smb1) apply(command('files.setSmb1', id, true))
+    if (d.firewallDisabled?.length)
+      apply(command('firewall.setProfile', id, d.firewallDisabled, { enabled: false }))
+    for (const share of d.shares ?? [])
+      apply(
+        command(
+          'files.shareFolder',
+          id,
+          {
+            name: share.name,
+            path: share.path,
+            ...(share.full ? { full: share.full } : {}),
+            ...(share.change ? { change: share.change } : {}),
+            ...(share.read ? { read: share.read } : {})
+          },
+          localToken(d.name, 'Administrateur')
+        )
+      )
   }
   const domain = start.domain
   if (domain) {
@@ -228,7 +275,8 @@ export function buildLabStart(start: LabStart): LabState {
           ...(u.ou ? { path: dn(u.ou) } : {}),
           upn: `${u.sam}@${domain.name}`,
           password: u.password,
-          enabled: u.enabled
+          enabled: u.enabled,
+          ...(u.passwordNeverExpires ? { passwordNeverExpires: true } : {})
         })
       )
     for (const g of domain.groups) {
@@ -241,6 +289,30 @@ export function buildLabStart(start: LabStart): LabState {
       )
       if (g.members.length > 0) apply(command('adds.addGroupMembers', domain.name, g.name, g.members))
     }
+    for (const u of domain.users) {
+      for (const group of u.memberOf ?? [])
+        apply(command('adds.addGroupMembers', domain.name, group, [u.sam]))
+      if (u.createdDaysAgo !== undefined || u.lastLogonDaysAgo !== undefined)
+        apply(
+          command('adds.setAccountActivity', domain.name, u.sam, {
+            ...(u.createdDaysAgo !== undefined ? { createdDaysAgo: u.createdDaysAgo } : {}),
+            ...(u.lastLogonDaysAgo !== undefined ? { lastLogonDaysAgo: u.lastLogonDaysAgo } : {})
+          })
+        )
+    }
+    if (domain.passwordPolicy)
+      apply(
+        command('gpo.updateSettings', domain.name, DEFAULT_DOMAIN_POLICY_ID, {
+          computer: {
+            ...(domain.passwordPolicy.minLength !== undefined
+              ? { minPasswordLength: domain.passwordPolicy.minLength }
+              : {}),
+            ...(domain.passwordPolicy.complexity !== undefined
+              ? { passwordComplexity: domain.passwordPolicy.complexity }
+              : {})
+          }
+        })
+      )
     const netbios = state.domains[domain.name]?.netbios ?? ''
     const dcHost = state.devices[dc]
     const adminPassword = dcHost && dcHost.kind === 'server' ? dcHost.host.localAdminPassword : 'P@ssw0rd'

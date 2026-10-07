@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   addPrimaryZone,
+  auditLab,
+  DEFAULT_DOMAIN_POLICY_ID,
+  evaluateCheck,
   addRecord,
   addScope,
   autoConfigureDhcp,
@@ -51,6 +54,9 @@ import lab15 from '../../../labs/lab-15-pare-feu.json'
 import lab16 from '../../../labs/lab-16-acces-distant.json'
 import lab17 from '../../../labs/lab-17-nps-radius.json'
 import lab18 from '../../../labs/lab-18-multi-sites.json'
+import lab19 from '../../../labs/lab-19-durcissement-ad.json'
+import lab20 from '../../../labs/lab-20-durcissement-partages.json'
+import lab21 from '../../../labs/lab-21-durcissement-pare-feu.json'
 import { run } from '../shell/helpers'
 
 function load(raw: unknown): LabDefinition {
@@ -531,6 +537,39 @@ const SOLUTIONS: Record<string, (s: LabState) => LabState> = {
     ) as { success: boolean; message: string }
     if (!logged.success) throw new Error(logged.message)
     return s
+  },
+  'lab-19-durcissement-ad': (s) => {
+    const srv = id(s, 'SRV1')
+    const ps = (line: string, answers: string[] = []) => {
+      s = run(s, srv, line, { answers }).state
+    }
+    ps("Remove-ADGroupMember -Identity 'Admins du domaine' -Members jdupont,stagiaire -Confirm:$false")
+    ps('Set-ADUser svc-sauvegarde -PasswordNeverExpires $false')
+    ps('Disable-ADAccount ancien.employe')
+    const r = dispatch(
+      s,
+      command('gpo.updateSettings', 'lab.local', DEFAULT_DOMAIN_POLICY_ID, {
+        computer: { minPasswordLength: 12, passwordComplexity: true }
+      })
+    )
+    if (!r.ok) throw new Error(r.error.message)
+    return r.state
+  },
+  'lab-20-durcissement-partages': (s) => {
+    const srv = id(s, 'SRV1')
+    const ps = (line: string) => {
+      s = run(s, srv, line).state
+    }
+    ps('Set-SmbServerConfiguration -EnableSMB1Protocol $false -Force')
+    ps("Revoke-SmbShareAccess -Name Compta -AccountName 'Tout le monde' -Force")
+    ps('Grant-SmbShareAccess -Name Compta -AccountName LAB\\GG_Compta -AccessRight Change -Force')
+    s = run(s, srv, 'icacls C:\\Compta /grant LAB\\GG_Compta:(OI)(CI)M', { shell: 'cmd' }).state
+    return s
+  },
+  'lab-21-durcissement-pare-feu': (s) => {
+    for (const name of ['SRV1', 'PC1'])
+      s = run(s, id(s, name), 'Set-NetFirewallProfile -All -Enabled True').state
+    return s
   }
 }
 
@@ -553,7 +592,10 @@ describe('Labs', () => {
     lab15,
     lab16,
     lab17,
-    lab18
+    lab18,
+    lab19,
+    lab20,
+    lab21
   ].map(load)
 
   it('chaque lab a un identifiant unique, des critères uniques et des indices', () => {
@@ -633,5 +675,18 @@ describe('Labs', () => {
     const r = parseLab({ ...lab1, criteria: [] })
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.message).toContain('criteria')
+  })
+})
+
+describe('Labs de durcissement', () => {
+  it('chaque lab part d’un score d’audit inférieur à 100, toutes les règles ciblées enfreintes', () => {
+    for (const raw of [lab19, lab20, lab21]) {
+      const lab = load(raw)
+      const start = buildLabStart(lab.start)
+      expect(auditLab(start).score, lab.id).toBeLessThan(100)
+      for (const c of lab.criteria)
+        if (c.check.type === 'auditRule')
+          expect(evaluateCheck(start, c.check), `${lab.id} › ${c.id}`).toBe(false)
+    }
   })
 })

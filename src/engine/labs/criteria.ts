@@ -12,12 +12,21 @@ import { effectiveIpv4 } from '../net/addressing'
 import { ping } from '../net/diagnostics'
 import { switchportOf } from '../net/switchport'
 import { effectiveRules, profileEnabled } from '../services/firewall'
+import { auditLab } from '../audit/audit'
 import { roleCriteria } from '../roles/registry'
 import { defineCriterion, type CriterionType } from '../roles/types'
 import { byName, hostByName, sameName, targetIp } from './lookup'
 
 /** Critères du système de base (adressage, connectivité, rôles installés). */
 const CORE_CRITERIA: CriterionType[] = [
+  defineCriterion(
+    z.object({ type: z.literal('auditScore'), min: z.number().int().min(0).max(100) }),
+    (state, check) => auditLab(state).score >= check.min
+  ),
+  defineCriterion(
+    z.object({ type: z.literal('auditRule'), rule: z.string(), passed: z.boolean().default(true) }),
+    (state, check) => auditLab(state).passed.includes(check.rule) === check.passed
+  ),
   defineCriterion(
     z.object({
       type: z.literal('interfaceIp'),
