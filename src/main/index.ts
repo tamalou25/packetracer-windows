@@ -17,6 +17,7 @@ import { DEFAULT_SETTINGS } from '../shared/persisted'
 import { resolveTheme } from '../shared/theme'
 import { FileService, findSlabArg } from './files'
 import { buildMenu } from './menu'
+import { exportAuditPdf } from './report'
 import { applyGlobalSecurity } from './security'
 import { isThemePreference, loadSettings, saveSettings, THEME_BACKGROUND, type Settings } from './settings'
 import { checkForUpdatesFromMenu, initUpdater, installUpdateNow } from './updater'
@@ -235,6 +236,7 @@ function registerIpc(): void {
   ipcMain.handle(IPC.askSaveChanges, (_e, name: unknown) =>
     askSaveChanges(win(), typeof name === 'string' ? name.slice(0, 200) : 'Sans titre')
   )
+  ipcMain.handle(IPC.auditExportPdf, (_e, report: unknown) => exportAuditPdf(win(), report))
   ipcMain.on(IPC.closeConfirmed, () => {
     closeConfirmed = true
     closeIntent = intentAfterSave

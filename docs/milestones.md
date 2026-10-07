@@ -231,8 +231,8 @@ Milestone terminé : `CHANGELOG.md` [2.2.0], `package.json` 2.2.0 ; tag `v2.2.0`
 | #28   | Mode Audit                      | `feat/28-audit`          | #89 | fusionné |
 | #29   | Labs de durcissement            | `feat/29-hardening-labs` | #90 | fusionné |
 | #30   | Journaux de sécurité filtrables | `feat/30-security-logs`  | #91 | fusionné |
-| #31   | Verrouillage et audit par GPO   | `feat/31-lockout-audit`  |     | en cours |
-| #32   | Rapport d'audit PDF             |                          |     | à faire  |
+| #31   | Verrouillage et audit par GPO   | `feat/31-lockout-audit`  | #92 | fusionné |
+| #32   | Rapport d'audit PDF             | `feat/32-audit-pdf`      | #95 | en cours |
 
 ### #28 Mode Audit
 
@@ -286,3 +286,14 @@ Milestone terminé : `CHANGELOG.md` [2.2.0], `package.json` 2.2.0 ; tag `v2.2.0`
 - Déverrouillage : commande `adds.unlockAccount` (case « Déverrouiller le compte » de la console AD),
   `Unlock-ADAccount`, `Search-ADAccount -LockedOut / -AccountDisabled`, propriétés `LockedOut`,
   `BadLogonCount`, `AccountLockoutTime`.
+
+### #32 Rapport d'audit PDF
+
+- Moteur : `audit/report.ts` (`buildAuditReport`) — lab, date, score, score de référence, recommandations
+  « corrigé » / « non corrigé » (non corrigées d'abord, nouvelles signalées), compteurs. Référence : état au
+  chargement du document (départ du lab), conservé par le store (`loadedLab`).
+- `shared/auditReport.ts` : schéma zod du contenu (bornes), nom de fichier proposé, page HTML A4 (texte
+  échappé, CSP `default-src 'none'`, aucun script). Main (`main/report.ts`) : contenu validé, dialogue
+  natif « Enregistrer sous », impression par une fenêtre cachée sans JavaScript (`printToPDF`), fichier
+  temporaire supprimé.
+- Onglet Audit : score au chargement, nombre de recommandations corrigées, bouton **PDF**.
