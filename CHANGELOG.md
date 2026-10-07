@@ -6,6 +6,31 @@ La planification des versions suivantes est dans [ROADMAP.md](ROADMAP.md).
 
 ## [Non publié]
 
+## [2.3.0] — 2026-10-07
+
+Milestone « v2.3 — Cybersécurité (défensif) » de la roadmap. Format `.slab` 7 (les labs 2.2 s'ouvrent ;
+une version 2.2 refuse les labs 2.3). Écarts connus avec Windows Server : `docs/fidelite.md` (F87 à F96).
+
+### Ajouté
+
+- **Mode Audit** : onglet Audit du panneau latéral, score de sécurité sur 100 et recommandations classées
+  par gravité (SMB 1.0, Admins du domaine, partage Tout le monde : Contrôle total, pare-feu désactivé,
+  stratégie de mot de passe faible, mots de passe sans expiration, comptes inactifs), objets en cause et
+  correction suggérée (#28).
+- **Labs de durcissement** : trois labs (19 à 21, Active Directory, partages, pare-feu) et critères
+  « score d'audit » et « règle respectée » (#29).
+- **Journaux de sécurité** : évènements 4624, 4625, 4672, 4720, 4728/4729, 4732/4733, 4756/4757 ; filtre de
+  l'Observateur d'événements (ID, niveau, source, période) et `Get-WinEvent -FilterHashtable` (#30).
+- **Verrouillage des comptes et stratégie d'audit par GPO** : seuil, durée et réinitialisation ;
+  évènement 4740 ; déverrouillage depuis la console AD, `Unlock-ADAccount`, `Search-ADAccount` ; stratégie
+  d'audit (connexions, gestion des comptes) qui conditionne les évènements (#31).
+- **Rapport d'audit PDF** : export depuis l'onglet Audit (dialogue d'enregistrement natif), avec lab, date,
+  score et recommandations corrigées ou non depuis l'ouverture (#32).
+
+### Corrigé
+
+- Éditeur de stratégies de groupe : un double-clic sur un paramètre non sélectionné ouvre sa fenêtre (#93).
+
 ## [2.2.0] — 2026-10-07
 
 Milestone « v2.2 — Réseau d'entreprise » de la roadmap. Format `.slab` 6 (les labs 2.1 s'ouvrent ;
