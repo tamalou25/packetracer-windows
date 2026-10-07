@@ -3,6 +3,7 @@
  * textes d'aide et mise en forme pour les rapports (console, gpresult /v).
  */
 import type {
+  AuditSetting,
   DriveMap,
   FirewallRule,
   GpoComputerSettings,
@@ -33,6 +34,11 @@ export type SettingKey =
   | 'noRun'
   | 'noControlPanel'
   | 'noCmd'
+  | 'lockoutThreshold'
+  | 'lockoutDuration'
+  | 'lockoutReset'
+  | 'auditLogon'
+  | 'auditAccountManagement'
 
 export interface PolicySettingInfo {
   key: SettingKey
@@ -41,10 +47,12 @@ export interface PolicySettingInfo {
   node: string
   label: string
   /** Type d'éditeur : modèle d'administration (3 états), nombre, booléen, texte. */
-  kind: 'template' | 'number' | 'boolean' | 'text' | 'multiline'
+  kind: 'template' | 'number' | 'boolean' | 'text' | 'multiline' | 'audit'
   /** Catégorie affichée dans les rapports. */
   category: string
   help: string
+  /** Paramètre numérique : texte autour du champ, bornes et valeur proposée. */
+  number?: { before: string; after: string; min: number; max: number; initial: number }
 }
 
 /** Arborescence de l'Éditeur de gestion des stratégies de groupe (parties simulées). */
@@ -69,12 +77,18 @@ export const EDITOR_TREE: PolicyNode[] = [
                   {
                     id: 'c-accounts',
                     label: 'Stratégies de comptes',
-                    children: [{ id: 'c-password', label: 'Stratégie de mot de passe' }]
+                    children: [
+                      { id: 'c-password', label: 'Stratégie de mot de passe' },
+                      { id: 'c-lockout', label: 'Stratégie de verrouillage du compte' }
+                    ]
                   },
                   {
                     id: 'c-local',
                     label: 'Stratégies locales',
-                    children: [{ id: 'c-secopts', label: 'Options de sécurité' }]
+                    children: [
+                      { id: 'c-auditpol', label: 'Stratégie d’audit' },
+                      { id: 'c-secopts', label: 'Options de sécurité' }
+                    ]
                   },
                   { id: 'c-pki', label: 'Stratégies de clé publique' },
                   {
@@ -167,7 +181,14 @@ export const POLICY_SETTINGS: PolicySettingInfo[] = [
     label: 'Longueur minimale du mot de passe',
     kind: 'number',
     category: 'Stratégies de comptes / Stratégie de mot de passe',
-    help: 'Détermine le nombre minimal de caractères d’un mot de passe de compte (de 0 à 14). La valeur 0 autorise un mot de passe vide. Dans un domaine, seule la valeur définie par une GPO liée à la racine du domaine s’applique aux comptes du domaine.'
+    help: 'Détermine le nombre minimal de caractères d’un mot de passe de compte (de 0 à 14). La valeur 0 autorise un mot de passe vide. Dans un domaine, seule la valeur définie par une GPO liée à la racine du domaine s’applique aux comptes du domaine.',
+    number: {
+      before: 'Le mot de passe doit comporter au moins :',
+      after: 'caractères',
+      min: 0,
+      max: 14,
+      initial: 7
+    }
   },
   {
     key: 'passwordComplexity',
@@ -177,6 +198,72 @@ export const POLICY_SETTINGS: PolicySettingInfo[] = [
     kind: 'boolean',
     category: 'Stratégies de comptes / Stratégie de mot de passe',
     help: 'Si ce paramètre est activé, un mot de passe ne doit pas contenir le nom du compte et doit comporter des caractères d’au moins trois des catégories suivantes : majuscules, minuscules, chiffres et caractères non alphanumériques. Comme la longueur minimale, il ne s’applique aux comptes du domaine que depuis une GPO liée à la racine du domaine.'
+  },
+  {
+    key: 'lockoutDuration',
+    part: 'computer',
+    node: 'c-lockout',
+    label: 'Durée de verrouillage des comptes',
+    kind: 'number',
+    category: 'Stratégies de comptes / Stratégie de verrouillage du compte',
+    help: 'Détermine le nombre de minutes pendant lesquelles un compte verrouillé le reste avant d’être déverrouillé automatiquement (de 0 à 99 999). La valeur 0 garde le compte verrouillé jusqu’à ce qu’un administrateur le déverrouille. Ce paramètre n’a de sens que si un seuil de verrouillage est défini.',
+    number: {
+      before: 'Le compte est verrouillé pendant :',
+      after: 'minutes',
+      min: 0,
+      max: 99999,
+      initial: 30
+    }
+  },
+  {
+    key: 'lockoutThreshold',
+    part: 'computer',
+    node: 'c-lockout',
+    label: 'Seuil de verrouillage du compte',
+    kind: 'number',
+    category: 'Stratégies de comptes / Stratégie de verrouillage du compte',
+    help: 'Détermine le nombre de tentatives d’ouverture de session infructueuses qui entraînent le verrouillage du compte (de 0 à 999). La valeur 0 désactive le verrouillage. Un compte verrouillé ne peut plus ouvrir de session tant qu’il n’est pas déverrouillé.',
+    number: {
+      before: 'Le compte se verrouillera après :',
+      after: 'tentatives d’ouvertures de session non valides',
+      min: 0,
+      max: 999,
+      initial: 0
+    }
+  },
+  {
+    key: 'lockoutReset',
+    part: 'computer',
+    node: 'c-lockout',
+    label: 'Réinitialiser le compteur de verrouillages du compte après',
+    kind: 'number',
+    category: 'Stratégies de comptes / Stratégie de verrouillage du compte',
+    help: 'Détermine le nombre de minutes qui doivent s’écouler après un échec d’ouverture de session pour que le compteur d’échecs revienne à 0 (de 1 à 99 999). Cette valeur doit être inférieure ou égale à la durée de verrouillage.',
+    number: {
+      before: 'Réinitialiser le compteur de verrouillages du compte après :',
+      after: 'minutes',
+      min: 1,
+      max: 99999,
+      initial: 30
+    }
+  },
+  {
+    key: 'auditAccountManagement',
+    part: 'computer',
+    node: 'c-auditpol',
+    label: 'Auditer la gestion des comptes',
+    kind: 'audit',
+    category: 'Stratégies locales / Stratégie d’audit',
+    help: 'Détermine si l’ordinateur audite la gestion des comptes : création, modification, appartenance aux groupes, verrouillage (événements 4720, 4728, 4740…). Sur un contrôleur de domaine, ces événements sont inscrits dans son journal Sécurité.'
+  },
+  {
+    key: 'auditLogon',
+    part: 'computer',
+    node: 'c-auditpol',
+    label: 'Auditer les événements de connexion',
+    kind: 'audit',
+    category: 'Stratégies locales / Stratégie d’audit',
+    help: 'Détermine si l’ordinateur audite les ouvertures de session réussies (4624, 4672) et/ou les échecs (4625) sur cet ordinateur.'
   },
   {
     key: 'logonMessageTitle',
@@ -385,7 +472,25 @@ export function settingValue(
     case 'noControlPanel':
     case 'noCmd':
       return user[key] === 'NotConfigured' ? null : POLICY_STATE_LABELS[user[key]]
+    case 'lockoutThreshold':
+      return computer.lockoutThreshold === null
+        ? null
+        : `${computer.lockoutThreshold} tentative(s) d’ouverture de session non valide(s)`
+    case 'lockoutDuration':
+    case 'lockoutReset':
+      return computer[key] === null ? null : `${computer[key]} minute(s)`
+    case 'auditLogon':
+    case 'auditAccountManagement':
+      return computer[key] === null ? null : AUDIT_SETTING_LABELS[computer[key]]
   }
+}
+
+/** Libellés des valeurs de la stratégie d'audit. */
+export const AUDIT_SETTING_LABELS: Record<AuditSetting, string> = {
+  None: 'Pas d’audit',
+  Success: 'Succès',
+  Failure: 'Échec',
+  SuccessAndFailure: 'Succès, Échec'
 }
 
 /** Résumé d'une règle de pare-feu : « Autoriser TCP 80, 443 (Domaine) ». */

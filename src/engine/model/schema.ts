@@ -255,6 +255,10 @@ export const DriveMapSchema = z.object({
   reconnect: z.boolean().default(true)
 })
 
+/** Valeurs d'un paramètre de stratégie d'audit (Pas d'audit, Succès, Échec, les deux). */
+export const AUDIT_SETTINGS = ['None', 'Success', 'Failure', 'SuccessAndFailure'] as const
+export type AuditSetting = (typeof AUDIT_SETTINGS)[number]
+
 /** Partie « Configuration ordinateur » d'une GPO (sous-ensemble simulé). */
 export const GpoComputerSettingsSchema = z.object({
   /** Stratégie de mot de passe : longueur minimale (null = non défini). */
@@ -276,7 +280,14 @@ export const GpoComputerSettingsSchema = z.object({
   /** Pare-feu Windows Defender : protéger toutes les connexions réseau (profils privé et public). */
   firewallStandard: PolicyStateSchema.default('NotConfigured'),
   /** Règles de pare-feu déployées par la stratégie (s'ajoutent aux règles locales). */
-  firewallRules: z.array(FirewallRuleSchema).default([])
+  firewallRules: z.array(FirewallRuleSchema).default([]),
+  /** Stratégie de verrouillage du compte : seuil (0 = jamais verrouillé), durée et réinitialisation (minutes). */
+  lockoutThreshold: z.number().int().min(0).max(999).nullable().default(null),
+  lockoutDuration: z.number().int().min(0).max(99999).nullable().default(null),
+  lockoutReset: z.number().int().min(1).max(99999).nullable().default(null),
+  /** Stratégie d'audit : événements de connexion, gestion des comptes (null = non défini). */
+  auditLogon: z.enum(AUDIT_SETTINGS).nullable().default(null),
+  auditAccountManagement: z.enum(AUDIT_SETTINGS).nullable().default(null)
 })
 
 /** Partie « Configuration utilisateur » d'une GPO (sous-ensemble simulé). */
@@ -306,7 +317,12 @@ const noComputerSettings = (): z.infer<typeof GpoComputerSettingsSchema> => ({
   autoEnrollment: 'NotConfigured',
   firewallDomain: 'NotConfigured',
   firewallStandard: 'NotConfigured',
-  firewallRules: []
+  firewallRules: [],
+  lockoutThreshold: null,
+  lockoutDuration: null,
+  lockoutReset: null,
+  auditLogon: null,
+  auditAccountManagement: null
 })
 const noUserSettings = (): z.infer<typeof GpoUserSettingsSchema> => ({
   wallpaper: { state: 'NotConfigured', path: '', style: 'Fill' },
@@ -678,7 +694,12 @@ export const AdUserSchema = z.object({
   /** Horloge de la création du compte (whenCreated). */
   whenCreated: z.number().default(0),
   /** Horloge de la dernière ouverture de session (lastLogonTimestamp) ; null : jamais. */
-  lastLogon: z.number().nullable().default(null)
+  lastLogon: z.number().nullable().default(null),
+  /** Mots de passe erronés consécutifs (badPwdCount) et horloge du dernier. */
+  badPwdCount: z.number().int().default(0),
+  lastBadPassword: z.number().nullable().default(null),
+  /** Compte verrouillé (lockoutTime) ; null : non verrouillé. */
+  lockoutTime: z.number().nullable().default(null)
 })
 
 export const AdGroupSchema = z.object({

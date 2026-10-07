@@ -230,8 +230,8 @@ Milestone terminé : `CHANGELOG.md` [2.2.0], `package.json` 2.2.0 ; tag `v2.2.0`
 | ----- | ------------------------------- | ------------------------ | --- | -------- |
 | #28   | Mode Audit                      | `feat/28-audit`          | #89 | fusionné |
 | #29   | Labs de durcissement            | `feat/29-hardening-labs` | #90 | fusionné |
-| #30   | Journaux de sécurité filtrables | `feat/30-security-logs`  | #91 | en cours |
-| #31   | Verrouillage et audit par GPO   |                          |     | à faire  |
+| #30   | Journaux de sécurité filtrables | `feat/30-security-logs`  | #91 | fusionné |
+| #31   | Verrouillage et audit par GPO   | `feat/31-lockout-audit`  |     | en cours |
 | #32   | Rapport d'audit PDF             |                          |     | à faire  |
 
 ### #28 Mode Audit
@@ -269,3 +269,20 @@ Milestone terminé : `CHANGELOG.md` [2.2.0], `package.json` 2.2.0 ; tag `v2.2.0`
 - PowerShell : tables de hachage `@{ Clé = Valeur }` (lexer, analyseur, interpréteur) ; `Get-WinEvent`
   (-LogName, -FilterHashtable LogName / Id / Level / ProviderName / StartTime / EndTime, -MaxEvents, -Oldest,
   erreur « Aucun événement correspondant… ») ; `parseLabDate` (dates JJ/MM/AAAA ou AAAA-MM-JJ).
+
+### #31 Verrouillage et audit par GPO
+
+- GPO (paramètres d'ordinateur) : « Stratégie de verrouillage du compte » (seuil 0–999, durée 0–99 999 min,
+  réinitialisation 1–99 999 min ≤ durée) et « Stratégie d'audit » (événements de connexion, gestion des
+  comptes : Pas d'audit / Succès / Échec). Comme le mot de passe, le verrouillage vient des GPO liées à la
+  racine du domaine ; l'audit suit les paramètres appliqués à l'ordinateur (gpupdate, démarrage).
+- Comptes : `badPwdCount`, `lastBadPassword`, `lockoutTime` (valeurs par défaut du format 7). N échecs →
+  compte verrouillé, 4740 sur l'émulateur PDC ; tentatives suivantes refusées (« Le compte référencé est
+  actuellement verrouillé… », 4768 code 0x12) ; déverrouillage automatique après la durée (0 : manuel),
+  compteur remis à zéro après le délai de réinitialisation ou une ouverture de session réussie.
+- `roles/gpo/auditpolicy.ts` : 4624 / 4625 / 4634 / 4672 (connexion), 4720 / 4728… / 4740 / 4741 (gestion
+  des comptes) inscrits seulement si l'ordinateur les audite (défaut sans GPO : connexions succès et échecs,
+  gestion des comptes succès).
+- Déverrouillage : commande `adds.unlockAccount` (case « Déverrouiller le compte » de la console AD),
+  `Unlock-ADAccount`, `Search-ADAccount -LockedOut / -AccountDisabled`, propriétés `LockedOut`,
+  `BadLogonCount`, `AccountLockoutTime`.

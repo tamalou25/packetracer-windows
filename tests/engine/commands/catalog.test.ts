@@ -348,6 +348,9 @@ describe('catalogue des commandes', () => {
     r.run(
       command('adds.setAccountActivity', DOMAIN, 'pdurand', { createdDaysAgo: 200, lastLogonDaysAgo: null })
     )
+    // Mauvais mot de passe : compteur d'échecs incrémenté, remis à zéro par le déverrouillage
+    r.run(command('adds.logon', r.id('PC1'), { user: 'pdurand', password: 'Faux!', domain: 'LAB' }))
+    r.run(command('adds.unlockAccount', DOMAIN, 'pdurand'))
     // Session refusée en attendant le changement : aucune modification de l'état
     const first = r.run<{ success: boolean; mustChangePassword: boolean }>(
       command('adds.logon', r.id('PC1'), { user: 'pdurand', password: 'Bienvenue123!', domain: 'LAB' }),
