@@ -186,3 +186,19 @@ Milestone terminé : `CHANGELOG.md` [2.1.0], `package.json` 2.1.0 ; tag `v2.1.0`
   `Get-RemoteAccess`, `Set-VpnIPAddressAssignment`, `Get-RemoteAccessConnectionStatistics`, console
   `rrasmgmt.msc` ; critères `natEnabled`, `vpnConnected` ; format des labs : `nics` et passerelle par carte ;
   lab `lab-16-acces-distant`.
+
+### #26 NPS / RADIUS
+
+- Module `roles/nps/` : rôle Services de stratégie et d'accès réseau (`NPAS`, outils `RSAT-NPAS`), clients
+  RADIUS (nom convivial, adresse, secret partagé), stratégies réseau (condition « Groupes Windows », accès
+  accordé ou refusé, ordre de traitement, activation ; nouvelle stratégie en tête ; les deux stratégies de
+  refus créées avec le rôle). Console `nps.msc`, cmdlets `New/Get/Remove-NpsRadiusClient`, règle de pare-feu
+  prédéfinie (UDP 1812/1645), critères `radiusClient`, `npsPolicy`, `npsAccess`.
+- Authentification RADIUS (`nps/radius.ts`) : Access-Request du serveur d'accès (UDP 1812, protocole RADIUS
+  en Simulation), client et secret vérifiés (événements NPS 13 / 18 sinon, sans réponse), authentification
+  dans le domaine, première stratégie correspondante ; journal Sécurité 6272 (accordé) / 6273 (refusé, codes
+  de raison 16, 34, 48, 65), réponse Access-Accept / Access-Reject.
+- RRAS : serveurs RADIUS d'authentification (`Add/Get/Remove-RemoteAccessRadius`, console : Fournisseur
+  d'authentification) ; sans réponse : événement 20073. Champ `radius` avec valeur par défaut (format 6).
+- **Acceptation** : seuls les membres du groupe autorisé établissent le VPN (`tests/engine/roles/nps.test.ts`,
+  lab `lab-17-nps-radius`, `tests/e2e/nps.spec.ts`).

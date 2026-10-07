@@ -292,7 +292,8 @@ const DEFAULT_PORTS: Partial<Record<Protocol, { transport: FirewallTransport; po
   SMB: { transport: 'TCP', port: 445 },
   HTTP: { transport: 'TCP', port: 80 },
   RDP: { transport: 'TCP', port: 3389 },
-  VPN: { transport: 'TCP', port: 443 }
+  VPN: { transport: 'TCP', port: 443 },
+  RADIUS: { transport: 'UDP', port: 1812 }
 }
 
 /**

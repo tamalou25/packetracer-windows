@@ -9,7 +9,7 @@ export const RRAS_STATE: RoleStateDef<RrasState> = {
   key: 'rras',
   feature: 'RemoteAccess',
   schema: RrasStateSchema,
-  create: () => ({ mode: null, publicIfaceId: null, pool: null, sessions: [] })
+  create: () => ({ mode: null, publicIfaceId: null, pool: null, sessions: [], radius: [] })
 }
 
 export const rrasOf = (device: Parameters<typeof roleState>[0]): RrasState | null =>

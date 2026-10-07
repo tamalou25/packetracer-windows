@@ -49,6 +49,7 @@ import lab13 from '../../../labs/lab-13-vlan.json'
 import lab14 from '../../../labs/lab-14-relais-dhcp.json'
 import lab15 from '../../../labs/lab-15-pare-feu.json'
 import lab16 from '../../../labs/lab-16-acces-distant.json'
+import lab17 from '../../../labs/lab-17-nps-radius.json'
 import { run } from '../shell/helpers'
 
 function load(raw: unknown): LabDefinition {
@@ -462,6 +463,43 @@ const SOLUTIONS: Record<string, (s: LabState) => LabState> = {
     exec(command('vpn.addConnection', id(s, 'PCR'), { name: 'Entreprise', server: '203.0.113.2' }))
     exec(command('vpn.connect', id(s, 'PCR'), 'Entreprise', { user: 'LAB\\jdupont', password: 'Azerty123!' }))
     return s
+  },
+  'lab-17-nps-radius': (s) => {
+    const srv1 = id(s, 'SRV1')
+    const srv2 = id(s, 'SRV2')
+    const exec = (cmd: AnyCommand) => {
+      const r = dispatch(s, cmd)
+      if (!r.ok) throw new Error(r.error.message)
+      s = r.state
+      return r.value
+    }
+    s = unwrap(installFeatures(s, srv1, ['NPAS'], { includeManagementTools: true })).state
+    s = run(
+      s,
+      srv1,
+      'New-NpsRadiusClient -Name SRV2-VPN -Address 192.168.10.2 -SharedSecret R@dius2026'
+    ).state
+    exec(command('nps.addPolicy', srv1, { name: 'Accès VPN', groups: ['LAB\\GG_VPN'], access: 'Grant' }))
+    const wan = s.devices[srv2]!.interfaces.find((i) => i.name === 'Ethernet1')!.id
+    exec(
+      command('rras.configure', srv2, {
+        mode: 'vpn',
+        publicIfaceId: wan,
+        pool: { start: '192.168.10.200', end: '192.168.10.220' }
+      })
+    )
+    s = run(
+      s,
+      srv2,
+      'Add-RemoteAccessRadius -ServerName 192.168.10.1 -SharedSecret R@dius2026 -Purpose Authentication'
+    ).state
+    exec(command('vpn.addConnection', id(s, 'PCR'), { name: 'Entreprise', server: '203.0.113.2' }))
+    const denied = exec(
+      command('vpn.connect', id(s, 'PCR'), 'Entreprise', { user: 'LAB\\mmartin', password: 'Azerty123!' })
+    ) as { ok: boolean }
+    expect(denied.ok).toBe(false)
+    exec(command('vpn.connect', id(s, 'PCR'), 'Entreprise', { user: 'LAB\\jdupont', password: 'Azerty123!' }))
+    return s
   }
 }
 
@@ -482,7 +520,8 @@ describe('Labs', () => {
     lab13,
     lab14,
     lab15,
-    lab16
+    lab16,
+    lab17
   ].map(load)
 
   it('chaque lab a un identifiant unique, des critères uniques et des indices', () => {

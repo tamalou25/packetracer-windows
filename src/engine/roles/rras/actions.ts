@@ -136,3 +136,35 @@ export function freePoolAddress(rras: {
   }
   return null
 }
+
+/**
+ * Ajoute un serveur RADIUS d'authentification (Add-RemoteAccessRadius) : les clients VPN sont
+ * désormais authentifiés par RADIUS.
+ */
+export function addRadiusServer(
+  state: LabState,
+  deviceId: string,
+  input: { server: string; sharedSecret: string }
+): EngineResult {
+  return transact(state, (draft) => {
+    const rras = ensureRoleState(requireRras(draft, deviceId), RRAS_STATE)
+    const server = input.server.trim()
+    if (!server) raise('InvalidServer', 'Indiquez le nom ou l’adresse du serveur RADIUS.')
+    if (!input.sharedSecret) raise('InvalidSecret', 'Indiquez le secret partagé du serveur RADIUS.')
+    if (rras.radius.some((r) => r.server.toLowerCase() === server.toLowerCase()))
+      raise('RadiusServerExists', `Le serveur RADIUS ${server} est déjà configuré.`)
+    rras.radius.push({ server, sharedSecret: input.sharedSecret })
+    return undefined
+  })
+}
+
+/** Retire un serveur RADIUS (sans serveur RADIUS : authentification Windows). */
+export function removeRadiusServer(state: LabState, deviceId: string, server: string): EngineResult {
+  return transact(state, (draft) => {
+    const rras = ensureRoleState(requireRras(draft, deviceId), RRAS_STATE)
+    const index = rras.radius.findIndex((r) => r.server.toLowerCase() === server.trim().toLowerCase())
+    if (index < 0) raise('RadiusServerNotFound', `Le serveur RADIUS ${server} n’est pas configuré.`)
+    rras.radius.splice(index, 1)
+    return undefined
+  })
+}
