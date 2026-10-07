@@ -7,6 +7,7 @@ import { Folder, FolderKey, Globe, Monitor, User, UserX, Users, type LucideIcon 
 import {
   allObjects,
   containerDn,
+  formatShortDate,
   objectDn,
   type AdObject,
   type Domain,
@@ -422,6 +423,29 @@ function ObjectDetails({
           — compte {object.obj.enabled ? 'activé' : 'désactivé'}
           {object.obj.mustChangePassword ? ' — changement de mot de passe imposé' : ''}
         </p>
+      )}
+      {object.kind === 'user' && (
+        <div className="mb-1 flex items-center gap-4">
+          <label className="flex items-center gap-1">
+            <input
+              type="checkbox"
+              checked={object.obj.passwordNeverExpires}
+              onChange={(e) =>
+                runCommand(
+                  command('adds.setUserProperties', domain.name, object.obj.sam, {
+                    passwordNeverExpires: e.target.checked
+                  })
+                )
+              }
+              data-testid="aduc-never-expires"
+            />
+            Le mot de passe n’expire jamais
+          </label>
+          <span className="text-slate-500">
+            Dernière ouverture de session :{' '}
+            {object.obj.lastLogon === null ? 'jamais' : formatShortDate(object.obj.lastLogon)}
+          </span>
+        </div>
       )}
       {object.kind === 'group' && (
         <div className="mb-1">

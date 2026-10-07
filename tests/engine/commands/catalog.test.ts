@@ -344,6 +344,10 @@ describe('catalogue des commandes', () => {
     r.run(command('adds.setAccountEnabled', DOMAIN, 'pdurand', true))
     // Mot de passe à changer : la session aboutit après le changement imposé
     r.run(command('adds.resetPassword', DOMAIN, 'pdurand', 'Bienvenue123!', true))
+    r.run(command('adds.setUserProperties', DOMAIN, 'pdurand', { passwordNeverExpires: true }))
+    r.run(
+      command('adds.setAccountActivity', DOMAIN, 'pdurand', { createdDaysAgo: 200, lastLogonDaysAgo: null })
+    )
     // Session refusée en attendant le changement : aucune modification de l'état
     const first = r.run<{ success: boolean; mustChangePassword: boolean }>(
       command('adds.logon', r.id('PC1'), { user: 'pdurand', password: 'Bienvenue123!', domain: 'LAB' }),
