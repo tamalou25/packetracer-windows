@@ -2,7 +2,18 @@
  * Trace de paquets : suite d'événements « PDU » rejouable pas à pas en mode Simulation.
  */
 
-export type Protocol = 'ARP' | 'ICMP' | 'DHCP' | 'DNS' | 'LDAP' | 'KERBEROS' | 'SMB' | 'HTTP' | 'RDP' | 'VPN'
+export type Protocol =
+  | 'ARP'
+  | 'ICMP'
+  | 'DHCP'
+  | 'DNS'
+  | 'LDAP'
+  | 'KERBEROS'
+  | 'SMB'
+  | 'HTTP'
+  | 'RDP'
+  | 'VPN'
+  | 'RADIUS'
 
 export const PROTOCOLS: Protocol[] = [
   'ARP',
@@ -14,7 +25,8 @@ export const PROTOCOLS: Protocol[] = [
   'SMB',
   'HTTP',
   'RDP',
-  'VPN'
+  'VPN',
+  'RADIUS'
 ]
 
 /** Une couche du modèle OSI avec ses champs principaux. */

@@ -145,6 +145,14 @@ const PREDEFINED: Predefined[] = [
     hasFeature('RemoteAccess')
   ),
   inbound(
+    'NPS-NPSSvc-In-UDP-1812-1645',
+    'Serveur NPS (Network Policy Server) (Authentification RADIUS - Trafic entrant UDP)',
+    'Serveur NPS (Network Policy Server)',
+    'UDP',
+    [1812, 1645],
+    hasFeature('NPAS')
+  ),
+  inbound(
     'DFSR-DFSRSvc-In-TCP',
     'Réplication DFS (RPC-Entrée)',
     'Réplication DFS',

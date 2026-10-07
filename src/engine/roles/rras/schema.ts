@@ -19,6 +19,13 @@ export const VpnSessionSchema = z.object({
   connectedAt: z.number().default(0)
 })
 
+/** Serveur RADIUS d'authentification (fournisseur d'authentification RADIUS). */
+export const RadiusServerSchema = z.object({
+  /** Nom ou adresse du serveur NPS. */
+  server: z.string(),
+  sharedSecret: z.string()
+})
+
 export const RrasStateSchema = z.object({
   /** Mode configuré (null : non configuré, service arrêté). */
   mode: z.enum(RRAS_MODES).nullable().default(null),
@@ -26,8 +33,14 @@ export const RrasStateSchema = z.object({
   publicIfaceId: z.string().nullable().default(null),
   /** Pool d'adresses statiques des clients VPN. */
   pool: z.object({ start: z.string(), end: z.string() }).nullable().default(null),
-  sessions: z.array(VpnSessionSchema).default([])
+  sessions: z.array(VpnSessionSchema).default([]),
+  /**
+   * Serveurs RADIUS d'authentification, essayés dans l'ordre. Vide : authentification Windows
+   * (comptes locaux ou du domaine du serveur).
+   */
+  radius: z.array(RadiusServerSchema).default([])
 })
 
 export type RrasState = z.infer<typeof RrasStateSchema>
 export type VpnSession = z.infer<typeof VpnSessionSchema>
+export type RadiusServer = z.infer<typeof RadiusServerSchema>
