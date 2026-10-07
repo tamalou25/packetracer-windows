@@ -232,7 +232,11 @@ Milestone terminé : `CHANGELOG.md` [2.2.0], `package.json` 2.2.0 ; tag `v2.2.0`
 | #29   | Labs de durcissement            | `feat/29-hardening-labs` | #90 | fusionné |
 | #30   | Journaux de sécurité filtrables | `feat/30-security-logs`  | #91 | fusionné |
 | #31   | Verrouillage et audit par GPO   | `feat/31-lockout-audit`  | #92 | fusionné |
-| #32   | Rapport d'audit PDF             | `feat/32-audit-pdf`      | #95 | en cours |
+| #32   | Rapport d'audit PDF             | `feat/32-audit-pdf`      | #95 | fusionné |
+
+Bug relevé en cours de route : #93 (double-clic de l'éditeur GPO), PR #94.
+
+Milestone terminé : `CHANGELOG.md` [2.3.0], `package.json` 2.3.0 ; tag `v2.3.0` à pousser par Gary.
 
 ### #28 Mode Audit
 
