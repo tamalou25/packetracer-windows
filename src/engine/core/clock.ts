@@ -57,3 +57,22 @@ export function formatClockParts(clock: number): { time: string; date: string; l
     longDate: `${DAYS[t.day]} ${t.date} ${MONTHS[t.month]}`
   }
 }
+
+/**
+ * Date saisie (« 05/01/2026 08:30 », « 2026-01-05 08:30:00 ») → horloge du lab, ou null.
+ * Heure facultative (minuit).
+ */
+export function parseLabDate(text: string): number | null {
+  const t = text.trim()
+  const fr = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/.exec(t)
+  const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/.exec(t)
+  const m = fr
+    ? [fr[3], fr[2], fr[1], fr[4], fr[5], fr[6]]
+    : iso
+      ? [iso[1], iso[2], iso[3], iso[4], iso[5], iso[6]]
+      : null
+  if (!m) return null
+  const [y, mo, d, h, mi, se] = m.map((x) => Number(x ?? 0))
+  const ms = Date.UTC(y ?? 0, (mo ?? 1) - 1, d ?? 1, h ?? 0, mi ?? 0, se ?? 0)
+  return Number.isNaN(ms) ? null : ms - LAB_EPOCH_MS
+}

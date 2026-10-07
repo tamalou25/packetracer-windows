@@ -226,13 +226,13 @@ Milestone terminé : `CHANGELOG.md` [2.2.0], `package.json` 2.2.0 ; tag `v2.2.0`
 
 ## v2.3 — Cybersécurité (défensif)
 
-| Issue | Sujet                           | Branche         | PR  | État     |
-| ----- | ------------------------------- | --------------- | --- | -------- |
-| #28   | Mode Audit                      | `feat/28-audit` |     | en cours |
-| #29   | Labs de durcissement            |                 |     | à faire  |
-| #30   | Journaux de sécurité filtrables |                 |     | à faire  |
-| #31   | Verrouillage et audit par GPO   |                 |     | à faire  |
-| #32   | Rapport d'audit PDF             |                 |     | à faire  |
+| Issue | Sujet                           | Branche                 | PR  | État     |
+| ----- | ------------------------------- | ----------------------- | --- | -------- |
+| #28   | Mode Audit                      | `feat/28-audit`         |     | en cours |
+| #29   | Labs de durcissement            |                         |     | à faire  |
+| #30   | Journaux de sécurité filtrables | `feat/30-security-logs` |     | en cours |
+| #31   | Verrouillage et audit par GPO   |                         |     | à faire  |
+| #32   | Rapport d'audit PDF             |                         |     | à faire  |
 
 ### #28 Mode Audit
 
@@ -246,3 +246,15 @@ Milestone terminé : `CHANGELOG.md` [2.2.0], `package.json` 2.2.0 ; tag `v2.2.0`
 - Format 7 : `passwordNeverExpires`, `whenCreated`, `lastLogon` des comptes ; `smb1` des ordinateurs.
   `Get/Set-SmbServerConfiguration`, `New/Set-ADUser -PasswordNeverExpires`, propriétés `LastLogonDate`,
   `whenCreated`. Onglet **Audit** du panneau latéral (score en direct, recommandations, objets, correction).
+
+### #30 Journaux de sécurité filtrables
+
+- Évènements : 4624 / 4625 (ouverture de session interactive, locale ou de domaine, type 2), 4672
+  (privilèges spéciaux : administrateur local ou du domaine), 4720 (création de compte), 4728 / 4729, 4732 /
+  4733, 4756 / 4757 (membre ajouté / retiré d'un groupe de sécurité global, local, universel) ; 4740 :
+  verrouillage, issue #31.
+- `core/eventlog.ts` : `filterEvents` (ID, niveau, source, période). Observateur d'événements : « Filtrer le
+  journal actuel… » (période, niveau, source, ID), « Effacer le filtre », nombre filtré.
+- PowerShell : tables de hachage `@{ Clé = Valeur }` (lexer, analyseur, interpréteur) ; `Get-WinEvent`
+  (-LogName, -FilterHashtable LogName / Id / Level / ProviderName / StartTime / EndTime, -MaxEvents, -Oldest,
+  erreur « Aucun événement correspondant… ») ; `parseLabDate` (dates JJ/MM/AAAA ou AAAA-MM-JJ).

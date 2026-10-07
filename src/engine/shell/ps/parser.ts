@@ -10,6 +10,7 @@ export type Expr =
   | { kind: 'array'; items: Expr[]; start: number; end: number }
   | { kind: 'sub'; statements: Statement[]; members: string[]; start: number; end: number }
   | { kind: 'script'; source: string; start: number; end: number }
+  | { kind: 'hash'; entries: { key: string; value: Expr }[]; start: number; end: number }
 
 export type Arg =
   | { kind: 'param'; name: string; inline: Expr | null; text: string; start: number; end: number }
@@ -196,6 +197,8 @@ class Parser {
         return { kind: 'variable', name: t.value, members: t.members ?? [], start: t.start, end: t.end }
       case 'script':
         return { kind: 'script', source: t.value, start: t.start, end: t.end }
+      case 'hash':
+        return { kind: 'hash', entries: parseHashEntries(t.value, t.start), start: t.start, end: t.end }
       case 'lparen':
       case 'atparen': {
         const statements = this.parseStatements('rparen')
@@ -229,6 +232,53 @@ class Parser {
         )
     }
   }
+}
+
+/** Découpe le contenu d'une table de hachage en entrées « clé = valeur » (séparées par ; ou retour). */
+function parseHashEntries(source: string, offset: number): { key: string; value: Expr }[] {
+  const parts: string[] = []
+  let current = ''
+  let quote: string | null = null
+  let depth = 0
+  for (const c of source) {
+    if (quote) {
+      if (c === quote) quote = null
+    } else if (c === '"' || c === "'") quote = c
+    else if (c === '(' || c === '{') depth++
+    else if (c === ')' || c === '}') depth--
+    else if ((c === ';' || c === '\n') && depth === 0) {
+      parts.push(current)
+      current = ''
+      continue
+    }
+    current += c
+  }
+  parts.push(current)
+  return parts
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0)
+    .map((p) => {
+      const eq = p.indexOf('=')
+      if (eq <= 0)
+        throw new PsSyntaxError(
+          'Signe égal (=) manquant après la clé dans le littéral de hachage.',
+          offset,
+          'MissingEqualsInHashLiteral'
+        )
+      const key = p
+        .slice(0, eq)
+        .trim()
+        .replace(/^['"]|['"]$/g, '')
+      const statements = parse(p.slice(eq + 1))
+      const element = statements[0]?.pipeline.elements[0]
+      if (!element || element.kind !== 'expr')
+        throw new PsSyntaxError(
+          'Expression manquante dans le littéral de hachage.',
+          offset,
+          'MissingHashValue'
+        )
+      return { key, value: element.expr }
+    })
 }
 
 export function parse(source: string): Statement[] {

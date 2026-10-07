@@ -6,6 +6,7 @@ import { roleModules } from '../roles/registry'
 import type { CommandCatalog } from './ps/interpreter'
 import { coreCmdlets } from './ps/cmdlets/core'
 import { firewallCmdlets } from './ps/cmdlets/firewall'
+import { eventCmdlets } from './ps/cmdlets/events'
 import { netCmdlets } from './ps/cmdlets/net'
 import { systemCmdlets } from './ps/cmdlets/system'
 import { hostnameTool, ipconfigTool, pingTool, tracertTool, whoamiTool } from './tools/net'
@@ -22,6 +23,7 @@ export function shellCatalog(): CommandCatalog {
       ...coreCmdlets,
       ...netCmdlets,
       ...firewallCmdlets,
+      ...eventCmdlets,
       ...systemCmdlets,
       ...roles.flatMap((m) => m.cmdlets)
     ],

@@ -12,6 +12,29 @@ export const EVENT_LOG_LIMIT = 500
 /** Écart de temps simulé entre deux événements consécutifs (ms). */
 const EVENT_TICK_MS = 1000
 
+/** Filtre de l'Observateur d'événements et de Get-WinEvent (critères combinés par ET). */
+export interface EventFilter {
+  ids?: number[]
+  levels?: EventLogEntry['level'][]
+  sources?: string[]
+  /** Horloge minimale / maximale (incluses). */
+  since?: number | null
+  until?: number | null
+}
+
+/** Événements qui satisfont le filtre (ordre conservé). */
+export function filterEvents(entries: EventLogEntry[], filter: EventFilter): EventLogEntry[] {
+  const sources = filter.sources?.map((s) => s.toLowerCase())
+  return entries.filter(
+    (e) =>
+      (!filter.ids?.length || filter.ids.includes(e.eventId)) &&
+      (!filter.levels?.length || filter.levels.includes(e.level)) &&
+      (!sources?.length || sources.some((s) => e.source.toLowerCase().includes(s))) &&
+      (filter.since === undefined || filter.since === null || e.time >= filter.since) &&
+      (filter.until === undefined || filter.until === null || e.time <= filter.until)
+  )
+}
+
 export type NewEvent = Omit<EventLogEntry, 'id' | 'time' | 'log'> & { log?: EventLogEntry['log'] }
 
 /** Ajoute une entrée au journal d'un serveur ou poste (sans effet pour les autres équipements). */

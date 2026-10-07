@@ -15,6 +15,7 @@ import { dnsServersOf } from '../dns/resolver'
 import {
   defaultContainer,
   findPrincipal,
+  isDomainAdmin,
   newAdId,
   passwordMeetsPolicy,
   PASSWORD_POLICY_ERROR,
@@ -170,6 +171,17 @@ export function leaveDomain(state: LabState, deviceId: string): DirectoryOperati
   }
 }
 
+/** Évènement 4672 : ouverture de session d'un compte administrateur (privilèges sensibles). */
+function logSpecialPrivileges(draft: Draft<LabState>, deviceId: string, account: string): void {
+  logEvent(draft, deviceId, {
+    level: 'information',
+    source: 'Security-Auditing',
+    eventId: 4672,
+    log: 'Sécurité',
+    message: `Privilèges spéciaux attribués à la nouvelle ouverture de session. Compte : ${account}. Privilèges : SeSecurityPrivilege, SeBackupPrivilege, SeRestorePrivilege, SeTakeOwnershipPrivilege, SeDebugPrivilege, SeSystemEnvironmentPrivilege, SeLoadDriverPrivilege, SeImpersonatePrivilege.`
+  })
+}
+
 export interface LogonInput {
   user: string
   password: string
@@ -192,13 +204,34 @@ export function logon(state: LabState, deviceId: string, input: LogonInput): Log
     const localOk =
       (sam.toLowerCase() === 'administrateur' && input.password === host.host.localAdminPassword) ||
       (host.kind === 'client' && sam.toLowerCase() === 'utilisateur' && input.password === '')
-    if (!localOk) return { state, trace: empty, ok: false, message: incorrect }
+    const localAccount = `${host.name}\\${sam.toLowerCase() === 'administrateur' ? 'Administrateur' : sam}`
+    if (!localOk) {
+      const failed = transact(state, (draft) => {
+        logEvent(draft, deviceId, {
+          level: 'warning',
+          source: 'Security-Auditing',
+          eventId: 4625,
+          log: 'Sécurité',
+          message: `Échec d’ouverture de session pour ${localAccount}. Type d’ouverture de session : 2 (Interactive).`
+        })
+        return undefined
+      })
+      return { state: failed.ok ? failed.state : state, trace: empty, ok: false, message: incorrect }
+    }
     const r = transact(state, (draft) => {
       const d = draft.devices[deviceId] as Draft<HostDevice>
       d.host.session = {
         user: sam.toLowerCase() === 'administrateur' ? 'Administrateur' : 'Utilisateur',
         domain: null
       }
+      logEvent(draft, deviceId, {
+        level: 'information',
+        source: 'Security-Auditing',
+        eventId: 4624,
+        log: 'Sécurité',
+        message: `Ouverture de session réussie : ${localAccount}. Type d’ouverture de session : 2 (Interactive).`
+      })
+      if (sam.toLowerCase() === 'administrateur') logSpecialPrivileges(draft, deviceId, localAccount)
       return undefined
     })
     return { state: r.ok ? r.state : state, trace: empty, ok: true, message: '' }
@@ -293,8 +326,10 @@ export function logon(state: LabState, deviceId: string, input: LogonInput): Log
       source: 'Security-Auditing',
       eventId: 4624,
       log: 'Sécurité',
-      message: `Ouverture de session réussie : ${domain.netbios}\\${user.sam}.`
+      message: `Ouverture de session réussie : ${domain.netbios}\\${user.sam}. Type d’ouverture de session : 2 (Interactive).`
     })
+    if (isDomainAdmin(domain, user.sam))
+      logSpecialPrivileges(draft, deviceId, `${domain.netbios}\\${user.sam}`)
     return undefined
   })
   if (!r.ok) return { state, trace, ok: false, message: r.error.message }
