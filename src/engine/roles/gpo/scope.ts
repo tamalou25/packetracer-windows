@@ -217,6 +217,11 @@ function mergeComputer(target: GpoComputerSettings, s: GpoComputerSettings): voi
   if (s.wuServer.state !== 'NotConfigured') target.wuServer = { ...s.wuServer }
   if (s.wuTargetGroup.state !== 'NotConfigured') target.wuTargetGroup = { ...s.wuTargetGroup }
   if (s.autoEnrollment !== 'NotConfigured') target.autoEnrollment = s.autoEnrollment
+  if (s.firewallDomain !== 'NotConfigured') target.firewallDomain = s.firewallDomain
+  if (s.firewallStandard !== 'NotConfigured') target.firewallStandard = s.firewallStandard
+  // Les règles de toutes les GPO s'additionnent (la plus prioritaire l'emporte à nom égal)
+  for (const rule of s.firewallRules)
+    target.firewallRules = [...target.firewallRules.filter((r) => r.id !== rule.id), { ...rule }]
 }
 
 function mergeUser(target: GpoUserSettings, s: GpoUserSettings): void {

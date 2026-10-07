@@ -11,6 +11,7 @@ import type { LabState } from '../model/schema'
 import { effectiveIpv4 } from '../net/addressing'
 import { ping } from '../net/diagnostics'
 import { switchportOf } from '../net/switchport'
+import { effectiveRules, profileEnabled } from '../services/firewall'
 import { roleCriteria } from '../roles/registry'
 import { defineCriterion, type CriterionType } from '../roles/types'
 import { byName, hostByName, sameName, targetIp } from './lookup'
@@ -78,6 +79,46 @@ const CORE_CRITERIA: CriterionType[] = [
       return config.mode === 'access'
         ? config.accessVlan === check.vlan
         : config.allowedVlans === null || config.allowedVlans.includes(check.vlan)
+    }
+  ),
+  defineCriterion(
+    z.object({
+      type: z.literal('firewallProfile'),
+      device: z.string(),
+      profile: z.enum(['Domain', 'Private', 'Public']),
+      enabled: z.boolean().default(true)
+    }),
+    (state, check) => {
+      const host = hostByName(state, check.device)
+      return !!host && profileEnabled(host, check.profile) === (check.enabled !== false)
+    }
+  ),
+  defineCriterion(
+    z.object({
+      type: z.literal('firewallRule'),
+      device: z.string(),
+      /** Nom affiché de la règle (sinon : toute règle correspondant aux autres paramètres). */
+      displayName: z.string().optional(),
+      direction: z.enum(['Inbound', 'Outbound']).default('Inbound'),
+      action: z.enum(['Allow', 'Block']).optional(),
+      protocol: z.enum(['Any', 'TCP', 'UDP', 'ICMPv4']).optional(),
+      port: z.number().int().optional(),
+      /** La règle doit être activée (false : désactivée ou absente). */
+      enabled: z.boolean().default(true)
+    }),
+    (state, check) => {
+      const host = hostByName(state, check.device)
+      if (!host) return false
+      const found = effectiveRules(host).some(
+        (r) =>
+          r.enabled &&
+          r.direction === (check.direction ?? 'Inbound') &&
+          (check.displayName === undefined || sameName(r.displayName, check.displayName)) &&
+          (check.action === undefined || r.action === check.action) &&
+          (check.protocol === undefined || r.protocol === check.protocol) &&
+          (check.port === undefined || r.localPorts.includes(check.port))
+      )
+      return found === (check.enabled !== false)
     }
   ),
   defineCriterion(

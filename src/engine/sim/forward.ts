@@ -6,6 +6,7 @@ import type { Device, LabState } from '../model/schema'
 import { effectiveIpv4 } from '../net/addressing'
 import { isInternetHost } from '../net/internet'
 import { lookupRoute, routingTable } from '../net/routing'
+import { evaluateFirewall, PROFILE_LABELS, type FirewallTransport } from '../services/firewall'
 import { l2Segment, reversePath, type PortRef, type SegmentMember } from '../net/segment'
 import {
   BROADCAST_MAC,
@@ -264,6 +265,42 @@ export interface IpPacket {
   summary: string
   /** Couches 4 à 7. */
   upper: PduLayer[]
+  /** Transport et port de destination (par défaut, d'après le protocole). */
+  transport?: FirewallTransport
+  port?: number
+  /** Réponse à un échange autorisé : les pare-feu à états la laissent passer. */
+  reply?: boolean
+}
+
+/** Transport et port de destination usuels de chaque protocole applicatif. */
+const DEFAULT_PORTS: Partial<Record<Protocol, { transport: FirewallTransport; port: number | null }>> = {
+  ICMP: { transport: 'ICMPv4', port: null },
+  DNS: { transport: 'UDP', port: 53 },
+  DHCP: { transport: 'UDP', port: 67 },
+  LDAP: { transport: 'TCP', port: 389 },
+  KERBEROS: { transport: 'TCP', port: 88 },
+  SMB: { transport: 'TCP', port: 445 },
+  HTTP: { transport: 'TCP', port: 80 },
+  RDP: { transport: 'TCP', port: 3389 }
+}
+
+/**
+ * Pare-feu de l'hôte émetteur (sortant) ou destinataire (entrant). Les réponses ne sont pas
+ * filtrées. Renvoie l'explication du blocage, ou null si le paquet passe.
+ */
+function firewallBlocks(device: Device, packet: IpPacket, direction: 'Inbound' | 'Outbound'): string | null {
+  if (packet.reply || (device.kind !== 'server' && device.kind !== 'client')) return null
+  const defaults = DEFAULT_PORTS[packet.protocol] ?? { transport: 'TCP' as const, port: null }
+  const verdict = evaluateFirewall(device, {
+    direction,
+    transport: packet.transport ?? defaults.transport,
+    localPort: direction === 'Inbound' ? (packet.port ?? defaults.port) : null,
+    remoteAddress: direction === 'Inbound' ? packet.src : packet.dst
+  })
+  if (verdict.allowed) return null
+  return `Le pare-feu de ${device.name} (profil ${PROFILE_LABELS[verdict.profile]}) bloque ce trafic ${
+    direction === 'Inbound' ? 'entrant' : 'sortant'
+  } : ${verdict.reason}.`
 }
 
 export type Delivery =
@@ -295,14 +332,24 @@ export function sendIp(ctx: SimContext, fromDeviceId: string, packet: IpPacket):
     if (!device || !device.powered) return { kind: 'dropped', deviceId: current, latency }
 
     if (ownsAddress(device, packet.dst)) {
-      if (current !== fromDeviceId)
+      if (current !== fromDeviceId) {
+        const blocked = firewallBlocks(device, packet, 'Inbound')
+        if (blocked) {
+          setLastOutcome(ctx, 'dropped', blocked)
+          return { kind: 'dropped', deviceId: current, latency }
+        }
         setLastOutcome(
           ctx,
           'delivered',
           `${device.name} est le destinataire (${packet.dst}) : le paquet est traité.`
         )
+      }
       return { kind: 'delivered', deviceId: current, ingress, ttl, latency }
     }
+
+    // Pare-feu de l'émetteur : trafic sortant
+    if (current === fromDeviceId && firewallBlocks(device, packet, 'Outbound'))
+      return { kind: 'dropped', deviceId: current, latency }
 
     if (current !== fromDeviceId) {
       if (device.kind === 'server' || device.kind === 'client') {

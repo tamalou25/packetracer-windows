@@ -172,6 +172,18 @@ describe('rôle IIS', () => {
     )
     // Nom non couvert par le certificat
     s = exec(s, command('iis.addBinding', srv, 'Intranet', { protocol: 'https', port: 8443 }))
+    // Port personnalisé : seuls 80 et 443 sont ouverts par le rôle, le pare-feu doit l'autoriser
+    expect(httpGet(s, pc1, 'https://srv1.lab.local:8443').kind).toBe('failure')
+    s = exec(
+      s,
+      command('firewall.newRule', srv, {
+        displayName: 'Intranet HTTPS 8443',
+        direction: 'Inbound',
+        action: 'Allow',
+        protocol: 'TCP',
+        localPorts: [8443]
+      })
+    )
     const cert = s.devices[srv]!.kind === 'server' ? s.devices[srv]!.host.certificates[0]! : null
     s = exec(
       s,

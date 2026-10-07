@@ -5,9 +5,11 @@
 import { roleModules } from '../roles/registry'
 import type { CommandCatalog } from './ps/interpreter'
 import { coreCmdlets } from './ps/cmdlets/core'
+import { firewallCmdlets } from './ps/cmdlets/firewall'
 import { netCmdlets } from './ps/cmdlets/net'
 import { systemCmdlets } from './ps/cmdlets/system'
 import { hostnameTool, ipconfigTool, pingTool, tracertTool, whoamiTool } from './tools/net'
+import { netshTool } from './tools/netsh'
 
 let catalog: CommandCatalog | null = null
 
@@ -16,8 +18,22 @@ export function shellCatalog(): CommandCatalog {
   if (catalog) return catalog
   const roles = roleModules()
   catalog = {
-    cmdlets: [...coreCmdlets, ...netCmdlets, ...systemCmdlets, ...roles.flatMap((m) => m.cmdlets)],
-    tools: [ipconfigTool, pingTool, tracertTool, hostnameTool, whoamiTool, ...roles.flatMap((m) => m.tools)]
+    cmdlets: [
+      ...coreCmdlets,
+      ...netCmdlets,
+      ...firewallCmdlets,
+      ...systemCmdlets,
+      ...roles.flatMap((m) => m.cmdlets)
+    ],
+    tools: [
+      ipconfigTool,
+      pingTool,
+      tracertTool,
+      hostnameTool,
+      whoamiTool,
+      netshTool,
+      ...roles.flatMap((m) => m.tools)
+    ]
   }
   return catalog
 }

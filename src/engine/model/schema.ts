@@ -132,6 +132,66 @@ export const WELL_KNOWN_SIDS = {
 export const POLICY_STATES = ['NotConfigured', 'Enabled', 'Disabled'] as const
 export const PolicyStateSchema = z.enum(POLICY_STATES)
 
+// ---------------------------------------------------------------------------
+// Pare-feu Windows Defender (profils, règles locales et de stratégie de groupe)
+// ---------------------------------------------------------------------------
+
+/** Profils du pare-feu : réseau du domaine, privé ou public. */
+export const FIREWALL_PROFILES = ['Domain', 'Private', 'Public'] as const
+export const FIREWALL_PROTOCOLS = ['Any', 'TCP', 'UDP', 'ICMPv4'] as const
+
+/** Règle de pare-feu (créée localement, par stratégie de groupe, ou prédéfinie). */
+export const FirewallRuleSchema = z.object({
+  /** Nom unique de la règle (Name de New-NetFirewallRule). */
+  id: z.string(),
+  displayName: z.string(),
+  /** Groupe de règles (DisplayGroup), vide pour une règle personnalisée. */
+  group: z.string().default(''),
+  direction: z.enum(['Inbound', 'Outbound']),
+  action: z.enum(['Allow', 'Block']),
+  enabled: z.boolean().default(true),
+  protocol: z.enum(FIREWALL_PROTOCOLS).default('Any'),
+  /** Ports locaux (vide : tous). */
+  localPorts: z.array(z.number().int().min(1).max(65535)).default([]),
+  /** Adresses distantes, adresse ou réseau CIDR (vide : toutes). */
+  remoteAddresses: z.array(z.string()).default([]),
+  /** Profils auxquels la règle s'applique (vide : tous). */
+  profiles: z.array(z.enum(FIREWALL_PROFILES)).default([])
+})
+
+export const FirewallProfileSchema = z.object({
+  enabled: z.boolean().default(true),
+  defaultInbound: z.enum(['Block', 'Allow']).default('Block'),
+  defaultOutbound: z.enum(['Block', 'Allow']).default('Allow')
+})
+
+const defaultFirewallProfile = () => ({
+  enabled: true,
+  defaultInbound: 'Block' as const,
+  defaultOutbound: 'Allow' as const
+})
+
+/** Pare-feu d'un ordinateur : configuration locale (les stratégies de groupe s'y ajoutent). */
+export const FirewallSchema = z.object({
+  profiles: z
+    .object({
+      Domain: FirewallProfileSchema.default(defaultFirewallProfile),
+      Private: FirewallProfileSchema.default(defaultFirewallProfile),
+      Public: FirewallProfileSchema.default(defaultFirewallProfile)
+    })
+    .default(() => ({
+      Domain: defaultFirewallProfile(),
+      Private: defaultFirewallProfile(),
+      Public: defaultFirewallProfile()
+    })),
+  /** Catégorie du réseau hors domaine (Public par défaut). */
+  networkCategory: z.enum(['Public', 'Private']).default('Public'),
+  /** Règles prédéfinies activées ou désactivées par l'administrateur (nom → activée). */
+  predefined: z.record(z.string(), z.boolean()).default({}),
+  /** Règles créées localement. */
+  rules: z.array(FirewallRuleSchema).default([])
+})
+
 /** Styles du papier peint (Remplir, Ajuster, Étirer, Vignette, Centrer, Étendre). */
 export const WALLPAPER_STYLES = ['Fill', 'Fit', 'Stretch', 'Tile', 'Center', 'Span'] as const
 
@@ -186,7 +246,13 @@ export const GpoComputerSettingsSchema = z.object({
   /** Windows Update : ciblage côté client (groupe WSUS). */
   wuTargetGroup: WuTargetGroupPolicySchema.default(() => ({ state: 'NotConfigured' as const, group: '' })),
   /** Client des services de certificats – Inscription automatique. */
-  autoEnrollment: PolicyStateSchema.default('NotConfigured')
+  autoEnrollment: PolicyStateSchema.default('NotConfigured'),
+  /** Pare-feu Windows Defender : protéger toutes les connexions réseau (profil du domaine). */
+  firewallDomain: PolicyStateSchema.default('NotConfigured'),
+  /** Pare-feu Windows Defender : protéger toutes les connexions réseau (profils privé et public). */
+  firewallStandard: PolicyStateSchema.default('NotConfigured'),
+  /** Règles de pare-feu déployées par la stratégie (s'ajoutent aux règles locales). */
+  firewallRules: z.array(FirewallRuleSchema).default([])
 })
 
 /** Partie « Configuration utilisateur » d'une GPO (sous-ensemble simulé). */
@@ -213,7 +279,10 @@ const noComputerSettings = (): z.infer<typeof GpoComputerSettingsSchema> => ({
   logonMessageText: null,
   wuServer: { state: 'NotConfigured', url: '' },
   wuTargetGroup: { state: 'NotConfigured', group: '' },
-  autoEnrollment: 'NotConfigured'
+  autoEnrollment: 'NotConfigured',
+  firewallDomain: 'NotConfigured',
+  firewallStandard: 'NotConfigured',
+  firewallRules: []
 })
 const noUserSettings = (): z.infer<typeof GpoUserSettingsSchema> => ({
   wallpaper: { state: 'NotConfigured', path: '', style: 'Fill' },
@@ -337,6 +406,7 @@ export const HostSchema = z.object({
   certificates: z.array(CertificateSchema).default([]),
   remoteDesktop: RemoteDesktopSchema.default(() => ({ enabled: false, users: [] })),
   remoteSessions: z.array(RemoteSessionSchema).default([]),
+  firewall: FirewallSchema.default(() => FirewallSchema.parse({})),
   eventLog: z.array(EventLogEntrySchema).default([])
 })
 
@@ -668,6 +738,9 @@ export type Position = z.infer<typeof PositionSchema>
 export type DhcpClientLease = z.infer<typeof DhcpClientLeaseSchema>
 export type NetInterface = z.infer<typeof NetInterfaceSchema>
 export type Switchport = z.infer<typeof SwitchportSchema>
+export type FirewallRule = z.infer<typeof FirewallRuleSchema>
+export type FirewallProfileName = (typeof FIREWALL_PROFILES)[number]
+export type FirewallState = z.infer<typeof FirewallSchema>
 export type Subinterface = z.infer<typeof SubinterfaceSchema>
 export type Vlan = z.infer<typeof VlanSchema>
 export type EventLogEntry = z.infer<typeof EventLogEntrySchema>

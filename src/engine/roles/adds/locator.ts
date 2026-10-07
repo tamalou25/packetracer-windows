@@ -61,7 +61,9 @@ export function serverExchange(
     protocol,
     ipProtocol,
     summary: request,
-    upper: layer(request)
+    upper: layer(request),
+    transport: tcp ? 'TCP' : 'UDP',
+    port
   })
   if (req.kind !== 'delivered') return { trace: { title: protocol, events: rec.events }, ok: false }
   const dc = state.devices[req.deviceId]
@@ -73,7 +75,8 @@ export function serverExchange(
     protocol,
     ipProtocol,
     summary: reply,
-    upper: layer(reply)
+    upper: layer(reply),
+    reply: true
   })
   return { trace: { title: protocol, events: rec.events }, ok: rep.kind === 'delivered' }
 }

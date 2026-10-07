@@ -60,7 +60,23 @@ export function createHost(kind: 'server' | 'client'): Host {
     certificates: [],
     remoteDesktop: { enabled: false, users: [] },
     remoteSessions: [],
+    firewall: defaultFirewall(),
     eventLog: []
+  }
+}
+
+/** Pare-feu d'une installation neuve : trois profils actifs, entrant bloqué, sortant autorisé. */
+export function defaultFirewall(): Host['firewall'] {
+  const profile = () => ({
+    enabled: true,
+    defaultInbound: 'Block' as const,
+    defaultOutbound: 'Allow' as const
+  })
+  return {
+    profiles: { Domain: profile(), Private: profile(), Public: profile() },
+    networkCategory: 'Public',
+    predefined: {},
+    rules: []
   }
 }
 
