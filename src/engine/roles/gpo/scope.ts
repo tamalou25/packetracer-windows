@@ -219,6 +219,14 @@ function mergeComputer(target: GpoComputerSettings, s: GpoComputerSettings): voi
   if (s.autoEnrollment !== 'NotConfigured') target.autoEnrollment = s.autoEnrollment
   if (s.firewallDomain !== 'NotConfigured') target.firewallDomain = s.firewallDomain
   if (s.firewallStandard !== 'NotConfigured') target.firewallStandard = s.firewallStandard
+  for (const key of [
+    'lockoutThreshold',
+    'lockoutDuration',
+    'lockoutReset',
+    'auditLogon',
+    'auditAccountManagement'
+  ] as const)
+    if (s[key] !== null) (target as Record<typeof key, unknown>)[key] = s[key]
   // Les règles de toutes les GPO s'additionnent (la plus prioritaire l'emporte à nom égal)
   for (const rule of s.firewallRules)
     target.firewallRules = [...target.firewallRules.filter((r) => r.id !== rule.id), { ...rule }]
@@ -269,4 +277,31 @@ export function domainPasswordPolicy(domain: Domain): PasswordPolicy {
     if (complexity === null) complexity = gpo.computer.passwordComplexity
   }
   return { minLength: minLength ?? 0, complexity: complexity ?? false }
+}
+
+export interface LockoutPolicy {
+  /** Nombre d'échecs avant verrouillage (0 : jamais). */
+  threshold: number
+  /** Durée du verrouillage en minutes (0 : jusqu'au déverrouillage par un administrateur). */
+  duration: number
+  /** Délai de remise à zéro du compteur d'échecs, en minutes. */
+  reset: number
+}
+
+/**
+ * Stratégie de verrouillage du domaine : comme la stratégie de mot de passe, seules les GPO liées
+ * à la racine du domaine s'appliquent aux comptes du domaine.
+ */
+export function domainLockoutPolicy(domain: Domain): LockoutPolicy {
+  const dc = domain.computers.find((c) => c.deviceId !== null && domain.controllers.includes(c.deviceId))
+  let threshold: number | null = null
+  let duration: number | null = null
+  let reset: number | null = null
+  for (const { gpo } of gpoPrecedence(domain, null)) {
+    if (!partEnabled(gpo, 'computer') || (dc && !gpoAppliesTo(domain, gpo, dc.id))) continue
+    if (threshold === null) threshold = gpo.computer.lockoutThreshold
+    if (duration === null) duration = gpo.computer.lockoutDuration
+    if (reset === null) reset = gpo.computer.lockoutReset
+  }
+  return { threshold: threshold ?? 0, duration: duration ?? 30, reset: reset ?? 30 }
 }

@@ -8,6 +8,7 @@ import {
   allObjects,
   containerDn,
   formatShortDate,
+  isLockedOut,
   objectDn,
   type AdObject,
   type Domain,
@@ -408,6 +409,7 @@ function ObjectDetails({
   onRemoveMember: (dn: string) => void
 }) {
   const memberOf = domain.groups.filter((g) => g.members.includes(object.obj.id))
+  const clock = useLabStore((s) => s.lab.clock)
   return (
     <div
       className="max-h-48 overflow-y-auto border-t border-slate-200 bg-slate-50 p-3 text-xs"
@@ -446,6 +448,18 @@ function ObjectDetails({
             {object.obj.lastLogon === null ? 'jamais' : formatShortDate(object.obj.lastLogon)}
           </span>
         </div>
+      )}
+      {object.kind === 'user' && isLockedOut(domain, object.obj, clock) && (
+        <label className="mb-1 flex items-center gap-1 text-red-700" data-testid="aduc-locked">
+          <input
+            type="checkbox"
+            checked={false}
+            onChange={() => runCommand(command('adds.unlockAccount', domain.name, object.obj.sam))}
+            data-testid="aduc-unlock"
+          />
+          Déverrouiller le compte. Ce compte est actuellement verrouillé sur ce contrôleur de domaine Active
+          Directory.
+        </label>
       )}
       {object.kind === 'group' && (
         <div className="mb-1">

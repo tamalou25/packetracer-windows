@@ -268,7 +268,10 @@ export function buildDomain(
     builtin: true,
     passwordNeverExpires: false,
     whenCreated: draft.clock,
-    lastLogon: null
+    lastLogon: null,
+    badPwdCount: 0,
+    lastBadPassword: null,
+    lockoutTime: null
   })
   const admin = user(
     'Administrateur',
