@@ -20,6 +20,7 @@ import { gpoRole } from './gpo'
 import { hypervRole } from './hyperv'
 import { iisRole } from './iis'
 import { rdsRole } from './rds'
+import { rrasRole } from './rras'
 import { wsusRole } from './wsus'
 import type { BackgroundTask, CriterionType, FeatureInfo, RoleModule, RoleView } from './types'
 
@@ -37,7 +38,8 @@ const load = () =>
     hypervRole,
     adcsRole,
     dfsRole,
-    backupRole
+    backupRole,
+    rrasRole
   ] as const
 
 export type RoleModules = ReturnType<typeof load>

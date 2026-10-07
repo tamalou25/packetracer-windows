@@ -12,7 +12,8 @@ export const PROTOCOL_COLORS: Record<Protocol, { fill: string; chip: string }> =
   KERBEROS: { fill: 'fill-rose-500', chip: 'bg-rose-500' },
   SMB: { fill: 'fill-teal-500', chip: 'bg-teal-500' },
   HTTP: { fill: 'fill-orange-500', chip: 'bg-orange-500' },
-  RDP: { fill: 'fill-violet-500', chip: 'bg-violet-500' }
+  RDP: { fill: 'fill-violet-500', chip: 'bg-violet-500' },
+  VPN: { fill: 'fill-lime-600', chip: 'bg-lime-600' }
 }
 
 export const OUTCOME_LABELS = {

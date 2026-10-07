@@ -43,7 +43,8 @@ describe('registre des rôles', () => {
       'hyperv',
       'adcs',
       'dfs',
-      'backup'
+      'backup',
+      'rras'
     ])
     roleModules().forEach((m, index) => {
       for (const dep of m.dependencies) expect(ids.indexOf(dep), `${m.id} → ${dep}`).toBeLessThan(index)
@@ -77,6 +78,9 @@ describe('registre des rôles', () => {
       'RDS-RD-Server',
       'RDS-Connection-Broker',
       'RDS-Web-Access',
+      'RemoteAccess',
+      'DirectAccess-VPN',
+      'Routing',
       'RSAT-AD-Tools',
       'RSAT-AD-PowerShell',
       'RSAT-ADDS',
@@ -89,6 +93,7 @@ describe('registre des rôles', () => {
       'Hyper-V-Tools',
       'Hyper-V-PowerShell',
       'RSAT-RDS-Tools',
+      'RSAT-RemoteAccess',
       'UpdateServices',
       'UpdateServices-WidDB',
       'UpdateServices-Services',
@@ -211,7 +216,8 @@ describe('registre des rôles', () => {
       'hyperv',
       'adcs',
       'dfs',
-      'backup'
+      'backup',
+      'rras'
     ]) {
       vi.resetModules()
       await import(`../../../src/engine/roles/${entry}/index.ts`)

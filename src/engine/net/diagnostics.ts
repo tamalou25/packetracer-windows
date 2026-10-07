@@ -134,11 +134,11 @@ function echo(
     responder.kind === 'cloud' && isInternetHost(dst) ? INTERNET_REPLY_TTL : initialTtl(responder)
   const reply = sendIp(ctx, responder.id, {
     src: dst,
-    dst: srcIp,
+    dst: request.src,
     ttl: replyTtl,
     protocol: 'ICMP',
     ipProtocol: '1 (ICMP)',
-    summary: `ICMP Echo Reply ${dst} → ${srcIp}`,
+    summary: `ICMP Echo Reply ${dst} → ${request.src}`,
     reply: true,
     upper: [
       icmpLayer(0, 0, 'Echo Reply', [

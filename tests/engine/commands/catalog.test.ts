@@ -177,6 +177,37 @@ describe('catalogue des commandes', () => {
     done(r)
   })
 
+  it('accès à distance : NAT, VPN, connexion d’un client', () => {
+    const r = runner()
+    const srv = r.id('SRV1')
+    r.run(command('system.installFeatures', srv, ['RemoteAccess', 'DirectAccess-VPN', 'Routing'], {}))
+    r.run(command('topology.addServerInterface', srv))
+    r.run(
+      command('net.setInterfaceIpv4', srv, r.iface('SRV1', 1), {
+        addressing: 'static',
+        address: '203.0.113.2',
+        mask: '24',
+        gateway: null,
+        dnsServers: []
+      })
+    )
+    r.run(command('rras.configure', srv, { mode: 'nat', publicIfaceId: r.iface('SRV1', 1) }))
+    r.run(command('rras.disable', srv))
+    r.run(
+      command('rras.configure', srv, {
+        mode: 'vpn-nat',
+        publicIfaceId: r.iface('SRV1', 1),
+        pool: { start: '192.168.10.200', end: '192.168.10.210' }
+      })
+    )
+    r.run(command('rras.setPool', srv, { start: '192.168.10.220', end: '192.168.10.230' }))
+    r.run(command('vpn.addConnection', r.id('PC2'), { name: 'Bureau', server: '192.168.10.1' }))
+    r.run(command('vpn.connect', r.id('PC2'), 'Bureau', { user: 'LAB\\jdupont', password: 'Azerty123!' }))
+    r.run(command('vpn.disconnect', r.id('PC2'), 'Bureau'))
+    r.run(command('vpn.removeConnection', r.id('PC2'), 'Bureau'))
+    done(r)
+  })
+
   it('consoles, tâches de fond et lots', () => {
     const r = runner()
     const session = createShellSession(r.state, r.id('SRV1'), 'powershell')

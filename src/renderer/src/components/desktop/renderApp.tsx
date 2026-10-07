@@ -16,6 +16,7 @@ import { GpoEditor } from '../apps/GpoEditor'
 import { HyperVApp } from '../apps/HyperVApp'
 import { IisApp } from '../apps/IisApp'
 import { RdsApp } from '../apps/RdsApp'
+import { RrasApp } from '../apps/RrasApp'
 import { WbadminApp } from '../apps/WbadminApp'
 import { WsusApp } from '../apps/WsusApp'
 import { Terminal } from '../console/Terminal'
@@ -42,6 +43,7 @@ import { NewShareDialog } from './apps/NewShareDialog'
 import { WindowsUpdate } from './apps/WindowsUpdate'
 import { Browser } from './apps/Browser'
 import { RemoteDesktop } from './apps/RemoteDesktop'
+import { VpnSettings } from './apps/VpnSettings'
 
 function unavailable(): ReactNode {
   return <div className="p-6 text-sm text-slate-500">Application indisponible sur cet ordinateur.</div>
@@ -115,6 +117,10 @@ export function renderApp(win: DesktopWindow, device: HostDevice): ReactNode {
       return server ? <RdsApp device={server} /> : unavailable()
     case 'mstsc':
       return <RemoteDesktop device={device} />
+    case 'rrasmgmt':
+      return server ? <RrasApp device={server} /> : unavailable()
+    case 'vpnclient':
+      return <VpnSettings device={device} />
     case 'browser':
       return <Browser device={device} />
     case 'wuclient':
