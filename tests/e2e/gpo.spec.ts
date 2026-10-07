@@ -100,3 +100,25 @@ test('GPO : console, éditeur, application à l’ouverture de session, gpupdate
     await close()
   }
 })
+
+test('Éditeur GPO : un double-clic sur un paramètre non sélectionné ouvre sa fenêtre', async () => {
+  const { app, close, page, consoleErrors } = await launchApp()
+  try {
+    await openLab(app, page, domainLab())
+    await openTool(page, 'SRV1', 'gpmc')
+    const srv = page.getByTestId('device-window-SRV1')
+    await srv.getByTestId('maximize-device-window').click()
+    const gpmc = srv.getByTestId('app-gpmc')
+    await gpmc.getByTestId(`mmc-node-link|root|${DEFAULT_DOMAIN_POLICY_ID}`).click()
+    await gpmc.getByTestId('gpmc-edit').click()
+    const gpme = srv.getByTestId('app-gpme')
+    await gpme.getByTestId('mmc-node-c-password').click()
+    // Aucun paramètre sélectionné : le volet Actions ne doit pas décaler la table entre les deux clics
+    await gpme.getByTestId('gpme-setting-passwordComplexity').dblclick()
+    await expect(gpme.getByTestId('policy-dialog')).toBeVisible()
+    await expect(gpme.getByTestId('policy-dialog')).toContainText('exigences de complexité')
+    expect(consoleErrors).toEqual([])
+  } finally {
+    await close()
+  }
+})

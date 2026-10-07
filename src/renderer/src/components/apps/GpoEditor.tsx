@@ -111,11 +111,15 @@ export function GpoEditor({ device, gpoId }: { device: HostDevice; gpoId: string
   let actions: ReactNode = null
   if (settings.length > 0) {
     const info = settings.find((s) => s.key === row)
+    // Volet Actions toujours affiché (vide sans sélection) : sinon son apparition au premier clic
+    // décale la table et le double-clic n'atteint plus la ligne visée
     actions = info ? (
       <MmcAction onClick={() => setEditing({ kind: 'setting', info })} testId="gpme-edit">
         Modifier le paramètre de stratégie
       </MmcAction>
-    ) : null
+    ) : (
+      <></>
+    )
     content = (
       <MmcTable
         testId="gpme-settings"
