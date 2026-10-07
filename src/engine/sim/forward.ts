@@ -11,6 +11,7 @@ import {
   BROADCAST_MAC,
   ethernetLayer,
   ipv4Layer,
+  taggedLayers,
   type PduEvent,
   type PduLayer,
   type PduOutcome,
@@ -57,6 +58,11 @@ interface FrameSpec {
   layers: PduLayer[]
 }
 
+/** Précision d'une commutation sur un trunk : la trame repart étiquetée. */
+function vlanNote(vlan: number | undefined): string {
+  return vlan === undefined ? '' : ` ; sur le trunk, elle est étiquetée 802.1Q VLAN ${vlan}`
+}
+
 /**
  * Enregistre une trame unicast le long d'un chemin (à travers les switchs).
  * Renvoie l'index du dernier événement (arrivée sur la destination).
@@ -72,8 +78,8 @@ export function recordUnicast(
     const last = i === path.length - 1
     const to = ctx.state.devices[hop.to]
     const port = to?.interfaces.find((p) => p.id === hop.toIfaceId)?.name ?? ''
-    const outId = path[i + 1]?.fromIfaceId
-    const outPort = to?.interfaces.find((p) => p.id === outId)?.name ?? ''
+    const next = path[i + 1]
+    const outPort = to?.interfaces.find((p) => p.id === next?.fromIfaceId)?.name ?? ''
     ctx.rec.step += 1
     ctx.rec.events.push({
       step: ctx.rec.step,
@@ -82,11 +88,11 @@ export function recordUnicast(
       fromDeviceId: hop.from,
       toDeviceId: hop.to,
       summary: frame.summary,
-      layers: frame.layers,
+      layers: taggedLayers(frame.layers, hop.vlan),
       outcome: last ? finalOutcome : 'forwarded',
       note: last
         ? finalNote
-        : `${to?.name ?? '?'} reçoit la trame sur ${port} et la commute vers ${outPort} (adresse MAC de destination connue).`
+        : `${to?.name ?? '?'} reçoit la trame sur ${port} et la commute vers ${outPort} (adresse MAC de destination connue)${vlanNote(next?.vlan)}.`
     })
   })
   return ctx.rec.events.length - 1
@@ -131,11 +137,11 @@ export function recordBroadcast(
         fromDeviceId: hop.from,
         toDeviceId: hop.to,
         summary: frame.summary,
-        layers: frame.layers,
+        layers: taggedLayers(frame.layers, hop.vlan),
         outcome: decision ? decision.outcome : 'forwarded',
         note: decision
           ? decision.note
-          : `${to?.name ?? '?'} diffuse la trame (broadcast) sur tous ses autres ports.`
+          : `${to?.name ?? '?'} diffuse la trame (broadcast) sur ses autres ports du même VLAN.`
       }
       ctx.rec.events.push(event)
     })

@@ -1,6 +1,8 @@
 /**
  * Lab de référence des fichiers .slab de tests/engine/serialization/fixtures : contrôleur de
  * domaine (DNS, DHCP autorisé), switch, routeur, poste en DHCP joint au domaine, poste statique.
+ * Depuis la v6 : VLAN 20 sur le switch (port d'accès libre, trunk vers le routeur) et
+ * sous-interface Gi0/0.20 du routeur.
  * Le même scénario a servi à produire chaque fichier vN.slab avec le code de la version N.
  */
 import {
@@ -10,6 +12,8 @@ import {
   addOrganizationalUnit,
   addRecord,
   addScope,
+  addSubinterface,
+  addVlan,
   addUser,
   authorizeDhcpServer,
   autoConfigureDhcp,
@@ -21,6 +25,7 @@ import {
   restartComputer,
   setDhcpOptions,
   setInterfaceIpv4,
+  setSwitchport,
   unwrap,
   type DeviceKind,
   type LabState
@@ -77,6 +82,14 @@ export function buildReferenceLab(): LabState {
   ip('SRV1', '192.168.10.1', '192.168.10.254', ['192.168.10.1'])
   ip('R1', '192.168.10.254', null, [], 'Gi0/0')
   ip('PC2', '192.168.10.20', '192.168.10.254', ['192.168.10.1'])
+  // VLAN 20 « Compta » : port d'accès Fa0/5 (libre), trunk vers le routeur, sous-interface Gi0/0.20
+  const sw = id('SW1')
+  s = unwrap(addVlan(s, sw, 20, 'Compta')).state
+  s = unwrap(setSwitchport(s, sw, switchPorts[4]?.id ?? '', { mode: 'access', accessVlan: 20 })).state
+  s = unwrap(setSwitchport(s, sw, switchPorts[3]?.id ?? '', { mode: 'trunk' })).state
+  const sub = unwrap(addSubinterface(s, id('R1'), iface('R1', 'Gi0/0'), 20))
+  s = sub.state
+  ip('R1', '192.168.20.254', null, [], 'Gi0/0.20')
   s = unwrap(
     setInterfaceIpv4(s, id('PC1'), iface('PC1'), {
       addressing: 'dhcp',

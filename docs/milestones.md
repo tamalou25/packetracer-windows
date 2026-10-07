@@ -8,7 +8,7 @@ Ce journal permet à une nouvelle session de reprendre le travail là où il s'e
 - **Format .slab** : une seule version de format par milestone. La première issue qui modifie le format
   incrémente `CURRENT_SCHEMA_VERSION` et écrit `fixtures/vN.slab` ; les issues suivantes du même milestone
   ajoutent des champs avec valeurs par défaut (le fichier de référence de la version reste valable).
-  v2.1 → format 5.
+  v2.1 → format 5 ; v2.2 → format 6.
 - **Fidélité** : un comportement de Windows Server non sourcé est noté dans `docs/fidelite.md` (« à vérifier »).
 - **Fin de milestone** : `CHANGELOG.md`, version de `package.json`, tag `vX.Y.0` poussé par Gary.
 
@@ -120,3 +120,26 @@ Milestone terminé : `CHANGELOG.md` [2.1.0], `package.json` 2.1.0 ; tag `v2.1.0`
   copie, remplacer, ignorer) avec ACL et propriétaire ; `wbadmin` (start backup, enable backup, get versions,
   start recovery) ; console « Sauvegarde Windows Server » ; critères `backupPolicy`, `backupSet`,
   `adRecycleBin` ; lab `lab-12-sauvegarde`.
+
+## v2.2 — Réseau d'entreprise
+
+| Issue | Sujet                   | Branche        | PR  | État     |
+| ----- | ----------------------- | -------------- | --- | -------- |
+| #22   | VLAN, trunk, inter-VLAN | `feat/22-vlan` |     | en cours |
+| #23   | Relais DHCP             |                |     | à faire  |
+| #24   | Pare-feu simulé         |                |     | à faire  |
+| #25   | RRAS : VPN et NAT       |                |     | à faire  |
+| #26   | NPS / RADIUS            |                |     | à faire  |
+| #27   | Multi-sites AD, FSMO    |                |     | à faire  |
+
+### #22 VLAN
+
+- Format 6 (migration 5 → 6 sans transformation, `fixtures/v6.slab` avec VLAN 20, trunk et sous-interface) :
+  base des VLAN des switchs (`vlans`), configuration 802.1Q des ports (`switchport`, absente = accès VLAN 1),
+  sous-interfaces de routeur (`subinterface` : carte parente, VLAN dot1Q).
+- Couche 2 (`net/segment.ts`) : parcours par VLAN (ports d'accès, trunks, VLAN autorisés, VLAN natif, VLAN
+  absent de la base = trame perdue) ; un routeur reçoit les trames étiquetées sur la sous-interface du VLAN ;
+  chaque saut porte son étiquette, affichée en couche « 802.1Q » en mode Simulation.
+- Actions `net/vlan.ts` et commandes `net.addVlan`, `net.renameVlan`, `net.removeVlan`, `net.setSwitchport`,
+  `net.addSubinterface`, `net.removeSubinterface` ; onglet Config : pages « VLAN » (switch) et
+  « Sous-interfaces » (routeur) ; critère `switchport` ; lab `lab-13-vlan`.

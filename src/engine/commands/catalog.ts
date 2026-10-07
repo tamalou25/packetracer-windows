@@ -12,6 +12,14 @@ import type { EngineResult } from '../core/result'
 import { nextDeviceName } from '../model/factory'
 import type { LabState, Position } from '../model/schema'
 import { addStaticRoute, removeStaticRoute, setInterfaceIpv4 } from '../net/config'
+import {
+  addSubinterface,
+  addVlan,
+  removeSubinterface,
+  removeVlan,
+  renameVlan,
+  setSwitchport
+} from '../net/vlan'
 import { backgroundLabel, runBackgroundTasks } from '../roles/background'
 import { installFeatures, uninstallFeatures } from '../roles/features'
 import { roleModules, type RoleModules } from '../roles/registry'
@@ -132,6 +140,22 @@ const CORE_COMMANDS = {
     (s, id, r) => `Ajouter la route ${r.network}/${r.mask}${on(s, id)}`
   ),
   'net.removeStaticRoute': def(removeStaticRoute, (s, id) => `Supprimer une route statique${on(s, id)}`),
+  'net.addVlan': def(addVlan, (s, id, vlan) => `Créer le VLAN ${vlan}${on(s, id)}`),
+  'net.renameVlan': def(renameVlan, (s, id, vlan, name) => `Renommer le VLAN ${vlan} en ${name}${on(s, id)}`),
+  'net.removeVlan': def(removeVlan, (s, id, vlan) => `Supprimer le VLAN ${vlan}${on(s, id)}`),
+  'net.setSwitchport': def(setSwitchport, (s, id, ifaceId, input) =>
+    input.mode === 'trunk'
+      ? `Configurer ${interfaceName(s, id, ifaceId)} en trunk 802.1Q`
+      : `Affecter ${interfaceName(s, id, ifaceId)} au VLAN ${input.accessVlan ?? 1}`
+  ),
+  'net.addSubinterface': def(
+    addSubinterface,
+    (s, id, parentId, vlan) => `Créer la sous-interface ${interfaceName(s, id, parentId)}.${vlan}`
+  ),
+  'net.removeSubinterface': def(
+    removeSubinterface,
+    (s, id, ifaceId) => `Supprimer la sous-interface ${interfaceName(s, id, ifaceId)}`
+  ),
 
   // Système
   'system.restartComputer': def(restartComputer, (s, id) => `Redémarrer ${deviceName(s, id)}`),

@@ -28,7 +28,8 @@ export function sameNetwork(a: LabState, b: LabState, extra?: DeviceSame): boole
     if (
       before.kind !== after.kind ||
       before.powered !== after.powered ||
-      before.interfaces !== after.interfaces
+      before.interfaces !== after.interfaces ||
+      (before.kind === 'switch' && after.kind === 'switch' && before.vlans !== after.vlans)
     )
       return false
     if (extra && !extra(before, after)) return false
@@ -60,8 +61,13 @@ export function memoByNetwork<T>(
 
 /**
  * Dépendances réseau d'un équipement, communes aux tâches de fond : identité, alimentation,
- * cartes et routes (références inchangées quand l'équipement est seulement déplacé ou renommé).
+ * cartes, routes et VLAN (références inchangées quand l'équipement est seulement déplacé ou renommé).
  */
 export function networkDeps(device: Device): unknown[] {
-  return [device.id, device.powered, device.interfaces, device.kind === 'router' ? device.routes : null]
+  return [
+    device.id,
+    device.powered,
+    device.interfaces,
+    device.kind === 'router' ? device.routes : device.kind === 'switch' ? device.vlans : null
+  ]
 }

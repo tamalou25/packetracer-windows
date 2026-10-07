@@ -139,7 +139,7 @@ export function buildDevice(
     case 'client':
       return { ...base, kind, host: createHost('client') }
     case 'switch':
-      return { ...base, kind }
+      return { ...base, kind, vlans: [{ id: 1, name: 'default' }] }
     case 'router':
       return { ...base, kind, routes: [] }
     case 'cloud':

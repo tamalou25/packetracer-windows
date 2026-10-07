@@ -73,6 +73,25 @@ export function ipv4Layer(src: string, dst: string, ttl: number, protocol: strin
 
 export const BROADCAST_MAC = 'FF-FF-FF-FF-FF-FF'
 
+/**
+ * Couches d'une trame sur un câble : l'étiquette 802.1Q (VLAN) est insérée après l'en-tête
+ * Ethernet quand la trame circule étiquetée (trunk, sous-interface de routeur).
+ */
+export function taggedLayers(layers: PduLayer[], vlan: number | undefined): PduLayer[] {
+  if (vlan === undefined) return layers
+  const at = layers.findIndex((l) => l.layer === 2) + 1
+  const tag: PduLayer = {
+    layer: 2,
+    name: '802.1Q',
+    fields: [
+      ['TPID', '0x8100'],
+      ['Priorité', '0'],
+      ['VLAN', String(vlan)]
+    ]
+  }
+  return [...layers.slice(0, at), tag, ...layers.slice(at)]
+}
+
 /** Concatène plusieurs traces en décalant les pas (opérations successives). */
 export function concatTraces(title: string, traces: PacketTrace[]): PacketTrace {
   const events: PduEvent[] = []

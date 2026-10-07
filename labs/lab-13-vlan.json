@@ -1,0 +1,62 @@
+{
+  "formatVersion": 1,
+  "id": "lab-13-vlan",
+  "title": "VLAN et routage inter-VLAN",
+  "difficulty": "Intermédiaire",
+  "duration": "30 min",
+  "summary": "Séparer deux services en VLAN sur un même switch et les faire communiquer par un routeur « on a stick ».",
+  "statement": "# Contexte\n\nLa comptabilité et les ressources humaines partagent le switch **SW1** mais doivent être isolées au niveau 2. Le routeur **R1**, relié par un seul câble, assurera le routage entre les deux réseaux.\n\n| Service | VLAN | Réseau | Port de SW1 |\n| --- | --- | --- | --- |\n| Comptabilité (PC1) | 10 `Compta` | 192.168.10.0/24 | Fa0/1 |\n| Ressources humaines (PC2) | 20 `RH` | 192.168.20.0/24 | Fa0/2 |\n\nLes postes sont déjà adressés (passerelle `.254` de leur réseau).\n\n## Travail demandé\n\n1. Sur SW1 (onglet Config › VLAN), créez les VLAN **10 Compta** et **20 RH**.\n2. Affectez Fa0/1 et Fa0/2 à leur VLAN (ports d’accès).\n3. Configurez Fa0/16, relié au routeur, en **trunk 802.1Q**.\n4. Sur R1 (onglet Config › Sous-interfaces), créez une sous-interface par VLAN sur Gi0/0 et adressez-la en `.254`.\n5. Vérifiez en mode Simulation que les trames circulent étiquetées sur le trunk, puis que PC1 joint PC2.",
+  "start": {
+    "devices": [
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 100,
+        "y": 320,
+        "ip": "192.168.10.10/24",
+        "gateway": "192.168.10.254"
+      },
+      {
+        "kind": "client",
+        "name": "PC2",
+        "x": 480,
+        "y": 320,
+        "ip": "192.168.20.10/24",
+        "gateway": "192.168.20.254"
+      },
+      { "kind": "switch", "name": "SW1", "x": 290, "y": 200 },
+      { "kind": "router", "name": "R1", "x": 290, "y": 40 }
+    ],
+    "links": [
+      ["PC1:Ethernet0", "SW1:Fa0/1"],
+      ["PC2:Ethernet0", "SW1:Fa0/2"],
+      ["R1:Gi0/0", "SW1:Fa0/16"]
+    ]
+  },
+  "criteria": [
+    {
+      "id": "compta",
+      "label": "Le port de PC1 est un port d’accès du VLAN de la comptabilité",
+      "hint": "Un port d’accès appartient à un seul VLAN ; affecter un port à un VLAN absent le crée sous un nom par défaut, pensez à le nommer.",
+      "check": { "type": "switchport", "device": "SW1", "port": "Fa0/1", "mode": "access", "vlan": 10 }
+    },
+    {
+      "id": "rh",
+      "label": "Le port de PC2 est un port d’accès du VLAN des ressources humaines",
+      "hint": "Reportez-vous au tableau de l’énoncé : chaque service a son VLAN.",
+      "check": { "type": "switchport", "device": "SW1", "port": "Fa0/2", "mode": "access", "vlan": 20 }
+    },
+    {
+      "id": "trunk",
+      "label": "Le lien vers le routeur transporte les deux VLAN",
+      "hint": "Un seul câble doit porter plusieurs VLAN : les trames y sont étiquetées pour que le routeur sache à quel réseau elles appartiennent.",
+      "check": { "type": "switchport", "device": "SW1", "port": "Fa0/16", "mode": "trunk", "vlan": 20 }
+    },
+    {
+      "id": "routed",
+      "label": "PC1 joint PC2 en passant par le routeur",
+      "hint": "Chaque VLAN est un réseau IP distinct : le routeur a besoin d’une interface (logique) dans chacun, à l’adresse de la passerelle des postes.",
+      "check": { "type": "ping", "from": "PC1", "to": "PC2" }
+    }
+  ]
+}

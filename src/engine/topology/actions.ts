@@ -208,6 +208,11 @@ export function connect(state: LabState, a: LinkEnd, b: LinkEnd): EngineResult<s
       if (device.hostedBy) raise('HyperVManaged', HYPERV_MANAGED(device.name))
       const iface = device.interfaces.find((i) => i.id === end.ifaceId)
       if (!iface) raise('InterfaceNotFound', `Port introuvable sur ${device.name}.`)
+      if (iface.subinterface)
+        raise(
+          'Subinterface',
+          `${iface.name} est une sous-interface : branchez le câble sur sa carte physique.`
+        )
       if (linkOnInterface(draft, end.deviceId, end.ifaceId))
         raise('PortInUse', `Le port ${iface.name} de ${device.name} est déjà utilisé.`)
     }
@@ -265,8 +270,17 @@ export function duplicateDevices(
           bridge: null
         }
       })
+      // Sous-interfaces : carte parente recopiée, dont elles partagent l'adresse MAC
+      for (const iface of copy.interfaces) {
+        if (!iface.subinterface) continue
+        const parent = ifaceMap.get(`${original.id}/${iface.subinterface.parent}`) ?? ''
+        iface.subinterface = { ...iface.subinterface, parent }
+        iface.mac = copy.interfaces.find((i) => i.id === parent)?.mac ?? iface.mac
+      }
       if (copy.kind === 'router' && original.kind === 'router')
         copy.routes = original.routes.map((r) => ({ ...r }))
+      if (copy.kind === 'switch' && original.kind === 'switch')
+        copy.vlans = original.vlans.map((v) => ({ ...v }))
       if (
         (copy.kind === 'server' || copy.kind === 'client') &&
         (original.kind === 'server' || original.kind === 'client')

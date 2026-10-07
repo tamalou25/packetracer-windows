@@ -144,6 +144,19 @@ describe('catalogue des commandes', () => {
     done(r)
   })
 
+  it('VLAN : base du switch, ports d’accès et trunk, sous-interfaces', () => {
+    const r = runner()
+    const sw = r.id('SW1')
+    r.run(command('net.addVlan', sw, 30, 'RH'))
+    r.run(command('net.renameVlan', sw, 30, 'Ressources'))
+    r.run(command('net.setSwitchport', sw, r.iface('SW1', 5), { mode: 'access', accessVlan: 30 }))
+    r.run(command('net.setSwitchport', sw, r.iface('SW1', 3), { mode: 'trunk', allowedVlans: [1, 20, 30] }))
+    r.run(command('net.removeVlan', sw, 30))
+    const sub = r.run<string>(command('net.addSubinterface', r.id('R1'), r.iface('R1'), 30))
+    r.run(command('net.removeSubinterface', r.id('R1'), sub))
+    done(r)
+  })
+
   it('consoles, tâches de fond et lots', () => {
     const r = runner()
     const session = createShellSession(r.state, r.id('SRV1'), 'powershell')

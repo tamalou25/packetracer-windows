@@ -1,9 +1,12 @@
 /**
  * Couche 2 : domaines de diffusion à travers les switchs.
- * Un switch est transparent (pas de VLAN ni de spanning-tree en v1). Un commutateur virtuel Hyper-V
- * est un switch hébergé ; s'il est externe, la carte physique liée de l'hôte fait office de pont.
+ * Les switchs physiques séparent les VLAN 802.1Q (ports d'accès, trunks étiquetés, VLAN natif) ;
+ * un routeur reçoit les trames étiquetées sur ses sous-interfaces (encapsulation dot1Q).
+ * Pas de spanning-tree. Un commutateur virtuel Hyper-V est un switch hébergé, sans VLAN ; s'il est
+ * externe, la carte physique liée de l'hôte fait office de pont.
  */
 import type { LabState, Link, NetInterface, Device } from '../model/schema'
+import { switchportOf, trunkAllows } from './switchport'
 
 export interface PortRef {
   deviceId: string
@@ -19,6 +22,8 @@ export interface Hop {
   to: string
   /** Port d'arrivée sur l'équipement `to`. */
   toIfaceId: string
+  /** Étiquette 802.1Q de la trame sur ce câble (absente : trame non étiquetée). */
+  vlan?: number
 }
 
 /** Chemin inverse (pour une réponse). */
@@ -28,7 +33,8 @@ export function reversePath(path: Hop[]): Hop[] {
     from: h.to,
     fromIfaceId: h.toIfaceId,
     to: h.from,
-    toIfaceId: h.fromIfaceId
+    toIfaceId: h.fromIfaceId,
+    ...(h.vlan !== undefined ? { vlan: h.vlan } : {})
   }))
 }
 
@@ -58,6 +64,20 @@ export function linkAt(state: Pick<LabState, 'links'>, port: PortRef): Link | un
   return portIndex(state).get(`${port.deviceId}/${port.ifaceId}`)
 }
 
+/**
+ * Port physique qui porte les trames d'une carte : la carte elle-même, ou la carte parente d'une
+ * sous-interface (avec le VLAN de son encapsulation).
+ */
+export function physicalPort(
+  state: Pick<LabState, 'devices'>,
+  port: PortRef
+): { port: PortRef; vlan: number | null } {
+  const iface = state.devices[port.deviceId]?.interfaces.find((i) => i.id === port.ifaceId)
+  return iface?.subinterface
+    ? { port: { deviceId: port.deviceId, ifaceId: iface.subinterface.parent }, vlan: iface.subinterface.vlan }
+    : { port, vlan: null }
+}
+
 function peerOf(link: Link, port: PortRef): PortRef {
   return link.a.deviceId === port.deviceId && link.a.ifaceId === port.ifaceId ? link.b : link.a
 }
@@ -68,45 +88,84 @@ export function resolvePort(state: LabState, port: PortRef): { device: Device; i
   return device && iface ? { device, iface } : null
 }
 
-/** Vrai si le port est actif (équipement allumé, port activé). */
+/** Vrai si le port est actif (équipement allumé, port activé ; carte parente d'une sous-interface). */
 export function portActive(state: LabState, port: PortRef): boolean {
   const r = resolvePort(state, port)
-  return !!r && r.device.powered && r.iface.enabled
+  if (!r || !r.device.powered || !r.iface.enabled) return false
+  const parent = r.iface.subinterface?.parent
+  return !parent || !!r.device.interfaces.find((i) => i.id === parent)?.enabled
 }
 
-/** Vrai si le câble branché sur ce port transmet (les deux extrémités actives). */
+/** Vrai si le câble branché sur ce port (ou sur sa carte parente) transmet. */
 export function carrierUp(state: LabState, port: PortRef): boolean {
-  const link = linkAt(state, port)
+  const link = linkAt(state, physicalPort(state, port).port)
   return !!link && portActive(state, link.a) && portActive(state, link.b)
+}
+
+/** Trame en cours d'acheminement : port atteint, chemin, étiquette sur le dernier câble. */
+interface Frame extends SegmentMember {
+  tag: number | null
+}
+
+/** Ajoute la traversée d'un câble au chemin (avec l'étiquette 802.1Q éventuelle). */
+function extend(path: Hop[], link: Link, out: PortRef, next: PortRef, tag: number | null): Hop[] {
+  return [
+    ...path,
+    {
+      linkId: link.id,
+      from: out.deviceId,
+      fromIfaceId: out.ifaceId,
+      to: next.deviceId,
+      toIfaceId: next.ifaceId,
+      ...(tag !== null ? { vlan: tag } : {})
+    }
+  ]
+}
+
+/**
+ * VLAN d'une trame reçue sur un port de switch physique, ou null si le port la rejette
+ * (trame étiquetée sur un port d'accès, VLAN non autorisé sur le trunk ou absent de la base).
+ */
+function ingressVlan(sw: Device, port: NetInterface, tag: number | null): number | null {
+  const config = switchportOf(port)
+  let vlan: number
+  if (config.mode === 'access') {
+    if (tag !== null) return null
+    vlan = config.accessVlan
+  } else {
+    vlan = tag ?? config.nativeVlan
+    if (!trunkAllows(config, vlan)) return null
+  }
+  return sw.kind === 'switch' && sw.vlans.some((v) => v.id === vlan) ? vlan : null
+}
+
+/** Étiquette de sortie d'une trame du VLAN `vlan` par ce port, ou undefined s'il ne la transmet pas. */
+function egressTag(port: NetInterface, vlan: number): number | null | undefined {
+  const config = switchportOf(port)
+  if (config.mode === 'access') return config.accessVlan === vlan ? null : undefined
+  if (!trunkAllows(config, vlan)) return undefined
+  return vlan === config.nativeVlan ? null : vlan
 }
 
 /**
  * Liste les ports de niveau 3 (serveurs, postes, routeurs, Internet) joignables en couche 2
- * depuis `origin`, avec le chemin de câbles emprunté (parcours en largeur).
+ * depuis `origin`, avec le chemin de câbles emprunté (parcours en largeur). Une sous-interface
+ * émet par sa carte parente, en trames étiquetées de son VLAN.
  */
 export function l2Segment(state: LabState, origin: PortRef): SegmentMember[] {
   if (!portActive(state, origin)) return []
-  const first = linkAt(state, origin)
+  const { port: physical, vlan: originTag } = physicalPort(state, origin)
+  const first = linkAt(state, physical)
   if (!first) return []
   const members: SegmentMember[] = []
-  const visitedSwitches = new Set<string>()
-  const startPeer = peerOf(first, origin)
-  const queue: SegmentMember[] = [
-    {
-      port: startPeer,
-      path: [
-        {
-          linkId: first.id,
-          from: origin.deviceId,
-          fromIfaceId: origin.ifaceId,
-          to: startPeer.deviceId,
-          toIfaceId: startPeer.ifaceId
-        }
-      ]
-    }
+  // Switch traversé une fois par VLAN (commutateur virtuel : par étiquette transportée)
+  const visited = new Set<string>()
+  const startPeer = peerOf(first, physical)
+  const queue: Frame[] = [
+    { port: startPeer, path: extend([], first, physical, startPeer, originTag), tag: originTag }
   ]
   while (queue.length > 0) {
-    const current = queue.shift() as SegmentMember
+    const current = queue.shift() as Frame
     const resolved = resolvePort(state, current.port)
     if (!resolved || !resolved.device.powered || !resolved.iface.enabled) continue
     const { device, iface } = resolved
@@ -119,25 +178,33 @@ export function l2Segment(state: LabState, origin: PortRef): SegmentMember[] {
       fromUplink = true
       if (!sw || sw.kind !== 'switch' || !sw.powered) continue
     } else {
-      members.push(current)
+      // Équipement de niveau 3 : trame non étiquetée sur la carte, étiquetée sur une sous-interface
+      if (current.tag === null) members.push({ port: current.port, path: current.path })
+      else if (device.kind === 'router') {
+        const sub = device.interfaces.find(
+          (i) => i.subinterface?.parent === iface.id && i.subinterface.vlan === current.tag && i.enabled
+        )
+        if (sub) members.push({ port: { deviceId: device.id, ifaceId: sub.id }, path: current.path })
+      }
       continue
     }
-    if (visitedSwitches.has(sw.id)) continue
-    visitedSwitches.add(sw.id)
+    // Commutateur virtuel Hyper-V : sans VLAN, il transporte l'étiquette telle quelle
+    const virtual = !!sw.hostedBy
+    const vlan = virtual || fromUplink ? current.tag : ingressVlan(sw, iface, current.tag)
+    if (!virtual && !fromUplink && vlan === null) continue
+    const key = `${sw.id}:${vlan ?? '-'}`
+    if (visited.has(key)) continue
+    visited.add(key)
     const enteredBy = fromUplink ? null : current.port.ifaceId
     for (const port of sw.interfaces) {
       if (port.id === enteredBy || !port.enabled) continue
+      const tag = virtual ? current.tag : egressTag(port, vlan as number)
+      if (tag === undefined) continue
       const out: PortRef = { deviceId: sw.id, ifaceId: port.id }
       const link = linkAt(state, out)
       if (!link) continue
       const next = peerOf(link, out)
-      queue.push({
-        port: next,
-        path: [
-          ...current.path,
-          { linkId: link.id, from: sw.id, fromIfaceId: port.id, to: next.deviceId, toIfaceId: next.ifaceId }
-        ]
-      })
+      queue.push({ port: next, path: extend(current.path, link, out, next, tag), tag })
     }
     // Commutateur virtuel externe : sortie par la carte physique de l'hôte
     if (!fromUplink && sw.hostedBy) {
@@ -147,19 +214,7 @@ export function l2Segment(state: LabState, origin: PortRef): SegmentMember[] {
       const link = out ? linkAt(state, out) : undefined
       if (out && link) {
         const next = peerOf(link, out)
-        queue.push({
-          port: next,
-          path: [
-            ...current.path,
-            {
-              linkId: link.id,
-              from: out.deviceId,
-              fromIfaceId: out.ifaceId,
-              to: next.deviceId,
-              toIfaceId: next.ifaceId
-            }
-          ]
-        })
+        queue.push({ port: next, path: extend(current.path, link, out, next, current.tag), tag: current.tag })
       }
     }
   }

@@ -38,16 +38,19 @@ interface PortTrayProps {
 export function PortTray({ device, interactive, onMouseEnter, onMouseLeave }: PortTrayProps) {
   const lab = useLabStore((s) => s.lab)
   const cableStart = useUiStore((s) => s.cableStart)
-  const ports = device.interfaces.map((iface) => {
-    const link = linkOnInterface(lab, device.id, iface.id)
-    const side = link && link.a.deviceId === device.id && link.a.ifaceId === iface.id ? 'a' : 'b'
-    const peerEnd = link ? (side === 'a' ? link.b : link.a) : null
-    const peer = peerEnd ? lab.devices[peerEnd.deviceId] : undefined
-    const peerPort = peerEnd ? peer?.interfaces.find((i) => i.id === peerEnd.ifaceId)?.name : undefined
-    const state: PortState = link ? endStatus(lab, link, side) : iface.enabled ? 'free' : 'disabled'
-    const chosen = cableStart?.deviceId === device.id && cableStart.ifaceId === iface.id
-    return { iface, state, peer: peer ? `${peer.name} · ${peerPort ?? '?'}` : null, chosen }
-  })
+  // Les sous-interfaces partagent le port de leur carte parente
+  const ports = device.interfaces
+    .filter((iface) => !iface.subinterface)
+    .map((iface) => {
+      const link = linkOnInterface(lab, device.id, iface.id)
+      const side = link && link.a.deviceId === device.id && link.a.ifaceId === iface.id ? 'a' : 'b'
+      const peerEnd = link ? (side === 'a' ? link.b : link.a) : null
+      const peer = peerEnd ? lab.devices[peerEnd.deviceId] : undefined
+      const peerPort = peerEnd ? peer?.interfaces.find((i) => i.id === peerEnd.ifaceId)?.name : undefined
+      const state: PortState = link ? endStatus(lab, link, side) : iface.enabled ? 'free' : 'disabled'
+      const chosen = cableStart?.deviceId === device.id && cableStart.ifaceId === iface.id
+      return { iface, state, peer: peer ? `${peer.name} · ${peerPort ?? '?'}` : null, chosen }
+    })
   const free = ports.filter((p) => p.state === 'free').length
   const cols = ports.length > 8 ? 'grid-cols-4' : ports.length > 2 ? 'grid-cols-2' : 'grid-cols-1'
 
