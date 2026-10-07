@@ -286,6 +286,8 @@ export function logon(state: LabState, deviceId: string, input: LogonInput): Log
       logonServer: draft.devices[located.dcId]?.name ?? ''
     }
     audit(draft, true)
+    const account = draft.domains[domain.name]?.users.find((u) => u.id === user.id)
+    if (account) account.lastLogon = draft.clock
     logEvent(draft, deviceId, {
       level: 'information',
       source: 'Security-Auditing',

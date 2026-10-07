@@ -8,7 +8,7 @@ Ce journal permet à une nouvelle session de reprendre le travail là où il s'e
 - **Format .slab** : une seule version de format par milestone. La première issue qui modifie le format
   incrémente `CURRENT_SCHEMA_VERSION` et écrit `fixtures/vN.slab` ; les issues suivantes du même milestone
   ajoutent des champs avec valeurs par défaut (le fichier de référence de la version reste valable).
-  v2.1 → format 5 ; v2.2 → format 6.
+  v2.1 → format 5 ; v2.2 → format 6 ; v2.3 → format 7.
 - **Fidélité** : un comportement de Windows Server non sourcé est noté dans `docs/fidelite.md` (« à vérifier »).
 - **Fin de milestone** : `CHANGELOG.md`, version de `package.json`, tag `vX.Y.0` poussé par Gary.
 
@@ -223,3 +223,26 @@ Milestone terminé : `CHANGELOG.md` [2.2.0], `package.json` 2.2.0 ; tag `v2.2.0`
   `%LOGONSERVER%` (contrôleur ayant authentifié la session), `nltest /dsgetdc:`. Résolution DNS insensible
   à la casse. Critères `adSite`, `siteLink`, `domainController`, `fsmoRole`, `logonServer` ; lab
   `lab-18-multi-sites`.
+
+## v2.3 — Cybersécurité (défensif)
+
+| Issue | Sujet                           | Branche         | PR  | État     |
+| ----- | ------------------------------- | --------------- | --- | -------- |
+| #28   | Mode Audit                      | `feat/28-audit` |     | en cours |
+| #29   | Labs de durcissement            |                 |     | à faire  |
+| #30   | Journaux de sécurité filtrables |                 |     | à faire  |
+| #31   | Verrouillage et audit par GPO   |                 |     | à faire  |
+| #32   | Rapport d'audit PDF             |                 |     | à faire  |
+
+### #28 Mode Audit
+
+- Contrat des rôles : `RoleModule.auditRules` (règles déclaratives : identifiant, gravité, correction,
+  `check(state)` → objets en cause) ; `audit/rules.ts` réunit les règles du système de base (pare-feu) et des
+  rôles ; `audit/audit.ts` calcule le score (100 − poids des règles enfreintes : critique 25, élevée 15,
+  moyenne 10, faible 5), trie les recommandations par gravité et compare deux audits (corrigé / non corrigé).
+- Règles : SMB 1.0 (critique), plus de 2 Admins du domaine, partage Tout le monde : Contrôle total, pare-feu
+  désactivé, stratégie de mot de passe < 12 caractères ou sans complexité (élevées), mots de passe sans
+  expiration, comptes inactifs > 90 jours (moyennes).
+- Format 7 : `passwordNeverExpires`, `whenCreated`, `lastLogon` des comptes ; `smb1` des ordinateurs.
+  `Get/Set-SmbServerConfiguration`, `New/Set-ADUser -PasswordNeverExpires`, propriétés `LastLogonDate`,
+  `whenCreated`. Onglet **Audit** du panneau latéral (score en direct, recommandations, objets, correction).

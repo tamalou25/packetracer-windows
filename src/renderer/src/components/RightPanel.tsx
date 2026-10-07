@@ -1,6 +1,7 @@
 /**
- * Panneau de droite à onglets : Propriétés / Simulation, et Lab quand un lab est ouvert.
+ * Panneau de droite à onglets : Propriétés / Simulation / Audit, et Lab quand un lab est ouvert.
  */
+import { AuditPanel } from './audit/AuditPanel'
 import { LabPanel } from './labs/LabPanel'
 import { SimulationPanel } from './simulation/SimulationPanel'
 import { PropertiesPanel } from './properties/PropertiesPanel'
@@ -14,7 +15,8 @@ export function RightPanel() {
   const TABS: { id: RightTab; label: string }[] = [
     ...(lab ? [{ id: 'lab' as const, label: 'Lab' }] : []),
     { id: 'properties', label: 'Propriétés' },
-    { id: 'simulation', label: 'Simulation' }
+    { id: 'simulation', label: 'Simulation' },
+    { id: 'audit', label: 'Audit' }
   ]
   // Onglet Lab demandé sans lab ouvert : retour aux propriétés
   const tab = selected === 'lab' && !lab ? 'properties' : selected
@@ -37,7 +39,15 @@ export function RightPanel() {
           </button>
         ))}
       </div>
-      {tab === 'lab' ? <LabPanel /> : tab === 'properties' ? <PropertiesPanel /> : <SimulationPanel />}
+      {tab === 'lab' ? (
+        <LabPanel />
+      ) : tab === 'properties' ? (
+        <PropertiesPanel />
+      ) : tab === 'audit' ? (
+        <AuditPanel />
+      ) : (
+        <SimulationPanel />
+      )}
     </aside>
   )
 }

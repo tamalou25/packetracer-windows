@@ -432,6 +432,8 @@ export const HostSchema = z.object({
   remoteSessions: z.array(RemoteSessionSchema).default([]),
   firewall: FirewallSchema.default(() => FirewallSchema.parse({})),
   vpnConnections: z.array(VpnConnectionSchema).default([]),
+  /** Protocole SMB 1.0 accepté par le serveur SMB (EnableSMB1Protocol). */
+  smb1: z.boolean().default(false),
   eventLog: z.array(EventLogEntrySchema).default([])
 })
 
@@ -670,7 +672,13 @@ export const AdUserSchema = z.object({
   enabled: z.boolean().default(true),
   mustChangePassword: z.boolean().default(false),
   description: z.string().default(''),
-  builtin: z.boolean().default(false)
+  builtin: z.boolean().default(false),
+  /** Le mot de passe n'expire jamais (PasswordNeverExpires). */
+  passwordNeverExpires: z.boolean().default(false),
+  /** Horloge de la création du compte (whenCreated). */
+  whenCreated: z.number().default(0),
+  /** Horloge de la dernière ouverture de session (lastLogonTimestamp) ; null : jamais. */
+  lastLogon: z.number().nullable().default(null)
 })
 
 export const AdGroupSchema = z.object({

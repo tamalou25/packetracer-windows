@@ -3,6 +3,7 @@
  */
 import { networkDeps } from '../../net/network-key'
 import { defineRole } from '../types'
+import { gpoAuditRules } from './audit'
 import { gpoCmdlets } from './cmdlets'
 import { gpoCommands } from './commands'
 import { gpoCriteria } from './criteria'
@@ -33,6 +34,7 @@ export const gpoRole = defineRole({
     }
   ],
   criteria: gpoCriteria,
+  auditRules: gpoAuditRules,
   backgroundTasks: [
     // Les membres du domaine appliquent leurs stratégies après un démarrage ou une ouverture de session
     {
