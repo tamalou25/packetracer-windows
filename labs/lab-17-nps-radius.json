@@ -1,0 +1,93 @@
+{
+  "formatVersion": 1,
+  "id": "lab-17-nps-radius",
+  "title": "Accès VPN contrôlé par NPS (RADIUS)",
+  "difficulty": "Avancé",
+  "duration": "45 min",
+  "summary": "Faire authentifier les clients VPN de SRV2 par le serveur NPS de SRV1 : seuls les membres d’un groupe du domaine se connectent.",
+  "statement": "# Contexte\n\n**SRV1** est le contrôleur du domaine `lab.local` (`192.168.10.1`). **SRV2** sera le serveur VPN : `Ethernet0` sur le réseau privé (`192.168.10.2/24`), `Ethernet1` reliée à Internet (`203.0.113.2/24`, passerelle `203.0.113.1`) ; le rôle **Accès à distance** (DirectAccess et VPN) y est installé. SRV2 n’est pas membre du domaine : il délègue l’authentification à un serveur **RADIUS**.\n\nSeuls les membres du groupe `GG_VPN` (Jean Dupont) doivent pouvoir établir le VPN ; Marie Martin (`mmartin`) ne l’est pas.\n\nCompte d’administration : `LAB\\Administrateur` / `P@ssw0rd`. Mot de passe des utilisateurs : `Azerty123!`. Secret partagé RADIUS à utiliser : `R@dius2026`.\n\n## Travail demandé\n\n1. Sur SRV1, installez le rôle **Services de stratégie et d’accès réseau**.\n2. Dans la console **Serveur NPS** (`nps.msc`), déclarez SRV2 comme **client RADIUS** (adresse côté réseau privé, secret partagé ci-dessus).\n3. Créez une **stratégie réseau** qui accorde l’accès au groupe `LAB\\GG_VPN`.\n4. Sur SRV2, dans `rrasmgmt.msc`, configurez l’**accès à distance (VPN)** (interface Internet `Ethernet1`, pool `192.168.10.200` – `192.168.10.220`), puis choisissez l’**authentification RADIUS** vers SRV1 (même secret).\n5. Sur PCR, connectez-vous au VPN `203.0.113.2` avec `LAB\\jdupont` ; essayez ensuite avec `LAB\\mmartin`.\n6. Dans l’Observateur d’événements de SRV1 (journal **Sécurité**), retrouvez les événements 6272 (accès accordé) et 6273 (accès refusé) et le code de raison du refus.",
+  "start": {
+    "devices": [
+      { "kind": "cloud", "name": "INTERNET", "x": 640, "y": 80, "interfaces": { "WAN": "203.0.113.1/24" } },
+      { "kind": "switch", "name": "SWX", "x": 640, "y": 260 },
+      {
+        "kind": "client",
+        "name": "PCR",
+        "x": 820,
+        "y": 420,
+        "ip": "203.0.113.50/24",
+        "gateway": "203.0.113.1"
+      },
+      {
+        "kind": "server",
+        "name": "SRV2",
+        "x": 420,
+        "y": 260,
+        "nics": 2,
+        "ip": "192.168.10.2/24",
+        "dns": ["192.168.10.1"],
+        "interfaces": { "Ethernet1": "203.0.113.2/24 203.0.113.1" },
+        "features": ["RemoteAccess", "DirectAccess-VPN"]
+      },
+      { "kind": "switch", "name": "SW1", "x": 260, "y": 420 },
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 100,
+        "y": 260,
+        "ip": "192.168.10.1/24",
+        "dns": ["127.0.0.1"]
+      }
+    ],
+    "links": [
+      ["INTERNET:WAN", "SWX:Fa0/1"],
+      ["SRV2:Ethernet1", "SWX:Fa0/2"],
+      ["PCR:Ethernet0", "SWX:Fa0/3"],
+      ["SRV2:Ethernet0", "SW1:Fa0/1"],
+      ["SRV1:Ethernet0", "SW1:Fa0/2"]
+    ],
+    "domain": {
+      "name": "lab.local",
+      "netbios": "LAB",
+      "dc": "SRV1",
+      "ous": ["Nomades"],
+      "users": [
+        { "name": "Jean Dupont", "sam": "jdupont", "ou": "Nomades", "password": "Azerty123!" },
+        { "name": "Marie Martin", "sam": "mmartin", "ou": "Nomades", "password": "Azerty123!" }
+      ],
+      "groups": [{ "name": "GG_VPN", "ou": "Nomades", "members": ["jdupont"] }]
+    }
+  },
+  "criteria": [
+    {
+      "id": "client",
+      "label": "SRV2 est déclaré comme client RADIUS de SRV1",
+      "hint": "Le serveur NPS ignore les demandes d’un serveur d’accès qu’il ne connaît pas : déclarez SRV2 avec l’adresse depuis laquelle il le contacte.",
+      "check": { "type": "radiusClient", "server": "SRV1", "address": "192.168.10.2" }
+    },
+    {
+      "id": "policy",
+      "label": "Une stratégie réseau accorde l’accès au groupe autorisé",
+      "hint": "Les stratégies créées avec le rôle refusent l’accès : ajoutez une stratégie dont la condition porte sur le groupe des utilisateurs nomades, placée avant elles.",
+      "check": { "type": "npsPolicy", "server": "SRV1", "group": "LAB\\GG_VPN", "access": "Grant" }
+    },
+    {
+      "id": "granted",
+      "label": "Jean Dupont est autorisé par le serveur NPS",
+      "hint": "Le serveur NPS applique la première stratégie, dans l’ordre de traitement, dont les conditions correspondent à l’utilisateur.",
+      "check": { "type": "npsAccess", "server": "SRV1", "user": "LAB\\jdupont", "granted": true }
+    },
+    {
+      "id": "denied",
+      "label": "Marie Martin reste refusée",
+      "hint": "Une condition trop large (ou une stratégie sans condition de groupe) autoriserait tout le domaine.",
+      "check": { "type": "npsAccess", "server": "SRV1", "user": "LAB\\mmartin", "granted": false }
+    },
+    {
+      "id": "vpn",
+      "label": "PCR est connecté au VPN de SRV2",
+      "hint": "Le serveur VPN doit transmettre les demandes d’authentification au serveur RADIUS avec le même secret partagé ; l’erreur affichée et les journaux des deux serveurs aident à diagnostiquer.",
+      "check": { "type": "vpnConnected", "client": "PCR", "server": "SRV2" }
+    }
+  ]
+}

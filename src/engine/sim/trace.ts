@@ -3,17 +3,7 @@
  */
 
 export type Protocol =
-  | 'ARP'
-  | 'ICMP'
-  | 'DHCP'
-  | 'DNS'
-  | 'LDAP'
-  | 'KERBEROS'
-  | 'SMB'
-  | 'HTTP'
-  | 'RDP'
-  | 'VPN'
-  | 'RADIUS'
+  'ARP' | 'ICMP' | 'DHCP' | 'DNS' | 'LDAP' | 'KERBEROS' | 'SMB' | 'HTTP' | 'RDP' | 'VPN' | 'RADIUS'
 
 export const PROTOCOLS: Protocol[] = [
   'ARP',

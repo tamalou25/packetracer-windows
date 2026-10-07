@@ -160,7 +160,7 @@ export function vpnConnect(
         level: 'warning',
         source: 'RemoteAccess',
         eventId: 20271,
-        message: `L’utilisateur ${account} s’est connecté depuis ${client.name}, mais a échoué lors d’une tentative d’authentification pour la raison suivante : ${message}`
+        message: `L’utilisateur ${account} s’est connecté depuis ${exchange.src ?? client.name}, mais a échoué lors d’une tentative d’authentification pour la raison suivante : ${message}`
       })
       return undefined
     })

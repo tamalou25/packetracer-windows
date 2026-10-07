@@ -4,12 +4,20 @@
  */
 import { useState } from 'react'
 import { Network, Router, Users } from 'lucide-react'
-import { command, effectiveIpv4, MODE_LABELS, rrasOf, type RrasMode, type ServerDevice } from '@engine/index'
+import {
+  batch,
+  command,
+  effectiveIpv4,
+  MODE_LABELS,
+  rrasOf,
+  type RrasMode,
+  type ServerDevice
+} from '@engine/index'
 import { runCommand, runCommandOk } from '../../lib/run'
 import { FormDialog } from '../common/FormDialog'
 import { Mmc, MmcAction, MmcTable, type MmcNode } from '../mmc/Mmc'
 
-type Dialog = 'wizard' | 'pool' | null
+type Dialog = 'wizard' | 'pool' | 'auth' | null
 
 export function RrasApp({ device }: { device: ServerDevice }) {
   const [node, setNode] = useState('server')
@@ -45,6 +53,11 @@ export function RrasApp({ device }: { device: ServerDevice }) {
       {vpn && (
         <MmcAction onClick={() => setDialog('pool')} testId="rras-pool">
           Pool d’adresses IPv4…
+        </MmcAction>
+      )}
+      {vpn && (
+        <MmcAction onClick={() => setDialog('auth')} testId="rras-auth">
+          Fournisseur d’authentification…
         </MmcAction>
       )}
       <MmcAction danger onClick={() => runCommand(command('rras.disable', device.id))} testId="rras-disable">
@@ -87,6 +100,15 @@ export function RrasApp({ device }: { device: ServerDevice }) {
               <p>
                 Pool d’adresses des clients VPN : {rras.pool.start} – {rras.pool.end} ; {rras.sessions.length}{' '}
                 client(s) connecté(s).
+              </p>
+            )}
+            {vpn && (
+              <p data-testid="rras-auth-provider">
+                Fournisseur d’authentification :{' '}
+                {rras.radius.length > 0
+                  ? `Authentification RADIUS (${rras.radius.map((r) => r.server).join(', ')})`
+                  : 'Authentification Windows'}
+                .
               </p>
             )}
           </>
@@ -149,6 +171,46 @@ export function RrasApp({ device }: { device: ServerDevice }) {
               }),
               { success: 'Le routage et l’accès distant est configuré et démarré.' }
             )
+          }}
+          onClose={() => setDialog(null)}
+          testId="rras-dialog"
+        />
+      )}
+      {dialog === 'auth' && rras && (
+        <FormDialog
+          title="Fournisseur d’authentification"
+          fields={[
+            {
+              key: 'provider',
+              label: 'Fournisseur d’authentification',
+              type: 'select',
+              initial: rras.radius.length > 0 ? 'radius' : 'windows',
+              options: [
+                { value: 'windows', label: 'Authentification Windows' },
+                { value: 'radius', label: 'Authentification RADIUS' }
+              ]
+            },
+            {
+              key: 'server',
+              label: 'Serveur RADIUS (nom ou adresse)',
+              initial: rras.radius[0]?.server ?? ''
+            },
+            { key: 'secret', label: 'Secret partagé', type: 'password' }
+          ]}
+          onSubmit={(v) => {
+            const remove = rras.radius.map((r) => command('rras.removeRadius', device.id, r.server))
+            const add =
+              v['provider'] === 'radius'
+                ? [
+                    command('rras.addRadius', device.id, {
+                      server: String(v['server']),
+                      sharedSecret: String(v['secret'])
+                    })
+                  ]
+                : []
+            // Déjà en authentification Windows : rien à modifier
+            if (remove.length + add.length === 0) return true
+            return runCommandOk(batch('Fournisseur d’authentification', [...remove, ...add]))
           }}
           onClose={() => setDialog(null)}
           testId="rras-dialog"
