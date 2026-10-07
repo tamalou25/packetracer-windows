@@ -1,6 +1,6 @@
 /**
- * Configuration du serveur SMB (Set-SmbServerConfiguration) : protocole SMB 1.0, désactivé par
- * défaut depuis Windows Server 2016 (version 1709).
+ * Configuration du serveur SMB (Set-SmbServerConfiguration) : protocole SMB 1.0, non installé
+ * par défaut depuis Windows Server, version 1709 (et Windows Server 2019).
  */
 import { raise, transact, type EngineResult } from '../../core/result'
 import type { LabState } from '../../model/schema'

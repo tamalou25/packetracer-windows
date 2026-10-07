@@ -272,4 +272,3 @@ describe('migration 6 → 7 (sécurité de la v2.3)', () => {
     expect(srv?.kind === 'server' && srv.host.smb1).toBe(false)
   })
 })
-
