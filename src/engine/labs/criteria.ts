@@ -21,11 +21,13 @@ import { byName, hostByName, sameName, targetIp } from './lookup'
 const CORE_CRITERIA: CriterionType[] = [
   defineCriterion(
     z.object({ type: z.literal('auditScore'), min: z.number().int().min(0).max(100) }),
-    (state, check) => auditLab(state).score >= check.min
+    (state, check) => auditLab(state).score >= check.min,
+    'Score d’audit minimal'
   ),
   defineCriterion(
     z.object({ type: z.literal('auditRule'), rule: z.string(), passed: z.boolean().default(true) }),
-    (state, check) => auditLab(state).passed.includes(check.rule) === check.passed
+    (state, check) => auditLab(state).passed.includes(check.rule) === check.passed,
+    'Règle d’audit respectée ou non'
   ),
   defineCriterion(
     z.object({
@@ -49,7 +51,8 @@ const CORE_CRITERIA: CriterionType[] = [
         (check.prefixLength === undefined || eff.prefixLength === check.prefixLength) &&
         (check.gateway === undefined || eff.gateway === check.gateway)
       )
-    }
+    },
+    'Adresse IP d’une carte réseau'
   ),
   defineCriterion(
     z.object({
@@ -65,7 +68,8 @@ const CORE_CRITERIA: CriterionType[] = [
       if (!from || !ip) return false
       const r = ping(state, from.id, ip, { count: 1 })
       return r.ok && r.value.success === (check.success !== false)
-    }
+    },
+    'Ping d’un équipement vers un autre'
   ),
   defineCriterion(
     z.object({
@@ -88,7 +92,8 @@ const CORE_CRITERIA: CriterionType[] = [
       return config.mode === 'access'
         ? config.accessVlan === check.vlan
         : config.allowedVlans === null || config.allowedVlans.includes(check.vlan)
-    }
+    },
+    'Port de switch (accès ou trunk)'
   ),
   defineCriterion(
     z.object({
@@ -100,7 +105,8 @@ const CORE_CRITERIA: CriterionType[] = [
     (state, check) => {
       const host = hostByName(state, check.device)
       return !!host && profileEnabled(host, check.profile) === (check.enabled !== false)
-    }
+    },
+    'Profil du pare-feu activé ou non'
   ),
   defineCriterion(
     z.object({
@@ -128,11 +134,13 @@ const CORE_CRITERIA: CriterionType[] = [
           (check.port === undefined || r.localPorts.includes(check.port))
       )
       return found === (check.enabled !== false)
-    }
+    },
+    'Règle du pare-feu'
   ),
   defineCriterion(
     z.object({ type: z.literal('featureInstalled'), device: z.string(), feature: z.string() }),
-    (state, check) => !!hostByName(state, check.device)?.host.features.includes(check.feature)
+    (state, check) => !!hostByName(state, check.device)?.host.features.includes(check.feature),
+    'Rôle ou fonctionnalité installé'
   )
 ]
 
@@ -161,6 +169,8 @@ export const CriterionSchema = z.object({
   label: z.string(),
   /** Indice affiché en cas d'échec : oriente sans donner la solution. */
   hint: z.string(),
+  /** Indices suivants, de plus en plus précis, révélés un à un (éditeur de labs). */
+  hints: z.array(z.string()).default([]),
   check: CheckSchema
 })
 

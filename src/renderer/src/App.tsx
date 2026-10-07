@@ -17,6 +17,7 @@ import { StatusBar } from './components/StatusBar'
 import { useDocumentLifecycle } from './hooks/useDocumentLifecycle'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { LabPicker } from './components/labs/LabPicker'
+import { LabEditor } from './components/labs/LabEditor'
 import { useLabsStore } from './store/labs'
 import { useConsoleSessionSync } from './hooks/useConsoleSessionSync'
 import { useMenuBridge } from './hooks/useMenuBridge'
@@ -148,6 +149,7 @@ export function App() {
       <TutorialCoach />
       <DeviceWindows />
       <LabPicker />
+      <LabEditor />
       <Toasts />
       <HelpPanel />
       <Modal />

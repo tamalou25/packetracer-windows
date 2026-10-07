@@ -45,11 +45,13 @@ export const addsCriteria = [
       if (check.enabled !== undefined && (found.kind === 'user' || found.kind === 'computer'))
         return found.obj.enabled === check.enabled
       return true
-    }
+    },
+    'Objet Active Directory'
   ),
   defineCriterion(
     z.object({ type: z.literal('domainJoined'), device: z.string(), domain: z.string() }),
-    (state, check) => hostByName(state, check.device)?.host.domain === fqdn(check.domain)
+    (state, check) => hostByName(state, check.device)?.host.domain === fqdn(check.domain),
+    'Ordinateur joint au domaine'
   ),
   defineCriterion(
     z.object({ type: z.literal('adSite'), site: z.string(), subnet: z.string().optional() }),
@@ -60,7 +62,8 @@ export const addsCriteria = [
       return (
         !check.subnet || domain.subnets.some((n) => n.prefix === check.subnet && sameName(n.site, site.name))
       )
-    }
+    },
+    'Site Active Directory'
   ),
   defineCriterion(
     z.object({
@@ -73,7 +76,8 @@ export const addsCriteria = [
         (l) =>
           check.sites.every((s) => l.sites.some((x) => sameName(x, s))) &&
           (check.maxInterval === undefined || l.interval <= check.maxInterval)
-      )
+      ),
+    'Lien de sites'
   ),
   defineCriterion(
     z.object({ type: z.literal('domainController'), server: z.string(), site: z.string().optional() }),
@@ -82,7 +86,8 @@ export const addsCriteria = [
       const domain = firstDomain(state)
       if (!server || !domain?.controllers.includes(server.id)) return false
       return !check.site || sameName(dcSite(domain, server.id), check.site)
-    }
+    },
+    'Contrôleur de domaine'
   ),
   defineCriterion(
     z.object({ type: z.literal('fsmoRole'), role: z.enum(FSMO_ROLES), server: z.string() }),
@@ -90,10 +95,13 @@ export const addsCriteria = [
       const domain = firstDomain(state)
       const server = hostByName(state, check.server)
       return !!domain && !!server && fsmoHolder(domain, check.role) === server.id
-    }
+    },
+    'Détenteur d’un rôle FSMO'
   ),
   defineCriterion(
     z.object({ type: z.literal('logonServer'), client: z.string(), server: z.string() }),
-    (state, check) => sameName(hostByName(state, check.client)?.host.session?.logonServer ?? '', check.server)
+    (state, check) =>
+      sameName(hostByName(state, check.client)?.host.session?.logonServer ?? '', check.server),
+    'Contrôleur qui authentifie une session'
   )
 ]

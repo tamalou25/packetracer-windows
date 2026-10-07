@@ -16,7 +16,8 @@ export const adcsCriteria = [
       return (
         !!ca?.configured && (check.name === undefined || ca.caName.toLowerCase() === check.name.toLowerCase())
       )
-    }
+    },
+    'Autorité de certification d’entreprise'
   ),
   defineCriterion(
     z.object({
@@ -29,7 +30,8 @@ export const adcsCriteria = [
       const ca = adcsOf(serverByName(state, check.server))
       const short = templateName(check.template)
       return !!ca?.configured && !!short && ca.templates.includes(short) === (check.published !== false)
-    }
+    },
+    'Modèle de certificat publié'
   ),
   defineCriterion(
     z.object({
@@ -57,6 +59,7 @@ export const adcsCriteria = [
           (!trustee || certificateTrusted(trustee, c)) &&
           (check.revoked === undefined || isRevoked(state, c) === check.revoked)
       )
-    }
+    },
+    'Certificat d’un ordinateur'
   )
 ]

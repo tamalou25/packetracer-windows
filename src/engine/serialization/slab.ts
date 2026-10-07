@@ -89,6 +89,22 @@ function parseSlabContent(content: string): ParseResult {
   } catch {
     return { ok: false, message: 'Le fichier n’est pas un document ServerLab valide (JSON illisible).' }
   }
+  return parseSlabValue(raw)
+}
+
+/**
+ * Migre et valide un document .slab déjà lu (objet JSON) : départ « instantané » d'un lab.
+ * Ne lève jamais d'exception.
+ */
+export function parseSlabValue(raw: unknown): ParseResult {
+  try {
+    return parseSlabObject(raw)
+  } catch {
+    return { ok: false, message: 'Le document ServerLab est illisible (structure inattendue).' }
+  }
+}
+
+function parseSlabObject(raw: unknown): ParseResult {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
     return { ok: false, message: 'Le fichier n’est pas un document ServerLab valide.' }
   }

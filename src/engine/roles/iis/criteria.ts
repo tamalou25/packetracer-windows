@@ -31,7 +31,8 @@ export const iisCriteria = [
           (check.port === undefined || b.port === check.port) &&
           (check.host === undefined || b.host === check.host.toLowerCase())
       )
-    }
+    },
+    'Site IIS'
   ),
   defineCriterion(
     z.object({
@@ -48,6 +49,7 @@ export const iisCriteria = [
       const r = httpGet(state, client.id, check.url)
       if (r.kind !== 'response' || r.status !== (check.status ?? 200)) return false
       return check.trusted === undefined || (r.certificateWarning === null) === check.trusted
-    }
+    },
+    'Réponse HTTP vue depuis un poste'
   )
 ]

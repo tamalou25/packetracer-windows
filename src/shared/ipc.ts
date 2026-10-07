@@ -130,11 +130,16 @@ export const IPC = {
   askSaveChanges: 'doc:askSaveChanges',
   closeRequested: 'app:closeRequested',
   closeConfirmed: 'app:closeConfirmed',
-  auditExportPdf: 'audit:exportPdf'
+  auditExportPdf: 'audit:exportPdf',
+  labImport: 'lab:import',
+  labExport: 'lab:export'
 } as const
 
 /** Taille maximale acceptée pour un fichier .slab (protection contre les fichiers aberrants). */
 export const MAX_SLAB_BYTES = 20 * 1024 * 1024
+
+/** Taille maximale d'un fichier de lab JSON (même limite que MAX_LAB_LENGTH du moteur). */
+export const MAX_LAB_BYTES = 1024 * 1024
 
 /** API exposée au renderer via contextBridge (window.serverlab). */
 export interface ServerLabApi {
@@ -187,4 +192,9 @@ export interface ServerLabApi {
 
   /** Rapport d'audit : dialogue natif « Enregistrer sous » puis PDF. Renvoie le chemin choisi. */
   exportAuditPdf(report: AuditReportData): Promise<FileResult<string>>
+
+  /** Éditeur de labs : dialogue « Ouvrir » d'un lab JSON ; renvoie son texte (validé ensuite). */
+  importLab(): Promise<FileResult<string>>
+  /** Éditeur de labs : dialogue « Enregistrer sous » puis écriture du lab JSON. */
+  exportLab(content: string, suggestedName: string): Promise<FileResult<string>>
 }

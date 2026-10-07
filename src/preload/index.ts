@@ -57,7 +57,10 @@ const api: ServerLabApi = {
   onCloseRequested: (cb) => subscribe<void>(IPC.closeRequested, () => cb()),
   confirmClose: () => ipcRenderer.send(IPC.closeConfirmed),
 
-  exportAuditPdf: (report) => ipcRenderer.invoke(IPC.auditExportPdf, report)
+  exportAuditPdf: (report) => ipcRenderer.invoke(IPC.auditExportPdf, report),
+
+  importLab: () => ipcRenderer.invoke(IPC.labImport),
+  exportLab: (content, suggestedName) => ipcRenderer.invoke(IPC.labExport, content, suggestedName)
 }
 
 contextBridge.exposeInMainWorld('serverlab', api)

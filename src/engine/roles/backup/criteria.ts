@@ -26,7 +26,8 @@ export const backupCriteria = [
         (check.item === undefined || covers(policy.items, check.item)) &&
         (check.systemState === undefined || policy.systemState === check.systemState)
       )
-    }
+    },
+    'Sauvegarde planifiée'
   ),
   defineCriterion(
     z.object({
@@ -42,10 +43,12 @@ export const backupCriteria = [
           (check.item === undefined ||
             s.entries.some((e) => e.path.toLowerCase() === check.item?.toLowerCase())) &&
           (check.systemState === undefined || s.systemState === check.systemState)
-      )
+      ),
+    'Sauvegarde réalisée'
   ),
   defineCriterion(
     z.object({ type: z.literal('adRecycleBin'), domain: z.string() }),
-    (state, check) => !!state.domains[check.domain.toLowerCase()]?.recycleBin
+    (state, check) => !!state.domains[check.domain.toLowerCase()]?.recycleBin,
+    'Corbeille Active Directory activée'
   )
 ]

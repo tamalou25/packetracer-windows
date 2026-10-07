@@ -26,7 +26,8 @@ export const dfsCriteria = [
       if (!check.folder) return true
       const folder = found.namespace.folders.find((f) => f.name.toLowerCase() === check.folder?.toLowerCase())
       return !!folder && folder.targets.length >= (check.targets ?? 1)
-    }
+    },
+    'Espace de noms DFS'
   ),
   defineCriterion(
     z.object({
@@ -40,7 +41,8 @@ export const dfsCriteria = [
       if (!client) return false
       const token = sessionToken(state, client.id)
       return !!token && openUnc(state, client.id, check.path, token).ok
-    }
+    },
+    'Chemin UNC accessible depuis un poste'
   ),
   defineCriterion(
     z.object({
@@ -55,6 +57,7 @@ export const dfsCriteria = [
       const found = findGroup(state, check.group)
       if (!server || !found || !found.group.members.includes(server.id)) return false
       return !!findNode(server.storage, check.path)
-    }
+    },
+    'Réplication DFS'
   )
 ]

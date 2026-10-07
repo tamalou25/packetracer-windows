@@ -173,6 +173,12 @@ Le lab en cours est conservé dans le fichier `.slab` enregistré.
 Les labs sont des fichiers JSON du dossier [`labs/`](labs) (énoncé Markdown, topologie de départ,
 critères typés). Chaque lab est couvert par un test qui applique sa solution et exige 100 %.
 
+**Créer un lab…** (dans le sélecteur de labs) ouvre l'éditeur : énoncé Markdown avec aperçu, topologie de
+départ capturée sur le lab courant, critères construits sans code et testés aussitôt, indices à plusieurs
+niveaux. Le lab s'exporte en JSON et se partage ; **Importer un lab…** l'ouvre comme un lab fourni.
+
+![Vérification d'un lab](docs/captures/labs/2-verification.webp)
+
 ## Audit de sécurité
 
 L'onglet **Audit** du panneau latéral note la sécurité du lab sur 100 et liste les recommandations par
@@ -180,5 +186,3 @@ gravité (objets en cause, correction suggérée), en direct. Il compte les reco
 l'ouverture du lab et exporte un **rapport PDF** (lab, date, score, recommandations corrigées ou non).
 Les journaux de sécurité (ouvertures de session, gestion des comptes, verrouillages) se filtrent dans
 l'Observateur d'événements ou avec `Get-WinEvent`.
-
-![Vérification d'un lab](docs/captures/labs/2-verification.webp)

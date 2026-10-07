@@ -301,3 +301,31 @@ Milestone terminé : `CHANGELOG.md` [2.3.0], `package.json` 2.3.0 ; tag `v2.3.0`
   natif « Enregistrer sous », impression par une fenêtre cachée sans JavaScript (`printToPDF`), fichier
   temporaire supprimé.
 - Onglet Audit : score au chargement, nombre de recommandations corrigées, bouton **PDF**.
+
+## v2.4 — Pédagogie avancée
+
+| Issue | Sujet                      | Branche              | PR  | État     |
+| ----- | -------------------------- | -------------------- | --- | -------- |
+| #33   | Éditeur de labs intégré    | `feat/33-lab-editor` |     | en cours |
+| #34   | Mode examen                |                      |     | à faire  |
+| #35   | Bibliothèque communautaire |                      |     | à faire  |
+| #36   | Client Linux simulé        |                      |     | à faire  |
+| #37   | Interface FR / EN (i18n)   |                      |     | à faire  |
+| #38   | Signature de code          |                      |     | gelée    |
+
+### #33 Éditeur de labs intégré
+
+- Format des labs (compatible) : départ « instantané » `start.snapshot` (document .slab complet, validé et
+  migré par `parseSlabValue` comme un fichier ouvert) en plus du départ déclaratif ; `hints` (indices
+  suivants, révélés un à un) en plus de `hint`.
+- Moteur (`labs/editor.ts`) : `criterionCatalog` (types de critères et champs déduits des schémas zod :
+  texte, nombre, booléen, énumération, liste ; valeur par défaut ; suggestions par référence), libellé
+  français obligatoire de chaque type (`defineCriterion(schéma, évaluateur, libellé)`), `labReferences`
+  (équipements, comptes, groupes, domaines, GPO, sites du lab courant), `buildCheck` (formulaire → critère
+  validé, erreurs en français), `testCheck`, `createLabDefinition` (instantané du départ capturé),
+  `draftFromLab`, `serializeLab`.
+- Interface : Fichier › Ouvrir un lab… › **Créer un lab…** (éditeur : énoncé Markdown avec aperçu, départ
+  capturé sur le lab courant, critères testés aussitôt sur le lab courant, indices à plusieurs niveaux,
+  Exporter / Importer / Essayer) et **Importer un lab…** ; onglet Lab : « Indice suivant ».
+- Main (`main/labfiles.ts`) : import / export JSON par dialogues natifs, 1 Mo au plus.
+- Limite : un lab importé n'est pas conservé dans le `.slab` enregistré (seuls les labs fournis le sont).

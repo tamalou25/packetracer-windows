@@ -27,13 +27,15 @@ export const dnsCriteria = [
           sameName(r.name, check.name) &&
           (check.data === undefined || fqdn(r.data) === fqdn(check.data))
       )
-    }
+    },
+    'Enregistrement DNS'
   ),
   defineCriterion(
     z.object({ type: z.literal('nslookup'), client: z.string(), name: z.string(), address: z.string() }),
     (state, check) => {
       const client = byName(state, check.client)
       return !!client && firstAddress(resolveName(state, client.id, check.name)) === check.address
-    }
+    },
+    'Résolution d’un nom depuis un client'
   )
 ]
