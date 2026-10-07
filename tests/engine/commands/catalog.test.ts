@@ -238,6 +238,21 @@ describe('catalogue des commandes', () => {
     done(r)
   })
 
+  it('NPS : clients RADIUS, stratégies réseau, serveur RADIUS du VPN', () => {
+    const r = runner()
+    const srv = r.id('SRV1')
+    r.run(command('system.installFeatures', srv, ['NPAS', 'RemoteAccess', 'DirectAccess-VPN'], {}))
+    r.run(command('nps.addClient', srv, { name: 'VPN', address: '192.168.10.2', sharedSecret: 'S3cret!' }))
+    r.run(command('nps.removeClient', srv, 'VPN'))
+    r.run(command('nps.addPolicy', srv, { name: 'Compta', groups: ['LAB\\GG_Compta'], access: 'Grant' }))
+    r.run(command('nps.movePolicy', srv, 'Compta', 1))
+    r.run(command('nps.setPolicyEnabled', srv, 'Compta', false))
+    r.run(command('nps.removePolicy', srv, 'Compta'))
+    r.run(command('rras.addRadius', srv, { server: '192.168.10.1', sharedSecret: 'S3cret!' }))
+    r.run(command('rras.removeRadius', srv, '192.168.10.1'))
+    done(r)
+  })
+
   it('consoles, tâches de fond et lots', () => {
     const r = runner()
     const session = createShellSession(r.state, r.id('SRV1'), 'powershell')

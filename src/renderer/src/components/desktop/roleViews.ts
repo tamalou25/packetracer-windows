@@ -55,6 +55,7 @@ const STYLES: Record<string, ViewStyle> = {
   certsrv: { icon: BadgeCheck, color: 'text-emerald-700', size: { w: 960, h: 580 } },
   hypervmgr: { icon: Layers, color: 'text-sky-700', size: { w: 980, h: 600 } },
   rrasmgmt: { icon: Router, color: 'text-emerald-700', size: { w: 900, h: 560 } },
+  nps: { icon: ShieldCheck, color: 'text-emerald-700', size: { w: 960, h: 580 } },
   vpnclient: { icon: ShieldCheck, color: 'text-sky-600', size: { w: 560, h: 480 }, start: 'system' },
   rdsmgr: { icon: MonitorSmartphone, color: 'text-violet-600', size: { w: 900, h: 560 } },
   mstsc: {
@@ -87,6 +88,7 @@ const ROLE_ICONS: Record<string, LucideIcon> = {
   gpo: ScrollText,
   hyperv: Layers,
   iis: Earth,
+  nps: ShieldCheck,
   rds: MonitorSmartphone,
   rras: Router,
   wsus: CloudDownload

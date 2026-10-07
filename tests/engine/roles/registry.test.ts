@@ -44,6 +44,7 @@ describe('registre des rôles', () => {
       'adcs',
       'dfs',
       'backup',
+      'nps',
       'rras'
     ])
     roleModules().forEach((m, index) => {
@@ -73,6 +74,7 @@ describe('registre des rôles', () => {
       'FS-DFS-Replication',
       'GPMC',
       'Hyper-V',
+      'NPAS',
       'PowerShell',
       'Remote-Desktop-Services',
       'RDS-RD-Server',
@@ -92,6 +94,7 @@ describe('registre des rôles', () => {
       'RSAT-Hyper-V-Tools',
       'Hyper-V-Tools',
       'Hyper-V-PowerShell',
+      'RSAT-NPAS',
       'RSAT-RDS-Tools',
       'RSAT-RemoteAccess',
       'UpdateServices',
@@ -217,6 +220,7 @@ describe('registre des rôles', () => {
       'adcs',
       'dfs',
       'backup',
+      'nps',
       'rras'
     ]) {
       vi.resetModules()

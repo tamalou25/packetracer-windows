@@ -3,7 +3,7 @@
  * serveur RRAS (SSTP, TCP 443), authentification, adresse attribuée par le pool du serveur.
  */
 import type { Draft } from 'immer'
-import { logEvent } from '../../core/eventlog'
+import { logEvent, type NewEvent } from '../../core/eventlog'
 import { raise, transact, type EngineResult } from '../../core/result'
 import type { HostDevice, LabState, ServerDevice } from '../../model/schema'
 import { effectiveIpv4 } from '../../net/addressing'
@@ -13,6 +13,7 @@ import { requireDevice } from '../../topology/actions'
 import { authenticate } from '../adds/credentials'
 import { serverExchange } from '../adds/locator'
 import { firstAddress, resolveName } from '../dns/resolver'
+import { radiusAuthenticate } from '../nps/radius'
 import { freePoolAddress } from './actions'
 import { ensureRoleState } from '../state'
 import { RRAS_STATE, rrasOf, vpnEnabled } from './state'
@@ -20,7 +21,10 @@ import { RRAS_STATE, rrasOf, vpnEnabled } from './state'
 export const VPN_UNREACHABLE =
   'Erreur 800 : impossible d’établir la connexion VPN. Le serveur VPN est peut-être inaccessible ou le protocole de tunnel n’est pas accepté.'
 export const VPN_BAD_CREDENTIALS =
-  'Erreur 691 : la connexion à distance a été refusée, car la combinaison nom d’utilisateur / mot de passe fournie n’est pas reconnue.'
+  'Erreur 691 : la connexion à distance a été refusée, car la combinaison nom d’utilisateur / mot de passe fournie n’est pas reconnue, ou le protocole d’authentification sélectionné n’est pas autorisé sur le serveur d’accès à distance.'
+/** Aucun serveur RADIUS n'a répondu (le serveur VPN journalise l'événement 20073). */
+export const VPN_RADIUS_TIMEOUT =
+  'La connexion à distance a été refusée : le serveur VPN n’a obtenu aucune réponse du serveur d’authentification RADIUS.'
 export const VPN_NO_ADDRESS =
   'Erreur 720 : aucune adresse ne peut être attribuée : le pool d’adresses du serveur VPN est épuisé.'
 
@@ -119,29 +123,57 @@ export function vpnConnect(
   traces.push(exchange.trace)
   if (!exchange.ok || !server || !rras || !listening) return done(false, VPN_UNREACHABLE)
 
-  const token = authenticate(state, server, credentials.user, credentials.password)
-  const fail = (message: string, account: string) => {
+  // Authentification : serveurs RADIUS (NPS) s'il y en a, sinon authentification Windows
+  const pending: { deviceId: string; event: NewEvent }[] = []
+  let account = credentials.user.trim()
+  let failure: string | null = null
+  if (rras.radius.length > 0) {
+    const radius = radiusAuthenticate(state, server.id, rras.radius, credentials)
+    traces.push(radius.trace)
+    pending.push(...radius.events)
+    account = radius.account
+    if (radius.result === 'reject') failure = VPN_BAD_CREDENTIALS
+    if (radius.result === 'timeout') {
+      failure = VPN_RADIUS_TIMEOUT
+      pending.push({
+        deviceId: server.id,
+        event: {
+          level: 'warning',
+          source: 'RemoteAccess',
+          eventId: 20073,
+          message: 'Le serveur d’authentification n’a pas répondu à temps aux demandes d’authentification.'
+        }
+      })
+    }
+  } else {
+    const token = authenticate(state, server, credentials.user, credentials.password)
+    if (token) account = token.account
+    else failure = VPN_BAD_CREDENTIALS
+  }
+  const address = failure ? null : freePoolAddress(rras)
+  if (!failure && !address) failure = VPN_NO_ADDRESS
+  if (failure || !address) {
+    const message = failure ?? VPN_NO_ADDRESS
     const r = transact(state, (draft) => {
+      for (const p of pending) logEvent(draft, p.deviceId, p.event)
       logEvent(draft, server.id, {
         level: 'warning',
         source: 'RemoteAccess',
         eventId: 20271,
-        message: `L’utilisateur ${account} connecté depuis ${client.name} a été authentifié, mais la connexion a échoué : ${message}`
+        message: `L’utilisateur ${account} s’est connecté depuis ${exchange.src ?? client.name}, mais a échoué lors d’une tentative d’authentification pour la raison suivante : ${message}`
       })
       return undefined
     })
     return done(false, message, r.ok ? r.state : state)
   }
-  if (!token) return fail(VPN_BAD_CREDENTIALS, credentials.user.trim())
-  const address = freePoolAddress(rras)
-  if (!address) return fail(VPN_NO_ADDRESS, token.account)
   const clientAddress = exchange.src ?? ''
 
   const r = transact(state, (draft) => {
+    for (const p of pending) logEvent(draft, p.deviceId, p.event)
     const srv = draft.devices[server.id] as Draft<ServerDevice>
     ensureRoleState(srv, RRAS_STATE).sessions.push({
       clientDeviceId: clientId,
-      user: token.account,
+      user: account,
       address,
       clientAddress,
       connectedAt: draft.clock
@@ -154,13 +186,13 @@ export function vpnConnect(
         serverDeviceId: server.id,
         serverAddress: ip,
         clientAddress,
-        user: token.account
+        user: account
       }
     logEvent(draft, server.id, {
       level: 'information',
       source: 'RemoteAccess',
       eventId: 20274,
-      message: `L’utilisateur ${token.account} s’est connecté depuis ${client.name} ; adresse attribuée : ${address}.`
+      message: `L’utilisateur ${account} s’est connecté depuis ${client.name} ; adresse attribuée : ${address}.`
     })
     return undefined
   })

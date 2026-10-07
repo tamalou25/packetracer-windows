@@ -19,6 +19,7 @@ import { filesRole } from './files'
 import { gpoRole } from './gpo'
 import { hypervRole } from './hyperv'
 import { iisRole } from './iis'
+import { npsRole } from './nps'
 import { rdsRole } from './rds'
 import { rrasRole } from './rras'
 import { wsusRole } from './wsus'
@@ -39,6 +40,7 @@ const load = () =>
     adcsRole,
     dfsRole,
     backupRole,
+    npsRole,
     rrasRole
   ] as const
 

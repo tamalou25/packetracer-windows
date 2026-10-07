@@ -18,6 +18,7 @@ import { IisApp } from '../apps/IisApp'
 import { RdsApp } from '../apps/RdsApp'
 import { RrasApp } from '../apps/RrasApp'
 import { DssiteApp } from '../apps/DssiteApp'
+import { NpsApp } from '../apps/NpsApp'
 import { WbadminApp } from '../apps/WbadminApp'
 import { WsusApp } from '../apps/WsusApp'
 import { Terminal } from '../console/Terminal'
@@ -122,6 +123,8 @@ export function renderApp(win: DesktopWindow, device: HostDevice): ReactNode {
       return <DssiteApp device={device} />
     case 'rrasmgmt':
       return server ? <RrasApp device={server} /> : unavailable()
+    case 'nps':
+      return server ? <NpsApp device={server} /> : unavailable()
     case 'vpnclient':
       return <VpnSettings device={device} />
     case 'browser':

@@ -10,7 +10,7 @@ import type { CmdletDef } from '../../shell/ps/registry'
 import { flatten, psObject, psToString, type PsValue } from '../../shell/ps/values'
 import { hasFeature } from '../../shell/ps/cmdlets/helpers'
 import type { ToolDef } from '../../shell/tools/types'
-import { configureRras, disableRras, setVpnPool } from './actions'
+import { addRadiusServer, configureRras, disableRras, removeRadiusServer, setVpnPool } from './actions'
 import { natEnabled, rrasOf, vpnEnabled } from './state'
 import { addVpnConnection, removeVpnConnection, vpnConnect, vpnDisconnect } from './vpn'
 
@@ -28,6 +28,16 @@ function range(value: PsValue | undefined): { start: string; end: string } {
       'InvalidIPAddressRange'
     )
   return { start: parts[0] ?? '', end: parts[1] ?? '' }
+}
+
+/** Seuls les serveurs RADIUS d'authentification VPN sont simulés. */
+function purposeAuthentication(value: PsValue | undefined) {
+  if (value !== undefined && psToString(value) !== 'Authentication')
+    throw psError(
+      'Seuls les serveurs RADIUS d’authentification (-Purpose Authentication) sont simulés.',
+      'NotImplemented',
+      'NotSupported'
+    )
 }
 
 /** Adresse privée (RFC 1918). */
@@ -127,6 +137,66 @@ export const rrasCmdlets: CmdletDef[] = [
           'NotSupported'
         )
       ctx.apply(setVpnPool(ctx.state, ctx.deviceId, range(args['IPAddressRange'])))
+    }
+  },
+  {
+    name: 'Add-RemoteAccessRadius',
+    module: 'RemoteAccess',
+    synopsis: 'Ajoute un serveur RADIUS d’authentification des clients VPN.',
+    available: remoteAccess,
+    params: [
+      { name: 'ServerName', type: 'string', mandatory: true },
+      { name: 'SharedSecret', type: 'string', mandatory: true },
+      {
+        name: 'Purpose',
+        type: 'string',
+        mandatory: true,
+        validateSet: ['Authentication', 'Accounting', 'Otp']
+      }
+    ],
+    run(ctx, args) {
+      purposeAuthentication(args['Purpose'])
+      ctx.apply(
+        addRadiusServer(ctx.state, ctx.deviceId, {
+          server: psToString(args['ServerName']),
+          sharedSecret: psToString(args['SharedSecret'])
+        })
+      )
+    }
+  },
+  {
+    name: 'Get-RemoteAccessRadius',
+    module: 'RemoteAccess',
+    synopsis: 'Affiche les serveurs RADIUS d’authentification.',
+    available: remoteAccess,
+    params: [],
+    run(ctx) {
+      return (rrasOf(ctx.host as ServerDevice)?.radius ?? []).map((r) =>
+        psObject(
+          'Microsoft.Management.Infrastructure.CimInstance#root/Microsoft/Windows/RemoteAccess/Server/RemoteAccessRadius',
+          { ServerName: r.server, Port: 1812, Purpose: 'Authentication' },
+          { kind: 'table', props: ['ServerName', 'Port', 'Purpose'] }
+        )
+      )
+    }
+  },
+  {
+    name: 'Remove-RemoteAccessRadius',
+    module: 'RemoteAccess',
+    synopsis: 'Retire un serveur RADIUS d’authentification.',
+    available: remoteAccess,
+    params: [
+      { name: 'ServerName', type: 'string', mandatory: true },
+      {
+        name: 'Purpose',
+        type: 'string',
+        mandatory: true,
+        validateSet: ['Authentication', 'Accounting', 'Otp']
+      }
+    ],
+    run(ctx, args) {
+      purposeAuthentication(args['Purpose'])
+      ctx.apply(removeRadiusServer(ctx.state, ctx.deviceId, psToString(args['ServerName'])))
     }
   },
   {
