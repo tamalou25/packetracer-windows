@@ -228,7 +228,7 @@ Milestone terminé : `CHANGELOG.md` [2.2.0], `package.json` 2.2.0 ; tag `v2.2.0`
 
 | Issue | Sujet                           | Branche         | PR  | État     |
 | ----- | ------------------------------- | --------------- | --- | -------- |
-| #28   | Mode Audit                      | `feat/28-audit` |     | en cours |
+| #28   | Mode Audit                      | `feat/28-audit` | #89 | fusionné |
 | #29   | Labs de durcissement            |                 |     | à faire  |
 | #30   | Journaux de sécurité filtrables |                 |     | à faire  |
 | #31   | Verrouillage et audit par GPO   |                 |     | à faire  |
