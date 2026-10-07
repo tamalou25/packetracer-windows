@@ -41,7 +41,9 @@ import {
   removeObject,
   resetPassword,
   restoreDeletedObject,
-  setAccountEnabled
+  setAccountActivity,
+  setAccountEnabled,
+  setUserProperties
 } from './objects'
 
 /** Résultat métier d'une opération d'annuaire (jonction, ouverture de session…). */
@@ -96,6 +98,14 @@ export const addsCommands = {
     restoreDeletedObject,
     (s, d, id) =>
       `Restaurer ${s.domains[d]?.deletedObjects.find((o) => o.obj.id === id)?.obj.name ?? 'un objet'} depuis la Corbeille`
+  ),
+  'adds.setAccountActivity': def(
+    setAccountActivity,
+    (_s, _d, identity) => `Historique du compte ${identity}`
+  ),
+  'adds.setUserProperties': def(
+    setUserProperties,
+    (_s, _d, identity) => `Modifier les propriétés de ${identity}`
   ),
   'adds.setAccountEnabled': def(
     setAccountEnabled,

@@ -1,0 +1,112 @@
+{
+  "formatVersion": 1,
+  "id": "lab-20-durcissement-partages",
+  "title": "Durcissement des partages de fichiers",
+  "difficulty": "Intermédiaire",
+  "duration": "25 min",
+  "summary": "Un serveur de fichiers trop permissif : partage ouvert à tous en contrôle total et protocole SMB 1.0 activé.",
+  "statement": "# Contexte\n\n**SRV1** héberge le partage `Compta` (`C:\\Compta`) utilisé par le groupe `GG_Compta`. L’onglet **Audit** révèle une configuration dangereuse.\n\nCompte d’administration : `LAB\\Administrateur` / `P@ssw0rd`.\n\n## Travail demandé\n\n1. Relevez les recommandations de l’onglet **Audit**.\n2. Désactivez le protocole **SMB 1.0** sur SRV1.\n3. Corrigez les autorisations du partage `Compta` : plus de contrôle total pour tout le monde ; les membres de `GG_Compta` doivent pouvoir **modifier** les fichiers.\n4. Visez un score d’audit de **100**.",
+  "start": {
+    "devices": [
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 200,
+        "y": 150,
+        "ip": "192.168.10.1/24",
+        "dns": ["127.0.0.1"],
+        "smb1": true,
+        "shares": [
+          {
+            "name": "Compta",
+            "path": "C:\\Compta",
+            "full": ["Tout le monde"]
+          }
+        ]
+      },
+      {
+        "kind": "switch",
+        "name": "SW1",
+        "x": 200,
+        "y": 330
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 420,
+        "y": 330,
+        "ip": "192.168.10.10/24",
+        "dns": ["192.168.10.1"]
+      }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/2"]
+    ],
+    "domain": {
+      "name": "lab.local",
+      "netbios": "LAB",
+      "dc": "SRV1",
+      "users": [
+        {
+          "name": "Jean Dupont",
+          "sam": "jdupont",
+          "password": "Azerty123!"
+        }
+      ],
+      "groups": [
+        {
+          "name": "GG_Compta",
+          "members": ["jdupont"]
+        }
+      ],
+      "passwordPolicy": {
+        "minLength": 12,
+        "complexity": true
+      },
+      "join": ["PC1"]
+    }
+  },
+  "criteria": [
+    {
+      "id": "smb1",
+      "label": "SMB 1.0 est désactivé sur SRV1",
+      "hint": "La configuration du serveur SMB se consulte et se modifie avec les cmdlets du module SmbShare.",
+      "check": {
+        "type": "auditRule",
+        "rule": "smb1"
+      }
+    },
+    {
+      "id": "everyone",
+      "label": "Plus de contrôle total pour tout le monde",
+      "hint": "Les autorisations de partage se règlent dans l’onglet Partage des propriétés du dossier, ou avec Revoke-SmbShareAccess et Grant-SmbShareAccess.",
+      "check": {
+        "type": "auditRule",
+        "rule": "everyoneFullControl"
+      }
+    },
+    {
+      "id": "compta",
+      "label": "Jean Dupont peut toujours modifier les fichiers de Compta",
+      "hint": "Accordez l’autorisation au groupe métier plutôt qu’à chaque utilisateur ; l’accès effectif combine partage et NTFS.",
+      "check": {
+        "type": "effectiveAccess",
+        "server": "SRV1",
+        "path": "C:\\Compta",
+        "share": "Compta",
+        "account": "LAB\\jdupont",
+        "allow": ["read", "write"]
+      }
+    },
+    {
+      "id": "score",
+      "label": "Score d’audit de 100",
+      "hint": "L’onglet Audit indique pour chaque recommandation l’objet concerné et une correction.",
+      "check": {
+        "type": "auditScore",
+        "min": 100
+      }
+    }
+  ]
+}

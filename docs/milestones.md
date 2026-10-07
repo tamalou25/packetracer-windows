@@ -246,3 +246,14 @@ Milestone terminé : `CHANGELOG.md` [2.2.0], `package.json` 2.2.0 ; tag `v2.2.0`
 - Format 7 : `passwordNeverExpires`, `whenCreated`, `lastLogon` des comptes ; `smb1` des ordinateurs.
   `Get/Set-SmbServerConfiguration`, `New/Set-ADUser -PasswordNeverExpires`, propriétés `LastLogonDate`,
   `whenCreated`. Onglet **Audit** du panneau latéral (score en direct, recommandations, objets, correction).
+
+### #29 Labs de durcissement
+
+- Critères `auditScore` (score ≥ N) et `auditRule` (règle respectée ou non) du système de base.
+- Format des labs : `smb1`, `firewallDisabled`, `shares` (dossiers partagés et autorisations) par ordinateur ;
+  `passwordNeverExpires`, `memberOf` (groupes existants), `createdDaysAgo`, `lastLogonDaysAgo` par compte ;
+  `passwordPolicy` du domaine. Commandes `adds.setAccountActivity` (historique d'un compte) et
+  `adds.setUserProperties` (case « Le mot de passe n'expire jamais » de la console AD, dernière ouverture de
+  session affichée).
+- Labs `lab-19-durcissement-ad`, `lab-20-durcissement-partages`, `lab-21-durcissement-pare-feu` : départ sous
+  100 avec toutes les règles ciblées enfreintes (testé), solution appliquée par les consoles → 100 %.

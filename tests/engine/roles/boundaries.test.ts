@@ -25,6 +25,7 @@ const ALLOWED_CORE_TO_ROLE = [
   'commands/catalog.ts', // types des adaptateurs (réexport)
   'commands/labels.ts', // libellés : nom d'étendue DHCP
   'index.ts', // API publique du moteur
+  'labs/lab.ts', // construction des labs : jeton d'administrateur local, Default Domain Policy
   'serialization/migrations.ts', // migration 1 → 2 : GPO par défaut
   'services/system.ts', // redémarrage : inscription DNS du poste joint
   'shell/cmd/interpreter.ts', // cd (système de fichiers du serveur)

@@ -515,3 +515,28 @@ export function restoreDeletedObject(
     return undefined
   })
 }
+
+/**
+ * Historique d'un compte (construction des labs) : création et dernière ouverture de session
+ * datées d'il y a N jours (null : jamais ouvert de session).
+ */
+export function setAccountActivity(
+  state: LabState,
+  domainName: string,
+  identity: string,
+  activity: { createdDaysAgo?: number; lastLogonDaysAgo?: number | null }
+): EngineResult {
+  return transact(state, (draft) => {
+    const domain = requireDomain(draft, domainName)
+    const found = findPrincipal(domain as Domain, identity)
+    if (!found || found.kind !== 'user') notFound(domain as Domain, identity)
+    const user = domain.users.find((u) => u.id === found.obj.id)
+    if (!user) return undefined
+    const day = 86_400_000
+    if (activity.createdDaysAgo !== undefined) user.whenCreated = draft.clock - activity.createdDaysAgo * day
+    if (activity.lastLogonDaysAgo !== undefined)
+      user.lastLogon =
+        activity.lastLogonDaysAgo === null ? null : draft.clock - activity.lastLogonDaysAgo * day
+    return undefined
+  })
+}

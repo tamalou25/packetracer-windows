@@ -1,0 +1,60 @@
+{
+  "formatVersion": 1,
+  "id": "lab-21-durcissement-pare-feu",
+  "title": "Durcissement : réactiver le pare-feu",
+  "difficulty": "Débutant",
+  "duration": "20 min",
+  "summary": "Le pare-feu a été désactivé « pour dépanner » sur le serveur et le poste : réactivez-le sans casser le réseau.",
+  "statement": "# Contexte\n\nPour « régler un problème de ping », un technicien a désactivé le pare-feu de **SRV1** et de **PC1** (groupe de travail). L’onglet **Audit** le signale.\n\nCompte local : `Administrateur` / `P@ssw0rd`.\n\n## Travail demandé\n\n1. Relevez les profils de pare-feu désactivés (onglet **Audit**, `Get-NetFirewallProfile`).\n2. Réactivez le pare-feu sur **tous les profils** des deux ordinateurs.\n3. Vérifiez que PC1 joint toujours SRV1 par ping.\n4. Visez un score d’audit de **100**.",
+  "start": {
+    "devices": [
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 200,
+        "y": 150,
+        "ip": "192.168.10.1/24",
+        "firewallDisabled": ["Domain", "Private", "Public"]
+      },
+      { "kind": "switch", "name": "SW1", "x": 200, "y": 330 },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 420,
+        "y": 330,
+        "ip": "192.168.10.10/24",
+        "firewallDisabled": ["Public"]
+      }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/2"]
+    ]
+  },
+  "criteria": [
+    {
+      "id": "firewall",
+      "label": "Le pare-feu est actif sur tous les profils",
+      "hint": "Chaque ordinateur a trois profils ; un seul profil désactivé suffit à exposer la machine.",
+      "check": { "type": "auditRule", "rule": "firewallDisabled" }
+    },
+    {
+      "id": "srv1",
+      "label": "Le profil Public de SRV1 est actif",
+      "hint": "Hors domaine, un réseau non catégorisé utilise le profil Public.",
+      "check": { "type": "firewallProfile", "device": "SRV1", "profile": "Public", "enabled": true }
+    },
+    {
+      "id": "ping",
+      "label": "PC1 joint toujours SRV1",
+      "hint": "La règle prédéfinie de demande d’écho ICMPv4 est active par défaut : un pare-feu actif n’empêche pas forcément le ping.",
+      "check": { "type": "ping", "from": "PC1", "to": "SRV1" }
+    },
+    {
+      "id": "score",
+      "label": "Score d’audit de 100",
+      "hint": "Hors domaine, seules les règles concernant les ordinateurs s’appliquent.",
+      "check": { "type": "auditScore", "min": 100 }
+    }
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "formatVersion": 1,
+  "id": "lab-19-durcissement-ad",
+  "title": "Durcissement Active Directory",
+  "difficulty": "Intermédiaire",
+  "duration": "35 min",
+  "summary": "Un domaine mal administré : trop d’administrateurs, mots de passe éternels, comptes oubliés et stratégie de mot de passe faible.",
+  "statement": "# Contexte\n\nVous reprenez l’administration du domaine `lab.local` (**SRV1**). L’onglet **Audit** du panneau latéral signale plusieurs faiblesses : à vous de les corriger sans gêner les utilisateurs légitimes.\n\nCompte d’administration : `LAB\\Administrateur` / `P@ssw0rd`.\n\n## Travail demandé\n\n1. Ouvrez l’onglet **Audit** et relevez le score de départ et les recommandations.\n2. Réduisez le groupe **Admins du domaine** au strict nécessaire : Jean Dupont (`jdupont`) est un utilisateur ordinaire, le compte `stagiaire` aussi.\n3. Le compte de service `svc-sauvegarde` ne doit plus avoir de mot de passe sans expiration.\n4. Le compte `ancien.employe` n’est plus utilisé depuis des mois : neutralisez-le sans le supprimer.\n5. Renforcez la stratégie de mot de passe du domaine.\n6. Visez un score d’audit de **100**.",
+  "start": {
+    "devices": [
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 200,
+        "y": 150,
+        "ip": "192.168.10.1/24",
+        "dns": ["127.0.0.1"]
+      },
+      { "kind": "switch", "name": "SW1", "x": 200, "y": 330 },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 420,
+        "y": 330,
+        "ip": "192.168.10.10/24",
+        "dns": ["192.168.10.1"]
+      }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/2"]
+    ],
+    "domain": {
+      "name": "lab.local",
+      "netbios": "LAB",
+      "dc": "SRV1",
+      "ous": ["Personnel"],
+      "users": [
+        {
+          "name": "Jean Dupont",
+          "sam": "jdupont",
+          "ou": "Personnel",
+          "password": "Azerty123!",
+          "memberOf": ["Admins du domaine"],
+          "lastLogonDaysAgo": 1
+        },
+        {
+          "name": "Stagiaire",
+          "sam": "stagiaire",
+          "ou": "Personnel",
+          "password": "Azerty123!",
+          "memberOf": ["Admins du domaine"],
+          "lastLogonDaysAgo": 3
+        },
+        {
+          "name": "Service sauvegarde",
+          "sam": "svc-sauvegarde",
+          "password": "Azerty123!Sauv",
+          "passwordNeverExpires": true,
+          "lastLogonDaysAgo": 0
+        },
+        {
+          "name": "Ancien employé",
+          "sam": "ancien.employe",
+          "ou": "Personnel",
+          "password": "Azerty123!",
+          "createdDaysAgo": 400,
+          "lastLogonDaysAgo": 200
+        }
+      ],
+      "passwordPolicy": { "minLength": 6, "complexity": false },
+      "join": ["PC1"]
+    }
+  },
+  "criteria": [
+    {
+      "id": "admins",
+      "label": "Le groupe Admins du domaine est réduit",
+      "hint": "Seuls les comptes qui administrent réellement le domaine doivent appartenir à ce groupe ; vérifiez aussi les membres ajoutés via d’autres groupes.",
+      "check": { "type": "auditRule", "rule": "domainAdmins" }
+    },
+    {
+      "id": "expiration",
+      "label": "Plus aucun mot de passe sans expiration",
+      "hint": "Cette option se trouve dans l’onglet Compte des propriétés de l’utilisateur, ou dans les paramètres de Set-ADUser.",
+      "check": { "type": "auditRule", "rule": "passwordNeverExpires" }
+    },
+    {
+      "id": "inactive",
+      "label": "Aucun compte inactif n’est utilisable",
+      "hint": "Un compte inutilisé se neutralise sans perdre son historique : il n’est pas nécessaire de le supprimer.",
+      "check": { "type": "auditRule", "rule": "inactiveAccounts" }
+    },
+    {
+      "id": "policy",
+      "label": "La stratégie de mot de passe est robuste",
+      "hint": "La stratégie de mot de passe du domaine se règle dans la GPO liée à la racine du domaine (configuration ordinateur, stratégies de comptes).",
+      "check": { "type": "auditRule", "rule": "weakPasswordPolicy" }
+    },
+    {
+      "id": "dupont",
+      "label": "Jean Dupont peut toujours ouvrir une session",
+      "hint": "Retirer des droits ne signifie pas désactiver le compte d’un utilisateur légitime.",
+      "check": { "type": "adObject", "kind": "user", "name": "jdupont", "enabled": true }
+    },
+    {
+      "id": "score",
+      "label": "Score d’audit de 100",
+      "hint": "L’onglet Audit liste chaque recommandation restante avec l’objet concerné.",
+      "check": { "type": "auditScore", "min": 100 }
+    }
+  ]
+}
