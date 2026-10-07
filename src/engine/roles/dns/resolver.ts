@@ -209,7 +209,8 @@ export function queryServer(
   if (result.kind === 'timeout' || !responder) return result
   const reply = sendIp(ctx, responder.id, {
     src: serverIp,
-    dst: srcIp,
+    // Adresse vue par le serveur (traduite par un NAT éventuel)
+    dst: request.src,
     ttl: initialTtl(responder),
     protocol: 'DNS',
     ipProtocol: '17 (UDP)',

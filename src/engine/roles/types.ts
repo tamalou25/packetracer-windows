@@ -5,6 +5,7 @@
  * commandes) ne connaît aucun rôle par son nom : il parcourt le registre.
  */
 import type { Draft } from 'immer'
+import type { TransitHooks } from '../sim/transit'
 import type { z } from 'zod'
 import type { CommandDefs } from '../commands/define'
 import type { EngineError } from '../core/result'
@@ -140,6 +141,8 @@ export interface RoleModule<C extends CommandDefs = CommandDefs> {
    * (\\SRV1\Compta\…) qui remplace `path`, ou null si le rôle ne le gère pas.
    */
   resolveUnc?(state: LabState, clientId: string, path: string): string | null
+  /** Acheminement des paquets : routage par un serveur, NAT, proxy ARP, tunnels (RRAS). */
+  transit?: TransitHooks
   /** Refus de désinstaller une fonctionnalité (ex. AD DS sur un contrôleur de domaine). */
   uninstallBlocked?(state: LabState, deviceId: string, feature: string): EngineError | null
 }

@@ -29,7 +29,8 @@ export interface ExchangeSpec {
 const APPLICATION_LAYER: Partial<Record<Protocol, string>> = {
   LDAP: 'LDAP',
   KERBEROS: 'Kerberos',
-  SMB: 'SMB2'
+  SMB: 'SMB2',
+  VPN: 'SSTP'
 }
 
 /**
@@ -41,13 +42,13 @@ export function serverExchange(
   fromId: string,
   dstIp: string,
   spec: ExchangeSpec
-): { trace: PacketTrace; ok: boolean } {
+): { trace: PacketTrace; ok: boolean; src: string | null } {
   const { protocol, port, request, reply, fields } = spec
   const rec = createRecorder()
   const ctx = createContext(state, rec)
   const from = state.devices[fromId]
   const src = from ? sourceAddressFor(state, from, dstIp) : null
-  if (!from || !src) return { trace: { title: protocol, events: [] }, ok: false }
+  if (!from || !src) return { trace: { title: protocol, events: [] }, ok: false, src: null }
   const tcp = port !== 389 || !request.startsWith('LDAP ping')
   const layer = (kind: string): PduLayer[] => [
     { layer: 4, name: tcp ? 'TCP' : 'UDP', fields: [['Port destination', String(port)]] },
@@ -65,12 +66,13 @@ export function serverExchange(
     transport: tcp ? 'TCP' : 'UDP',
     port
   })
-  if (req.kind !== 'delivered') return { trace: { title: protocol, events: rec.events }, ok: false }
+  if (req.kind !== 'delivered')
+    return { trace: { title: protocol, events: rec.events }, ok: false, src: null }
   const dc = state.devices[req.deviceId]
-  if (!dc) return { trace: { title: protocol, events: rec.events }, ok: false }
+  if (!dc) return { trace: { title: protocol, events: rec.events }, ok: false, src: null }
   const rep = sendIp(ctx, dc.id, {
     src: dstIp,
-    dst: src,
+    dst: req.src,
     ttl: initialTtl(dc),
     protocol,
     ipProtocol,
@@ -78,7 +80,7 @@ export function serverExchange(
     upper: layer(reply),
     reply: true
   })
-  return { trace: { title: protocol, events: rec.events }, ok: rep.kind === 'delivered' }
+  return { trace: { title: protocol, events: rec.events }, ok: rep.kind === 'delivered', src: req.src }
 }
 
 export function exchange(

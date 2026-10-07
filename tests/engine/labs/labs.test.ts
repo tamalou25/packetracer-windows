@@ -48,6 +48,7 @@ import lab12 from '../../../labs/lab-12-sauvegarde.json'
 import lab13 from '../../../labs/lab-13-vlan.json'
 import lab14 from '../../../labs/lab-14-relais-dhcp.json'
 import lab15 from '../../../labs/lab-15-pare-feu.json'
+import lab16 from '../../../labs/lab-16-acces-distant.json'
 import { run } from '../shell/helpers'
 
 function load(raw: unknown): LabDefinition {
@@ -436,6 +437,31 @@ const SOLUTIONS: Record<string, (s: LabState) => LabState> = {
       })
     )
     return s
+  },
+  'lab-16-acces-distant': (s) => {
+    const srv = id(s, 'SRV1')
+    const exec = (cmd: AnyCommand) => {
+      const r = dispatch(s, cmd)
+      if (!r.ok) throw new Error(r.error.message)
+      s = r.state
+      return r.value
+    }
+    s = unwrap(
+      installFeatures(s, srv, ['RemoteAccess', 'DirectAccess-VPN', 'Routing'], {
+        includeManagementTools: true
+      })
+    ).state
+    const wan = s.devices[srv]!.interfaces.find((i) => i.name === 'Ethernet1')!.id
+    exec(
+      command('rras.configure', srv, {
+        mode: 'vpn-nat',
+        publicIfaceId: wan,
+        pool: { start: '192.168.10.200', end: '192.168.10.220' }
+      })
+    )
+    exec(command('vpn.addConnection', id(s, 'PCR'), { name: 'Entreprise', server: '203.0.113.2' }))
+    exec(command('vpn.connect', id(s, 'PCR'), 'Entreprise', { user: 'LAB\\jdupont', password: 'Azerty123!' }))
+    return s
   }
 }
 
@@ -455,7 +481,8 @@ describe('Labs', () => {
     lab12,
     lab13,
     lab14,
-    lab15
+    lab15,
+    lab16
   ].map(load)
 
   it('chaque lab a un identifiant unique, des critères uniques et des indices', () => {

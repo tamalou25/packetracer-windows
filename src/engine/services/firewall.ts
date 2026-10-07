@@ -137,6 +137,14 @@ const PREDEFINED: Predefined[] = [
     hasFeature('UpdateServices')
   ),
   inbound(
+    'RemoteAccess-SSTP-In-TCP',
+    'Routage et accès distant (SSTP-Entrée)',
+    'Routage et accès distant',
+    'TCP',
+    [443],
+    hasFeature('RemoteAccess')
+  ),
+  inbound(
     'DFSR-DFSRSvc-In-TCP',
     'Réplication DFS (RPC-Entrée)',
     'Réplication DFS',

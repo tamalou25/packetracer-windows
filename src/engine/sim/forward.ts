@@ -5,8 +5,10 @@
 import type { Device, LabState } from '../model/schema'
 import { effectiveIpv4 } from '../net/addressing'
 import { isInternetHost } from '../net/internet'
-import { lookupRoute, routingTable } from '../net/routing'
+import { initialTtl, lookupRoute, routingTable } from '../net/routing'
 import { evaluateFirewall, PROFILE_LABELS, type FirewallTransport } from '../services/firewall'
+import { roleModules } from '../roles/registry'
+import type { TransitHooks } from './transit'
 import { l2Segment, reversePath, type PortRef, type SegmentMember } from '../net/segment'
 import {
   BROADCAST_MAC,
@@ -26,10 +28,12 @@ export interface SimContext {
   rec: TraceRecorder
   /** Cache ARP par équipement : IP → port qui la porte. */
   arp: Map<string, Map<string, SegmentMember>>
+  /** Traductions d'adresses (NAT) établies pendant l'opération. */
+  nat: Map<string, string>
 }
 
 export function createContext(state: LabState, rec: TraceRecorder): SimContext {
-  return { state, rec, arp: new Map() }
+  return { state, rec, arp: new Map(), nat: new Map() }
 }
 
 function deviceName(ctx: SimContext, id: string): string {
@@ -173,7 +177,10 @@ export function arpResolve(ctx: SimContext, origin: PortRef, targetIp: string): 
 
   const owns = (member: SegmentMember): boolean => {
     const iface = ifaceOf(ctx, member.port)
-    return !!iface && effectiveIpv4(iface)?.address === targetIp
+    if (iface && effectiveIpv4(iface)?.address === targetIp) return true
+    // Proxy ARP (serveur VPN répondant pour l'adresse attribuée à un client)
+    const device = ctx.state.devices[member.port.deviceId]
+    return !!device && transitHooks().some((h) => h.proxyArp?.(ctx.state, device, targetIp))
   }
 
   recordBroadcast(
@@ -272,6 +279,9 @@ export interface IpPacket {
   reply?: boolean
 }
 
+/** Port TCP du tunnel VPN (SSTP). */
+export const VPN_PORT = 443
+
 /** Transport et port de destination usuels de chaque protocole applicatif. */
 const DEFAULT_PORTS: Partial<Record<Protocol, { transport: FirewallTransport; port: number | null }>> = {
   ICMP: { transport: 'ICMPv4', port: null },
@@ -281,7 +291,8 @@ const DEFAULT_PORTS: Partial<Record<Protocol, { transport: FirewallTransport; po
   KERBEROS: { transport: 'TCP', port: 88 },
   SMB: { transport: 'TCP', port: 445 },
   HTTP: { transport: 'TCP', port: 80 },
-  RDP: { transport: 'TCP', port: 3389 }
+  RDP: { transport: 'TCP', port: 3389 },
+  VPN: { transport: 'TCP', port: 443 }
 }
 
 /**
@@ -304,7 +315,15 @@ function firewallBlocks(device: Device, packet: IpPacket, direction: 'Inbound' |
 }
 
 export type Delivery =
-  | { kind: 'delivered'; deviceId: string; ingress: PortRef | null; ttl: number; latency: number }
+  | {
+      kind: 'delivered'
+      deviceId: string
+      ingress: PortRef | null
+      ttl: number
+      latency: number
+      /** Adresse source vue par le destinataire (après traduction NAT ou tunnel). */
+      src: string
+    }
   | { kind: 'no-route'; deviceId: string; ingress: PortRef | null; latency: number }
   | { kind: 'unresolved'; deviceId: string; ingress: PortRef | null; nextHop: string; latency: number }
   | { kind: 'ttl-expired'; deviceId: string; ingress: PortRef | null; latency: number }
@@ -317,22 +336,45 @@ function hopLatency(device: Device): number {
   return 0
 }
 
+/** Crochets de transit déclarés par les modules de rôles (routage, NAT, tunnels). */
+function transitHooks(): TransitHooks[] {
+  return roleModules().flatMap((m) => (m.transit ? [m.transit] : []))
+}
+
 /**
  * Achemine un paquet IP depuis `fromDeviceId` jusqu'à sa destination (ou son échec).
  * Les décisions de chaque équipement sont expliquées dans la trace.
  */
-export function sendIp(ctx: SimContext, fromDeviceId: string, packet: IpPacket): Delivery {
+export function sendIp(ctx: SimContext, fromDeviceId: string, original: IpPacket): Delivery {
+  let packet = original
   let current = fromDeviceId
   let ingress: PortRef | null = null
   let ttl = packet.ttl
   let latency = 0
+  const hooks = transitHooks()
+  /** Le paquet a-t-il quitté l'émetteur (premier équipement traversé ou tunnel) ? */
+  let transit = false
+  /** Explication à placer avant la décision de routage (retraduction NAT, sortie de tunnel). */
+  let arrival = ''
 
   for (let guard = 0; guard < 64; guard++) {
     const device = ctx.state.devices[current]
     if (!device || !device.powered) return { kind: 'dropped', deviceId: current, latency }
 
+    // Retraduction NAT d'une réponse adressée à l'adresse publique
+    if (transit)
+      for (const hook of hooks) {
+        const back = hook.untranslate?.(ctx, device, packet)
+        if (back) {
+          setLastOutcome(ctx, 'forwarded', back.note)
+          arrival = `${back.note} `
+          packet = { ...packet, dst: back.dst }
+          break
+        }
+      }
+
     if (ownsAddress(device, packet.dst)) {
-      if (current !== fromDeviceId) {
+      if (transit) {
         const blocked = firewallBlocks(device, packet, 'Inbound')
         if (blocked) {
           setLastOutcome(ctx, 'dropped', blocked)
@@ -344,15 +386,16 @@ export function sendIp(ctx: SimContext, fromDeviceId: string, packet: IpPacket):
           `${device.name} est le destinataire (${packet.dst}) : le paquet est traité.`
         )
       }
-      return { kind: 'delivered', deviceId: current, ingress, ttl, latency }
+      return { kind: 'delivered', deviceId: current, ingress, ttl, latency, src: packet.src }
     }
 
     // Pare-feu de l'émetteur : trafic sortant
-    if (current === fromDeviceId && firewallBlocks(device, packet, 'Outbound'))
+    if (!transit && firewallBlocks(device, packet, 'Outbound'))
       return { kind: 'dropped', deviceId: current, latency }
 
-    if (current !== fromDeviceId) {
-      if (device.kind === 'server' || device.kind === 'client') {
+    if (transit) {
+      const routes = hooks.some((h) => h.forwards?.(ctx.state, device))
+      if ((device.kind === 'server' || device.kind === 'client') && !routes) {
         setLastOutcome(
           ctx,
           'dropped',
@@ -376,9 +419,50 @@ export function sendIp(ctx: SimContext, fromDeviceId: string, packet: IpPacket):
       }
     }
 
+    // Tunnel (VPN) : le paquet est encapsulé jusqu'à l'autre extrémité
+    const tunnel = hooks.map((h) => h.tunnel?.(ctx.state, device, packet)).find((t) => !!t)
+    if (tunnel) {
+      if (transit)
+        setLastOutcome(
+          ctx,
+          'forwarded',
+          `${device.name} encapsule le paquet dans le tunnel VPN vers ${tunnel.outerDst}.`
+        )
+      const outer = sendIp(ctx, device.id, {
+        src: tunnel.outerSrc,
+        dst: tunnel.outerDst,
+        ttl: initialTtl(device),
+        protocol: 'VPN',
+        ipProtocol: '6 (TCP)',
+        summary: tunnel.summary,
+        upper: tunnel.upper,
+        transport: 'TCP',
+        port: VPN_PORT,
+        reply: tunnel.reply
+      })
+      if (outer.kind !== 'delivered') return { kind: 'dropped', deviceId: current, latency }
+      latency += outer.latency
+      setLastOutcome(ctx, 'delivered', tunnel.note)
+      arrival = `${tunnel.note} `
+      if (tunnel.deliver)
+        return {
+          kind: 'delivered',
+          deviceId: tunnel.endpointId,
+          ingress: null,
+          ttl,
+          latency,
+          src: packet.src
+        }
+      packet = { ...packet, src: tunnel.innerSrc ?? packet.src }
+      current = tunnel.endpointId
+      ingress = null
+      transit = true
+      continue
+    }
+
     const route = lookupRoute(routingTable(ctx.state, device), packet.dst)
     if (!route) {
-      if (current !== fromDeviceId)
+      if (transit)
         setLastOutcome(
           ctx,
           'dropped',
@@ -388,14 +472,26 @@ export function sendIp(ctx: SimContext, fromDeviceId: string, packet: IpPacket):
     }
     const egress: PortRef = { deviceId: current, ifaceId: route.ifaceId }
     const nextHop = route.gateway ?? packet.dst
-    if (current !== fromDeviceId) {
+    if (transit) {
       const egressName = ifaceOf(ctx, egress)?.name ?? ''
+      // Traduction d'adresse (NAT) par l'interface de sortie
+      let translated = ''
+      for (const hook of hooks) {
+        const nat = hook.translate?.(ctx, device, ingress?.ifaceId ?? null, route.ifaceId, packet)
+        if (nat) {
+          packet = { ...packet, src: nat.src }
+          translated = ` ${nat.note}`
+          break
+        }
+      }
       setLastOutcome(
         ctx,
         'forwarded',
-        route.gateway
-          ? `${device.name} route le paquet vers ${packet.dst} par ${egressName}, via la passerelle ${route.gateway} (TTL ${ttl}).`
-          : `${device.name} route le paquet vers ${packet.dst} : réseau directement connecté sur ${egressName} (TTL ${ttl}).`
+        arrival +
+          (route.gateway
+            ? `${device.name} route le paquet vers ${packet.dst} par ${egressName}, via la passerelle ${route.gateway} (TTL ${ttl}).`
+            : `${device.name} route le paquet vers ${packet.dst} : réseau directement connecté sur ${egressName} (TTL ${ttl}).`) +
+          translated
       )
     }
 
@@ -422,6 +518,8 @@ export function sendIp(ctx: SimContext, fromDeviceId: string, packet: IpPacket):
     )
     current = target.port.deviceId
     ingress = target.port
+    transit = true
+    arrival = ''
   }
   return { kind: 'dropped', deviceId: current, latency }
 }

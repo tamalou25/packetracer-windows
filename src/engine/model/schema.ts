@@ -194,6 +194,26 @@ export const FirewallSchema = z.object({
   rules: z.array(FirewallRuleSchema).default([])
 })
 
+/** Connexion VPN configurée sur un ordinateur (Paramètres > Réseau > VPN, Add-VpnConnection). */
+export const VpnConnectionSchema = z.object({
+  name: z.string(),
+  /** Nom ou adresse du serveur VPN. */
+  server: z.string(),
+  /** Connexion établie : adresse attribuée par le serveur (pool) et extrémité du tunnel. */
+  connected: z
+    .object({
+      address: z.string(),
+      serverDeviceId: z.string(),
+      /** Adresse publique du serveur jointe par le client. */
+      serverAddress: z.string(),
+      /** Adresse du client vue par le serveur (extrémité du tunnel). */
+      clientAddress: z.string(),
+      user: z.string()
+    })
+    .nullable()
+    .default(null)
+})
+
 /** Styles du papier peint (Remplir, Ajuster, Étirer, Vignette, Centrer, Étendre). */
 export const WALLPAPER_STYLES = ['Fill', 'Fit', 'Stretch', 'Tile', 'Center', 'Span'] as const
 
@@ -409,6 +429,7 @@ export const HostSchema = z.object({
   remoteDesktop: RemoteDesktopSchema.default(() => ({ enabled: false, users: [] })),
   remoteSessions: z.array(RemoteSessionSchema).default([]),
   firewall: FirewallSchema.default(() => FirewallSchema.parse({})),
+  vpnConnections: z.array(VpnConnectionSchema).default([]),
   eventLog: z.array(EventLogEntrySchema).default([])
 })
 
@@ -741,6 +762,7 @@ export type DhcpClientLease = z.infer<typeof DhcpClientLeaseSchema>
 export type NetInterface = z.infer<typeof NetInterfaceSchema>
 export type Switchport = z.infer<typeof SwitchportSchema>
 export type FirewallRule = z.infer<typeof FirewallRuleSchema>
+export type VpnConnection = z.infer<typeof VpnConnectionSchema>
 export type FirewallProfileName = (typeof FIREWALL_PROFILES)[number]
 export type FirewallState = z.infer<typeof FirewallSchema>
 export type Subinterface = z.infer<typeof SubinterfaceSchema>

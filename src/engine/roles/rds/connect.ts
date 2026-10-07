@@ -7,14 +7,15 @@ import type { Draft } from 'immer'
 import { logEvent } from '../../core/eventlog'
 import { transact } from '../../core/result'
 import { nextSeq } from '../../model/factory'
-import type { Domain, HostDevice, LabState } from '../../model/schema'
+import type { HostDevice, LabState } from '../../model/schema'
 import { effectiveIpv4 } from '../../net/addressing'
 import type { PacketTrace } from '../../sim/trace'
 import { concatTraces } from '../../sim/trace'
+import { authenticate } from '../adds/credentials'
 import { findPrincipal } from '../adds/directory'
 import { serverExchange } from '../adds/locator'
 import { firstAddress, resolveName } from '../dns/resolver'
-import { domainToken, localToken, type AccessToken } from '../files/acl'
+import type { AccessToken } from '../files/acl'
 import { RDP_PORT, rdsServerOf } from './state'
 
 export interface RdpInput {
@@ -46,47 +47,6 @@ function hosts(state: LabState): HostDevice[] {
   return Object.values(state.devices).filter(
     (d): d is HostDevice => (d.kind === 'server' || d.kind === 'client') && d.powered
   )
-}
-
-/** Compte saisi → domaine (NetBIOS ou FQDN) et nom. */
-function splitAccount(user: string): { domain: string | null; sam: string } {
-  const text = user.trim()
-  if (text.includes('\\')) {
-    const [domain = '', sam = ''] = text.split('\\')
-    return { domain, sam }
-  }
-  if (text.includes('@')) {
-    const [sam = '', domain = ''] = text.split('@')
-    return { domain, sam }
-  }
-  return { domain: null, sam: text }
-}
-
-/** Jeton du compte sur l'ordinateur distant (null : identifiants refusés). */
-function authenticate(
-  state: LabState,
-  target: HostDevice,
-  user: string,
-  password: string
-): AccessToken | null {
-  const { domain: domainName, sam } = splitAccount(user)
-  const local = !domainName || domainName.toUpperCase() === target.name.toUpperCase() || domainName === '.'
-  const domain: Domain | undefined = target.host.domain ? state.domains[target.host.domain] : undefined
-  if (local && (!domain || domainName)) {
-    return sam.toLowerCase() === 'administrateur' && password === target.host.localAdminPassword
-      ? localToken(target.name, 'Administrateur')
-      : null
-  }
-  if (!domain) return null
-  if (
-    domainName &&
-    domainName.toUpperCase() !== domain.netbios.toUpperCase() &&
-    domainName.toLowerCase() !== domain.name
-  )
-    return null
-  const account = domain.users.find((u) => u.sam.toLowerCase() === sam.toLowerCase())
-  if (!account || account.password !== password) return null
-  return domainToken(domain, account.sam)
 }
 
 /** Le jeton contient-il l'un des comptes ou groupes (DOMAINE\nom) ? */

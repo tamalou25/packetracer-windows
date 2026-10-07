@@ -24,8 +24,13 @@ export const LabDeviceSchema = z.object({
   dns: z.array(z.string()).optional(),
   /** Première carte en DHCP (postes). */
   dhcp: z.boolean().optional(),
-  /** Interfaces d'un routeur : { "Gi0/0": "192.168.10.254/24" }. */
+  /**
+   * Adresses par carte : { "Gi0/0": "192.168.10.254/24" } ; passerelle facultative après une
+   * espace : { "Ethernet1": "203.0.113.2/24 203.0.113.1" }.
+   */
   interfaces: z.record(z.string(), z.string()).optional(),
+  /** Nombre de cartes réseau d'un serveur (Ethernet0, Ethernet1…). */
+  nics: z.number().int().min(1).max(4).optional(),
   /** Rôles et fonctionnalités installés (avec les outils de gestion). */
   features: z.array(z.string()).optional()
 })
@@ -121,9 +126,12 @@ export function parseLab(raw: unknown): LabParseResult {
 
 /** « 192.168.10.1/24 » → adresse et préfixe. */
 function cidr(text: string): { address: string; mask: string } {
-  const [address = '', prefix = '24'] = text.split('/')
+  const [address = '', prefix = '24'] = (text.trim().split(/\s+/)[0] ?? '').split('/')
   return { address, mask: prefix }
 }
+
+/** Passerelle facultative après l'adresse : « 203.0.113.2/24 203.0.113.1 ». */
+const gatewayOf = (text: string): string | null => text.trim().split(/\s+/)[1] ?? null
 
 /** Construit l'état de départ d'un lab (lève une erreur si le lab est incohérent). */
 export function buildLabStart(start: LabStart): LabState {
@@ -142,10 +150,12 @@ export function buildLabStart(start: LabStart): LabState {
     return id
   }
   for (const d of start.devices) {
-    ids.set(
-      d.name.toLowerCase(),
-      apply(command('topology.addDevice', { kind: d.kind, position: { x: d.x, y: d.y }, name: d.name }))
+    const id = apply(
+      command('topology.addDevice', { kind: d.kind, position: { x: d.x, y: d.y }, name: d.name })
     )
+    ids.set(d.name.toLowerCase(), id)
+    if (d.kind === 'server')
+      for (let n = 1; n < (d.nics ?? 1); n++) apply(command('topology.addServerInterface', id))
   }
   const ifaceOf = (deviceId: string, name?: string) => {
     const device = state.devices[deviceId]
@@ -170,7 +180,7 @@ export function buildLabStart(start: LabStart): LabState {
         command('net.setInterfaceIpv4', id, ifaceOf(id, port), {
           addressing: 'static',
           ...cidr(address),
-          gateway: null,
+          gateway: gatewayOf(address),
           dnsServers: []
         })
       )

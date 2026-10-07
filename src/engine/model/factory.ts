@@ -61,6 +61,7 @@ export function createHost(kind: 'server' | 'client'): Host {
     remoteDesktop: { enabled: false, users: [] },
     remoteSessions: [],
     firewall: defaultFirewall(),
+    vpnConnections: [],
     eventLog: []
   }
 }
