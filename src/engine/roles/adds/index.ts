@@ -3,6 +3,7 @@
  * Les données de l'annuaire sont propres à la forêt (`state.domains`), pas à un serveur.
  */
 import { defineRole } from '../types'
+import { addsAuditRules } from './audit'
 import { recycleBinCmdlets } from './recycle'
 import { adCmdlets } from './cmdlets'
 import { addsCommands } from './commands'
@@ -67,6 +68,7 @@ export const addsRole = defineRole({
     }
   ],
   criteria: addsCriteria,
+  auditRules: addsAuditRules,
   backgroundTasks: [
     {
       id: 'adds.replication',

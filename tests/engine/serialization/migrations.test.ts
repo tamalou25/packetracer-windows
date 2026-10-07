@@ -259,3 +259,17 @@ describe('migrateDocument', () => {
       expect(migrateDocument({ app: 'ServerLab', schemaVersion }).ok).toBe(false)
   })
 })
+
+describe('migration 6 → 7 (sécurité de la v2.3)', () => {
+  it('change seulement la version ; comptes et ordinateurs reçoivent les valeurs par défaut', () => {
+    const doc = JSON.parse(readFixture(6)) as Record<string, unknown>
+    expect(migrations[6]!(doc)).toEqual({ ...doc, schemaVersion: 7 })
+    const parsed = parseSlab(readFixture(6))
+    if (!parsed.ok) throw new Error(parsed.message)
+    const user = parsed.doc.lab.domains['lab.local']?.users.find((u) => u.sam === 'jdupont')
+    expect(user && [user.passwordNeverExpires, user.lastLogon, user.whenCreated]).toEqual([false, null, 0])
+    const srv = parsed.doc.lab.devices[deviceId(parsed.doc.lab, 'SRV1')]
+    expect(srv?.kind === 'server' && srv.host.smb1).toBe(false)
+  })
+})
+

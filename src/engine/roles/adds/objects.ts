@@ -95,6 +95,7 @@ export interface UserInput {
   enabled?: boolean
   mustChangePassword?: boolean
   description?: string
+  passwordNeverExpires?: boolean
 }
 
 export interface UserResult {
@@ -143,7 +144,10 @@ export function addUser(
       enabled,
       mustChangePassword: !!input.mustChangePassword,
       description: input.description ?? '',
-      builtin: false
+      builtin: false,
+      passwordNeverExpires: !!input.passwordNeverExpires,
+      whenCreated: draft.clock,
+      lastLogon: null
     })
     // Groupe principal : Utilisateurs du domaine
     domain.groups.find((g) => g.name === 'Utilisateurs du domaine')?.members.push(id)
@@ -309,6 +313,7 @@ export function setUserProperties(
     surname?: string
     upn?: string
     mustChangePassword?: boolean
+    passwordNeverExpires?: boolean
   }
 ): EngineResult {
   return transact(state, (draft) => {

@@ -429,6 +429,8 @@ describe('catalogue des commandes', () => {
     r.run(command('files.mapDrive', r.id('PC1'), 'P', '\\\\SRV1\\Partages', user, { persistent: false }))
     r.run(command('files.unmapDrive', r.id('PC1'), 'P', user.account))
     r.run(command('files.removeShare', srv, 'Partages', token))
+    r.run(command('files.setSmb1', srv, true))
+    r.run(command('files.setSmb1', srv, false))
     r.run(command('files.removeItem', srv, 'C:\\Partages', token, { recurse: true }))
     r.run(
       command(

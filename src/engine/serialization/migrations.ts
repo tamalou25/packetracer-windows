@@ -5,7 +5,7 @@
  */
 import { DEFAULT_DC_POLICY_ID, DEFAULT_DOMAIN_POLICY_ID, defaultDomainGpos } from '../roles/gpo/defaults'
 
-export const CURRENT_SCHEMA_VERSION = 6
+export const CURRENT_SCHEMA_VERSION = 7
 
 type RawDocument = Record<string, unknown>
 
@@ -86,13 +86,24 @@ function addV22Network(doc: RawDocument): RawDocument {
   return { ...doc, schemaVersion: 6 }
 }
 
+/**
+ * Version 7 (ServerLab 2.3) : sécurité (expiration des mots de passe, dernière ouverture de
+ * session et date de création des comptes, protocole SMB 1.0). Rien à transformer : les
+ * nouveaux champs reçoivent les valeurs par défaut de leur schéma ; le numéro de version
+ * empêche une version 2.2 d'ouvrir (et de tronquer) ces labs.
+ */
+function addV23Security(doc: RawDocument): RawDocument {
+  return { ...doc, schemaVersion: 7 }
+}
+
 /** migrations[n] migre un document de la version n vers n + 1. */
 export const migrations: Record<number, (doc: RawDocument) => RawDocument> = {
   1: addDefaultGpos,
   2: addLabId,
   3: moveServicesToRoles,
   4: addV21Roles,
-  5: addV22Network
+  5: addV22Network,
+  6: addV23Security
 }
 
 export type MigrationResult = { ok: true; doc: RawDocument } | { ok: false; message: string }

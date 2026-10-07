@@ -3,6 +3,7 @@
  * Le volume C: existe sur tout serveur (`device.storage`), le rôle apporte le partage.
  */
 import { defineRole } from '../types'
+import { filesAuditRules } from './audit'
 import { fileCmdlets } from './cmdlets'
 import { filesCommands } from './commands'
 import { filesCriteria } from './criteria'
@@ -30,6 +31,7 @@ export const filesRole = defineRole({
     { app: 'newshare', label: 'Assistant Nouveau partage', dialog: true, requires: { server: true } }
   ],
   criteria: filesCriteria,
+  auditRules: filesAuditRules,
   backgroundTasks: [],
   events: { sources: ['Srv', 'LanmanServer'] },
   services: [{ display: 'Serveur', name: 'LanmanServer', when: 'always' }]

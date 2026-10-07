@@ -5,6 +5,7 @@
  * commandes) ne connaît aucun rôle par son nom : il parcourt le registre.
  */
 import type { Draft } from 'immer'
+import type { AuditRule } from '../audit/types'
 import type { TransitHooks } from '../sim/transit'
 import type { z } from 'zod'
 import type { CommandDefs } from '../commands/define'
@@ -120,6 +121,8 @@ export interface RoleModule<C extends CommandDefs = CommandDefs> {
   views: RoleView[]
   /** Types de critères de lab. */
   criteria: CriterionType[]
+  /** Règles de l'audit de sécurité (mode Audit). */
+  auditRules?: AuditRule[]
   /** Tâches de fond. */
   backgroundTasks: BackgroundTask[]
   /** Sources des évènements journalisés par le rôle (Observateur, Gestionnaire de serveur). */

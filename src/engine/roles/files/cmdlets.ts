@@ -17,6 +17,7 @@ import {
 } from './actions'
 import { nodePath } from './paths'
 import { mapDrive, sessionDrives, unmapDrive } from './smb'
+import { setSmb1 } from './smbconfig'
 import {
   absolutePath,
   formatBytes,
@@ -370,6 +371,44 @@ export const fileCmdlets: CmdletDef[] = [
       const updated = ctx.state.devices[server.id] as ServerDevice
       const share = findShare(updated, str(args['Name']))
       return share ? [shareObject(updated, share)] : []
+    }
+  },
+  {
+    name: 'Get-SmbServerConfiguration',
+    module: 'SmbShare',
+    synopsis: 'Affiche la configuration du serveur SMB.',
+    params: [],
+    run(ctx) {
+      return [
+        psObject(
+          'SmbServerConfiguration',
+          {
+            EnableSMB1Protocol: ctx.host.host.smb1,
+            EnableSMB2Protocol: true,
+            EncryptData: false,
+            RequireSecuritySignature: false
+          },
+          {
+            kind: 'list',
+            props: ['EnableSMB1Protocol', 'EnableSMB2Protocol', 'EncryptData', 'RequireSecuritySignature']
+          }
+        )
+      ]
+    }
+  },
+  {
+    name: 'Set-SmbServerConfiguration',
+    module: 'SmbShare',
+    synopsis: 'Modifie la configuration du serveur SMB (protocole SMB 1.0).',
+    params: [
+      { name: 'EnableSMB1Protocol', type: 'bool' },
+      { name: 'Force', type: 'switch' }
+    ],
+    run(ctx, args) {
+      if (args['EnableSMB1Protocol'] === undefined) return []
+      if (args['Force'] !== true && !ctx.confirm(ctx.host.name, 'Set-SmbServerConfiguration')) return []
+      ctx.apply(setSmb1(ctx.state, ctx.deviceId, args['EnableSMB1Protocol'] === true))
+      return []
     }
   },
   {

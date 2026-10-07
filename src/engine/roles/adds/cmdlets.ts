@@ -1,6 +1,7 @@
 /**
  * Cmdlets Active Directory (module ActiveDirectory, ADDSDeployment) et jonction au domaine.
  */
+import { formatShortDate } from '../../core/clock'
 import { guidFromSeed } from '../../core/guid'
 import type { AdComputer, AdContainer, AdGroup, AdUser, Domain } from '../../model/schema'
 import {
@@ -75,7 +76,10 @@ function userObject(domain: Domain, u: AdUser): PsObject {
       SID: sidOf(domain, u.id),
       Surname: u.surname || null,
       UserPrincipalName: u.upn || null,
-      Description: u.description || null
+      Description: u.description || null,
+      PasswordNeverExpires: u.passwordNeverExpires,
+      LastLogonDate: u.lastLogon === null ? null : formatShortDate(u.lastLogon),
+      whenCreated: formatShortDate(u.whenCreated)
     },
     {
       kind: 'list',
@@ -579,6 +583,7 @@ export const adCmdlets: CmdletDef[] = [
       { name: 'AccountPassword', type: 'secure' },
       { name: 'Enabled', type: 'bool' },
       { name: 'ChangePasswordAtLogon', type: 'bool' },
+      { name: 'PasswordNeverExpires', type: 'bool' },
       { name: 'Description', type: 'string' },
       { name: 'PassThru', type: 'switch' }
     ],
@@ -600,6 +605,7 @@ export const adCmdlets: CmdletDef[] = [
               : {}),
             enabled: args['Enabled'] === true,
             mustChangePassword: args['ChangePasswordAtLogon'] === true,
+            passwordNeverExpires: args['PasswordNeverExpires'] === true,
             description: str(args['Description'])
           },
           `${ctx.user.domain}\\${ctx.user.name}`
@@ -644,6 +650,7 @@ export const adCmdlets: CmdletDef[] = [
       { name: 'Surname', type: 'string' },
       { name: 'UserPrincipalName', type: 'string' },
       { name: 'ChangePasswordAtLogon', type: 'bool' },
+      { name: 'PasswordNeverExpires', type: 'bool' },
       { name: 'Enabled', type: 'bool' }
     ],
     run(ctx, args) {
@@ -657,6 +664,9 @@ export const adCmdlets: CmdletDef[] = [
           ...(args['UserPrincipalName'] !== undefined ? { upn: str(args['UserPrincipalName']) } : {}),
           ...(args['ChangePasswordAtLogon'] !== undefined
             ? { mustChangePassword: args['ChangePasswordAtLogon'] === true }
+            : {}),
+          ...(args['PasswordNeverExpires'] !== undefined
+            ? { passwordNeverExpires: args['PasswordNeverExpires'] === true }
             : {})
         })
       )

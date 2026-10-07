@@ -1,6 +1,7 @@
 /**
  * Commandes du rôle Fichiers (NTFS, partages SMB, lecteurs réseau) : actions pures + libellés.
  */
+import { setSmb1 } from './smbconfig'
 import { def, on } from '../../commands/define'
 import type { EngineResult } from '../../core/result'
 import type { LabState } from '../../model/schema'
@@ -40,6 +41,10 @@ function shareFolder(
 }
 
 export const filesCommands = {
+  'files.setSmb1': def(
+    setSmb1,
+    (s, id, enabled) => `${enabled ? 'Activer' : 'Désactiver'} SMB 1.0${on(s, id)}`
+  ),
   'files.createItem': def(
     createItem,
     (s, id, path, kind) => `Créer ${kind === 'folder' ? 'le dossier' : 'le fichier'} ${path}${on(s, id)}`
