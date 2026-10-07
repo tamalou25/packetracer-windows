@@ -128,7 +128,7 @@ Milestone terminé : `CHANGELOG.md` [2.1.0], `package.json` 2.1.0 ; tag `v2.1.0`
 | #22   | VLAN, trunk, inter-VLAN | `feat/22-vlan`       | #82 | fusionné |
 | #23   | Relais DHCP             | `feat/23-dhcp-relay` | #83 | fusionné |
 | #24   | Pare-feu simulé         | `feat/24-firewall`   |     | en cours |
-| #25   | RRAS : VPN et NAT       |                      |     | à faire  |
+| #25   | RRAS : VPN et NAT       | `feat/25-rras`       |     | en cours |
 | #26   | NPS / RADIUS            |                      |     | à faire  |
 | #27   | Multi-sites AD, FSMO    |                      |     | à faire  |
 
@@ -170,3 +170,19 @@ Milestone terminé : `CHANGELOG.md` [2.1.0], `package.json` 2.1.0 ; tag `v2.1.0`
   Get/Set-NetConnectionProfile), `netsh advfirewall` (show/set profils, firewall add/delete/set/show rule) ;
   console `wf.msc` ; éditeur GPO (modèles et règles de trafic entrant) ; critères `firewallProfile`,
   `firewallRule` ; lab `lab-15-pare-feu`.
+
+### #25 RRAS (NAT, VPN)
+
+- Contrat des rôles : crochets de transit `transit` (`sim/transit.ts`) appelés par `sendIp` : un serveur peut
+  router, traduire les adresses (NAT), répondre en proxy ARP, encapsuler dans un tunnel ; `Delivery.src`
+  donne l'adresse vue par le destinataire (les réponses la visent : NAT).
+- Module `roles/rras/` : rôle Accès à distance (DirectAccess-VPN, Routage), assistant (NAT, VPN, VPN et NAT,
+  routage LAN, deux interfaces requises), pool d'adresses ; NAT sur l'interface publique (traduction et
+  retraduction expliquées en Simulation) ; VPN SSTP (TCP 443, règle de pare-feu prédéfinie) : authentification
+  (compte local ou du domaine, `adds/credentials.ts` partagé avec RDS), adresse du pool, tunnel vers les
+  réseaux privés du serveur, proxy ARP ; journaux RemoteAccess 20274 / 20271.
+- Client VPN (tous les ordinateurs) : `vpnConnections` de l'hôte, Paramètres › Réseau › VPN, cmdlets
+  `Add/Get/Remove-VpnConnection`, `rasdial` ; serveur : `Install-RemoteAccess`, `Uninstall-RemoteAccess`,
+  `Get-RemoteAccess`, `Set-VpnIPAddressAssignment`, `Get-RemoteAccessConnectionStatistics`, console
+  `rrasmgmt.msc` ; critères `natEnabled`, `vpnConnected` ; format des labs : `nics` et passerelle par carte ;
+  lab `lab-16-acces-distant`.
