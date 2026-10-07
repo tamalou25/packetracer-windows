@@ -67,7 +67,9 @@ function sendIcmpError(
     protocol: 'ICMP',
     ipProtocol: '1 (ICMP)',
     summary: `ICMP ${label} (${from} → ${to})`,
-    upper: [icmpLayer(type, code, label)]
+    upper: [icmpLayer(type, code, label)],
+    // Message d'erreur ICMP lié à un échange en cours : accepté par le pare-feu à états
+    reply: true
   })
   return res.kind === 'delivered'
 }
@@ -137,6 +139,7 @@ function echo(
     protocol: 'ICMP',
     ipProtocol: '1 (ICMP)',
     summary: `ICMP Echo Reply ${dst} → ${srcIp}`,
+    reply: true,
     upper: [
       icmpLayer(0, 0, 'Echo Reply', [
         ['Séquence', String(seq)],

@@ -214,6 +214,7 @@ export function queryServer(
     protocol: 'DNS',
     ipProtocol: '17 (UDP)',
     summary: `DNS réponse ${name} : ${describe(result)}`,
+    reply: true,
     upper: [udp(53, 49152), dnsLayer('Réponse', name, qtype, describe(result))]
   })
   if (reply.kind !== 'delivered') return { kind: 'timeout', qname: name }

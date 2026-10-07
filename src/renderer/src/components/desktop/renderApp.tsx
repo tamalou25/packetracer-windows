@@ -10,6 +10,7 @@ import { CertSrvApp } from '../apps/CertSrvApp'
 import { DfsApp } from '../apps/DfsApp'
 import { DhcpApp } from '../apps/DhcpApp'
 import { DnsApp } from '../apps/DnsApp'
+import { FirewallApp } from '../apps/FirewallApp'
 import { GpmcApp } from '../apps/GpmcApp'
 import { GpoEditor } from '../apps/GpoEditor'
 import { HyperVApp } from '../apps/HyperVApp'
@@ -78,6 +79,8 @@ export function renderApp(win: DesktopWindow, device: HostDevice): ReactNode {
       return <ControlPanel device={device} />
     case 'eventvwr':
       return <EventViewer device={device} />
+    case 'wf':
+      return <FirewallApp device={device} />
     case 'dhcp':
       return server ? <DhcpApp device={server} /> : unavailable()
     case 'dns':

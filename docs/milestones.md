@@ -126,8 +126,8 @@ Milestone terminé : `CHANGELOG.md` [2.1.0], `package.json` 2.1.0 ; tag `v2.1.0`
 | Issue | Sujet                   | Branche              | PR  | État     |
 | ----- | ----------------------- | -------------------- | --- | -------- |
 | #22   | VLAN, trunk, inter-VLAN | `feat/22-vlan`       | #82 | fusionné |
-| #23   | Relais DHCP             | `feat/23-dhcp-relay` |     | en cours |
-| #24   | Pare-feu simulé         |                      |     | à faire  |
+| #23   | Relais DHCP             | `feat/23-dhcp-relay` | #83 | fusionné |
+| #24   | Pare-feu simulé         | `feat/24-firewall`   |     | en cours |
 | #25   | RRAS : VPN et NAT       |                      |     | à faire  |
 | #26   | NPS / RADIUS            |                      |     | à faire  |
 | #27   | Multi-sites AD, FSMO    |                      |     | à faire  |
@@ -153,3 +153,20 @@ Milestone terminé : `CHANGELOG.md` [2.1.0], `package.json` 2.1.0 ; tag `v2.1.0`
   relais (route nécessaire), qui remet Offer et Ack au client. Champ « Agent relais (giaddr) » et choix de
   l'étendue expliqués en mode Simulation.
 - Lab `lab-14-relais-dhcp` ; e2e `dhcp-relay.spec.ts`.
+
+### #24 Pare-feu
+
+- Hôte : `firewall` (profils Domaine/Privé/Public : activé, actions par défaut entrant Bloquer / sortant
+  Autoriser ; catégorie du réseau hors domaine ; état des règles prédéfinies ; règles locales). GPO
+  ordinateur : « protéger toutes les connexions réseau » (profil du domaine, profil standard) et règles de
+  trafic entrant. Champs avec valeurs par défaut (format 6).
+- `services/firewall.ts` : règles prédéfinies des services installés (partage de fichiers ICMP/SMB, Bureau à
+  distance selon l'autorisation des connexions, DNS, AD DS/Kerberos, DHCP, IIS 80/443, WSUS 8530, DFSR),
+  profil actif (domaine si membre, sinon catégorie), évaluation (blocage prioritaire, action par défaut,
+  pare-feu à états : réponses non filtrées), actions et commandes `firewall.*`.
+- `sendIp` : filtrage entrant à la remise et sortant à l'émission ; paquet rejeté expliqué en mode Simulation
+  (règle ou action par défaut, profil). Les échanges TCP portent leur port (IIS : port de l'URL).
+- Cmdlets NetSecurity (Get/Set-NetFirewallProfile, Get/New/Set/Enable/Disable/Remove-NetFirewallRule,
+  Get/Set-NetConnectionProfile), `netsh advfirewall` (show/set profils, firewall add/delete/set/show rule) ;
+  console `wf.msc` ; éditeur GPO (modèles et règles de trafic entrant) ; critères `firewallProfile`,
+  `firewallRule` ; lab `lab-15-pare-feu`.

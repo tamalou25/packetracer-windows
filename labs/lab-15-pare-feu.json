@@ -1,0 +1,55 @@
+{
+  "formatVersion": 1,
+  "id": "lab-15-pare-feu",
+  "title": "Pare-feu Windows Defender",
+  "difficulty": "Intermédiaire",
+  "duration": "25 min",
+  "summary": "Ouvrir un port applicatif et bloquer le ping d’un poste précis sans désactiver le pare-feu.",
+  "statement": "# Contexte\n\nLe serveur **SRV1** (`192.168.10.1`, groupe de travail) héberge une application d’administration qui écoute sur le port **TCP 8080**. Le poste **PC2** (`192.168.10.20`) est un poste en libre-service : il ne doit pas pouvoir sonder le serveur par ping, contrairement à **PC1** (`192.168.10.10`).\n\n> La solution « désactiver le pare-feu » est interdite : le profil réseau de SRV1 doit rester protégé.\n\n## Travail demandé\n\n1. Sur SRV1, ouvrez **Pare-feu Windows Defender avec fonctions avancées de sécurité** (`wf.msc`) et repérez le profil actif.\n2. Créez une règle de trafic entrant qui **autorise TCP 8080**.\n3. Créez une règle qui **bloque les demandes d’écho ICMPv4** venant de l’adresse de PC2 uniquement.\n4. Vérifiez : PC1 répond au ping de SRV1, PC2 non ; en mode **Simulation**, observez le paquet rejeté par le pare-feu.\n\n> Équivalents en ligne de commande : `New-NetFirewallRule`, `netsh advfirewall firewall add rule`.",
+  "start": {
+    "devices": [
+      { "kind": "server", "name": "SRV1", "x": 300, "y": 100, "ip": "192.168.10.1/24" },
+      { "kind": "switch", "name": "SW1", "x": 300, "y": 280 },
+      { "kind": "client", "name": "PC1", "x": 140, "y": 440, "ip": "192.168.10.10/24" },
+      { "kind": "client", "name": "PC2", "x": 460, "y": 440, "ip": "192.168.10.20/24" }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/2"],
+      ["PC2:Ethernet0", "SW1:Fa0/3"]
+    ]
+  },
+  "criteria": [
+    {
+      "id": "port",
+      "label": "Le port de l’application est autorisé en entrée sur SRV1",
+      "hint": "Le trafic entrant non sollicité est bloqué par défaut : une règle de trafic entrant de type « Port » est nécessaire.",
+      "check": {
+        "type": "firewallRule",
+        "device": "SRV1",
+        "direction": "Inbound",
+        "action": "Allow",
+        "protocol": "TCP",
+        "port": 8080
+      }
+    },
+    {
+      "id": "blocked",
+      "label": "PC2 ne peut plus pinger le serveur",
+      "hint": "Une règle de blocage l’emporte sur une règle d’autorisation ; limitez-la grâce à l’étendue (adresse IP distante).",
+      "check": { "type": "ping", "from": "PC2", "to": "SRV1", "success": false }
+    },
+    {
+      "id": "allowed",
+      "label": "PC1 répond toujours au ping du serveur",
+      "hint": "Le blocage ne doit concerner qu’un seul poste.",
+      "check": { "type": "ping", "from": "PC1", "to": "SRV1" }
+    },
+    {
+      "id": "profile",
+      "label": "Le pare-feu du serveur reste actif sur le profil public",
+      "hint": "Désactiver le pare-feu « règle » le problème en exposant tout le serveur.",
+      "check": { "type": "firewallProfile", "device": "SRV1", "profile": "Public" }
+    }
+  ]
+}

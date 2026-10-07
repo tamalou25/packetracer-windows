@@ -4,6 +4,7 @@
  */
 import type {
   DriveMap,
+  FirewallRule,
   GpoComputerSettings,
   GpoStatus,
   GpoUserSettings,
@@ -26,6 +27,8 @@ export type SettingKey =
   | 'wuServer'
   | 'wuTargetGroup'
   | 'autoEnrollment'
+  | 'firewallDomain'
+  | 'firewallStandard'
   | 'wallpaper'
   | 'noRun'
   | 'noControlPanel'
@@ -73,7 +76,12 @@ export const EDITOR_TREE: PolicyNode[] = [
                     label: 'Stratégies locales',
                     children: [{ id: 'c-secopts', label: 'Options de sécurité' }]
                   },
-                  { id: 'c-pki', label: 'Stratégies de clé publique' }
+                  { id: 'c-pki', label: 'Stratégies de clé publique' },
+                  {
+                    id: 'c-firewall',
+                    label: 'Pare-feu Windows Defender avec fonctions avancées de sécurité',
+                    children: [{ id: 'c-fw-inbound', label: 'Règles de trafic entrant' }]
+                  }
                 ]
               }
             ]
@@ -82,6 +90,26 @@ export const EDITOR_TREE: PolicyNode[] = [
             id: 'c-admx',
             label: 'Modèles d’administration',
             children: [
+              {
+                id: 'c-network',
+                label: 'Réseau',
+                children: [
+                  {
+                    id: 'c-netconn',
+                    label: 'Connexions réseau',
+                    children: [
+                      {
+                        id: 'c-wf',
+                        label: 'Pare-feu Windows Defender',
+                        children: [
+                          { id: 'c-wf-domain', label: 'Profil du domaine' },
+                          { id: 'c-wf-standard', label: 'Profil standard' }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
               {
                 id: 'c-components',
                 label: 'Composants Windows',
@@ -178,6 +206,26 @@ export const POLICY_SETTINGS: PolicySettingInfo[] = [
     kind: 'template',
     category: 'Paramètres de sécurité / Stratégies de clé publique',
     help: 'Activé : l’ordinateur demande automatiquement à l’autorité de certification d’entreprise du domaine les certificats des modèles publiés pour lesquels il a l’autorisation d’inscription (modèle Ordinateur), puis les renouvelle. Appliqué au démarrage, par gpupdate ou par certutil -pulse.'
+  },
+  {
+    key: 'firewallDomain',
+    part: 'computer',
+    node: 'c-wf-domain',
+    label: 'Pare-feu Windows Defender : protéger toutes les connexions réseau',
+    kind: 'template',
+    category:
+      'Modèles d’administration / Réseau / Connexions réseau / Pare-feu Windows Defender / Profil du domaine',
+    help: 'Activé : le pare-feu protège les connexions de l’ordinateur lorsqu’il est connecté au réseau de son domaine ; l’administrateur local ne peut pas le désactiver. Désactivé : le pare-feu ne filtre plus le trafic sur le réseau du domaine. Non configuré : le réglage local s’applique.'
+  },
+  {
+    key: 'firewallStandard',
+    part: 'computer',
+    node: 'c-wf-standard',
+    label: 'Pare-feu Windows Defender : protéger toutes les connexions réseau',
+    kind: 'template',
+    category:
+      'Modèles d’administration / Réseau / Connexions réseau / Pare-feu Windows Defender / Profil standard',
+    help: 'Profil standard : réseaux privés et publics (hors domaine). Activé : le pare-feu protège ces connexions ; Désactivé : il ne filtre plus le trafic ; Non configuré : le réglage local s’applique.'
   },
   {
     key: 'wuServer',
@@ -280,6 +328,9 @@ export function templateState(
       return computer[key].state
     case 'autoEnrollment':
       return computer.autoEnrollment
+    case 'firewallDomain':
+    case 'firewallStandard':
+      return computer[key]
     case 'wallpaper':
       return user.wallpaper.state
     case 'noRun':
@@ -312,6 +363,9 @@ export function settingValue(
       return computer.logonMessageText
     case 'autoEnrollment':
       return computer.autoEnrollment === 'NotConfigured' ? null : POLICY_STATE_LABELS[computer.autoEnrollment]
+    case 'firewallDomain':
+    case 'firewallStandard':
+      return computer[key] === 'NotConfigured' ? null : POLICY_STATE_LABELS[computer[key]]
     case 'wuServer':
       if (computer.wuServer.state === 'NotConfigured') return null
       return computer.wuServer.state === 'Enabled'
@@ -334,6 +388,16 @@ export function settingValue(
   }
 }
 
+/** Résumé d'une règle de pare-feu : « Autoriser TCP 80, 443 (Domaine) ». */
+export function firewallRuleSummary(rule: FirewallRule): string {
+  const action = rule.action === 'Allow' ? 'Autoriser' : 'Bloquer'
+  const protocol = rule.protocol === 'Any' ? 'tout protocole' : rule.protocol
+  const ports = rule.localPorts.length > 0 ? ` ${rule.localPorts.join(', ')}` : ''
+  const from = rule.remoteAddresses.length > 0 ? ` depuis ${rule.remoteAddresses.join(', ')}` : ''
+  const profiles = rule.profiles.length > 0 ? ` (${rule.profiles.join(', ')})` : ''
+  return `${action} ${protocol}${ports}${from}${profiles}${rule.enabled ? '' : ' — désactivée'}`
+}
+
 export interface SettingLine {
   category: string
   label: string
@@ -350,6 +414,13 @@ export function describeSettings(
     const value = settingValue(s.key, computer, user)
     return value === null ? [] : [{ category: s.category, label: s.label, value }]
   })
+  if (part === 'computer')
+    for (const rule of computer.firewallRules)
+      lines.push({
+        category: 'Paramètres de sécurité / Pare-feu Windows Defender / Règles de trafic entrant',
+        label: rule.displayName,
+        value: firewallRuleSummary(rule)
+      })
   if (part === 'user')
     for (const map of user.driveMaps)
       lines.push({

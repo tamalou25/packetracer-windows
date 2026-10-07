@@ -158,6 +158,25 @@ describe('catalogue des commandes', () => {
     done(r)
   })
 
+  it('pare-feu : profils, catégorie du réseau, règles', () => {
+    const r = runner()
+    const srv = r.id('SRV1')
+    r.run(command('firewall.setProfile', srv, ['Domain', 'Public'], { enabled: false }))
+    r.run(command('firewall.setNetworkCategory', r.id('PC2'), 'Private'))
+    r.run(
+      command('firewall.newRule', srv, {
+        displayName: 'Web 8080',
+        direction: 'Inbound',
+        action: 'Allow',
+        protocol: 'TCP',
+        localPorts: [8080]
+      })
+    )
+    r.run(command('firewall.setRuleEnabled', srv, { group: 'Partage de fichiers et d’imprimantes' }, false))
+    r.run(command('firewall.removeRule', srv, { displayName: 'Web 8080' }))
+    done(r)
+  })
+
   it('consoles, tâches de fond et lots', () => {
     const r = runner()
     const session = createShellSession(r.state, r.id('SRV1'), 'powershell')

@@ -47,6 +47,7 @@ import lab11 from '../../../labs/lab-11-dfs.json'
 import lab12 from '../../../labs/lab-12-sauvegarde.json'
 import lab13 from '../../../labs/lab-13-vlan.json'
 import lab14 from '../../../labs/lab-14-relais-dhcp.json'
+import lab15 from '../../../labs/lab-15-pare-feu.json'
 import { run } from '../shell/helpers'
 
 function load(raw: unknown): LabDefinition {
@@ -408,13 +409,54 @@ const SOLUTIONS: Record<string, (s: LabState) => LabState> = {
     const r = dispatch(s, command('net.setHelperAddresses', r1, gi1, ['192.168.10.1']))
     if (!r.ok) throw new Error(r.error.message)
     return autoConfigureDhcp(r.state).state
+  },
+  'lab-15-pare-feu': (s) => {
+    const srv = id(s, 'SRV1')
+    const exec = (cmd: AnyCommand) => {
+      const r = dispatch(s, cmd)
+      if (!r.ok) throw new Error(r.error.message)
+      s = r.state
+    }
+    exec(
+      command('firewall.newRule', srv, {
+        displayName: 'Application 8080',
+        direction: 'Inbound',
+        action: 'Allow',
+        protocol: 'TCP',
+        localPorts: [8080]
+      })
+    )
+    exec(
+      command('firewall.newRule', srv, {
+        displayName: 'Bloquer le ping de PC2',
+        direction: 'Inbound',
+        action: 'Block',
+        protocol: 'ICMPv4',
+        remoteAddresses: ['192.168.10.20']
+      })
+    )
+    return s
   }
 }
 
 describe('Labs', () => {
-  const labs = [lab1, lab2, lab3, lab4, lab5, lab6, lab7, lab8, lab9, lab10, lab11, lab12, lab13, lab14].map(
-    load
-  )
+  const labs = [
+    lab1,
+    lab2,
+    lab3,
+    lab4,
+    lab5,
+    lab6,
+    lab7,
+    lab8,
+    lab9,
+    lab10,
+    lab11,
+    lab12,
+    lab13,
+    lab14,
+    lab15
+  ].map(load)
 
   it('chaque lab a un identifiant unique, des critères uniques et des indices', () => {
     expect(new Set(labs.map((l) => l.id)).size).toBe(labs.length)

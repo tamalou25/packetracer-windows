@@ -36,6 +36,14 @@ test('IIS : site par défaut consulté depuis le navigateur d’un poste, site a
     await inputs.nth(3).fill('8080')
     await dialog.getByRole('button', { name: 'OK' }).click()
     await expect(srv.getByTestId('iis-bindings')).toContainText('8080')
+    // Port personnalisé : le rôle n'ouvre que 80 et 443, une règle de pare-feu est nécessaire
+    await openConsole(page, 'SRV1', 'powershell')
+    await typeCommand(
+      page,
+      'SRV1',
+      'New-NetFirewallRule -DisplayName "Site Test" -Direction Inbound -Protocol TCP -LocalPort 8080 -Action Allow'
+    )
+    await expect(srv.getByTestId('terminal-powershell')).toContainText('Site Test')
     await srv.getByTestId('close-device-window').click()
 
     // Navigateur du poste

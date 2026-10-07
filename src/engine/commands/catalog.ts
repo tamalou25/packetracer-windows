@@ -24,6 +24,14 @@ import { backgroundLabel, runBackgroundTasks } from '../roles/background'
 import { installFeatures, uninstallFeatures } from '../roles/features'
 import { roleModules, type RoleModules } from '../roles/registry'
 import { newSelfSignedCertificate } from '../services/certificates'
+import {
+  newFirewallRule,
+  PROFILE_LABELS,
+  removeFirewallRule,
+  setFirewallProfile,
+  setFirewallRuleEnabled,
+  setNetworkCategory
+} from '../services/firewall'
 import { renameComputer, restartComputer } from '../services/system'
 import { executeLine } from '../shell/exec'
 import type { ShellResult, ShellSession } from '../shell/types'
@@ -161,6 +169,34 @@ const CORE_COMMANDS = {
     removeSubinterface,
     (s, id, ifaceId) => `Supprimer la sous-interface ${interfaceName(s, id, ifaceId)}`
   ),
+
+  // Pare-feu Windows Defender
+  'firewall.setProfile': def(setFirewallProfile, (s, id, profiles, input) => {
+    const names = profiles.map((p) => PROFILE_LABELS[p]).join(', ')
+    const what =
+      input.enabled === undefined
+        ? 'Modifier les actions par défaut'
+        : input.enabled
+          ? 'Activer le pare-feu'
+          : 'Désactiver le pare-feu'
+    return `${what} (profil ${names})${on(s, id)}`
+  }),
+  'firewall.setNetworkCategory': def(
+    setNetworkCategory,
+    (s, id, category) => `Réseau ${category === 'Private' ? 'privé' : 'public'}${on(s, id)}`
+  ),
+  'firewall.newRule': def(
+    newFirewallRule,
+    (s, id, input) => `Nouvelle règle de pare-feu « ${input.displayName} »${on(s, id)}`
+  ),
+  'firewall.setRuleEnabled': def(setFirewallRuleEnabled, (s, id, selector, enabled) => {
+    const target = selector.displayName ?? selector.group ?? selector.name ?? ''
+    return `${enabled ? 'Activer' : 'Désactiver'} la règle de pare-feu « ${target} »${on(s, id)}`
+  }),
+  'firewall.removeRule': def(removeFirewallRule, (s, id, selector) => {
+    const target = selector.displayName ?? selector.group ?? selector.name ?? ''
+    return `Supprimer la règle de pare-feu « ${target} »${on(s, id)}`
+  }),
 
   // Système
   'system.restartComputer': def(restartComputer, (s, id) => `Redémarrer ${deviceName(s, id)}`),
