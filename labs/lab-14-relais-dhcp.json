@@ -1,0 +1,65 @@
+{
+  "formatVersion": 1,
+  "id": "lab-14-relais-dhcp",
+  "title": "Un serveur DHCP pour deux réseaux (relais)",
+  "difficulty": "Intermédiaire",
+  "duration": "25 min",
+  "summary": "Servir un second réseau avec le serveur DHCP existant grâce à l’agent de relais du routeur.",
+  "statement": "# Contexte\n\nL’entreprise ouvre un second réseau, `192.168.20.0/24`, derrière le routeur **R1**. Plutôt que d’installer un serveur DHCP par réseau, **SRV1** (`192.168.10.1`) distribuera les adresses des deux réseaux.\n\nUne diffusion DHCP ne traverse pas un routeur : R1 doit **relayer** les requêtes reçues sur `Gi0/1` vers SRV1 (`ip helper-address`). SRV1 choisit alors l’étendue d’après l’adresse de l’interface du relais (champ *giaddr*).\n\n## Travail demandé\n\n1. Sur SRV1, créez l’étendue **LAN2** : de `192.168.20.100` à `192.168.20.200`, masque `255.255.255.0`, routeur (option 003) `192.168.20.254`.\n2. Sur R1 (onglet Config › Gi0/1), indiquez l’adresse de SRV1 comme **relais DHCP**.\n3. Sur PC2, `ipconfig /renew`, puis observez l’échange relayé en mode **Simulation** (champ « Agent relais (giaddr) »).\n4. Vérifiez que PC2 joint SRV1.",
+  "start": {
+    "devices": [
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 100,
+        "y": 100,
+        "ip": "192.168.10.1/24",
+        "gateway": "192.168.10.254",
+        "dns": ["127.0.0.1"],
+        "features": ["DHCP"]
+      },
+      { "kind": "switch", "name": "SW1", "x": 100, "y": 300 },
+      {
+        "kind": "router",
+        "name": "R1",
+        "x": 330,
+        "y": 300,
+        "interfaces": { "Gi0/0": "192.168.10.254/24", "Gi0/1": "192.168.20.254/24" }
+      },
+      { "kind": "switch", "name": "SW2", "x": 560, "y": 300 },
+      { "kind": "client", "name": "PC2", "x": 560, "y": 460, "dhcp": true }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["R1:Gi0/0", "SW1:Fa0/2"],
+      ["R1:Gi0/1", "SW2:Fa0/1"],
+      ["PC2:Ethernet0", "SW2:Fa0/2"]
+    ]
+  },
+  "criteria": [
+    {
+      "id": "scope",
+      "label": "L’étendue du second réseau distribue sa passerelle",
+      "hint": "Une étendue par réseau : sa plage d’adresses et son option Routeur appartiennent au second réseau.",
+      "check": {
+        "type": "dhcpScope",
+        "server": "SRV1",
+        "start": "192.168.20.100",
+        "end": "192.168.20.200",
+        "router": "192.168.20.254"
+      }
+    },
+    {
+      "id": "lease",
+      "label": "PC2 obtient son bail auprès de SRV1",
+      "hint": "La découverte DHCP est une diffusion : sans agent de relais sur l’interface du routeur côté client, elle ne quitte pas le réseau.",
+      "check": { "type": "dhcpLease", "client": "PC2", "server": "SRV1" }
+    },
+    {
+      "id": "ping",
+      "label": "PC2 joint SRV1",
+      "hint": "Le poste a besoin d’une passerelle par défaut, distribuée par l’étendue.",
+      "check": { "type": "ping", "from": "PC2", "to": "SRV1" }
+    }
+  ]
+}

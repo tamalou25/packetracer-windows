@@ -75,7 +75,9 @@ export const NetInterfaceSchema = z.object({
   /** Port de switch : mode accès ou trunk 802.1Q (absent : accès, VLAN 1). */
   switchport: SwitchportSchema.optional(),
   /** Sous-interface de routeur (sans câble propre : elle utilise celui de sa carte parente). */
-  subinterface: SubinterfaceSchema.optional()
+  subinterface: SubinterfaceSchema.optional(),
+  /** Interface de routeur : serveurs DHCP vers lesquels relayer les diffusions (ip helper-address). */
+  helperAddresses: z.array(z.string()).optional()
 })
 
 /** Entrée du journal d'événements (Observateur d'événements simplifié). */

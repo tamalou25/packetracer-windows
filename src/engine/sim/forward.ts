@@ -100,7 +100,7 @@ export function recordUnicast(
 }
 
 /** Modifie le devenir du dernier événement enregistré (décision prise à l'arrivée). */
-function setLastOutcome(ctx: SimContext, outcome: PduOutcome, note: string): void {
+export function setLastOutcome(ctx: SimContext, outcome: PduOutcome, note: string): void {
   const last = ctx.rec.events[ctx.rec.events.length - 1]
   if (last) {
     last.outcome = outcome

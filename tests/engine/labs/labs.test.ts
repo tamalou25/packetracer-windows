@@ -46,6 +46,7 @@ import lab10 from '../../../labs/lab-10-adcs.json'
 import lab11 from '../../../labs/lab-11-dfs.json'
 import lab12 from '../../../labs/lab-12-sauvegarde.json'
 import lab13 from '../../../labs/lab-13-vlan.json'
+import lab14 from '../../../labs/lab-14-relais-dhcp.json'
 import lab15 from '../../../labs/lab-15-pare-feu.json'
 import { run } from '../shell/helpers'
 
@@ -392,6 +393,23 @@ const SOLUTIONS: Record<string, (s: LabState) => LabState> = {
     }
     return s
   },
+  'lab-14-relais-dhcp': (s) => {
+    const srv = id(s, 'SRV1')
+    const r1 = id(s, 'R1')
+    const scope = unwrap(
+      addScope(s, srv, {
+        name: 'LAN2',
+        start: '192.168.20.100',
+        end: '192.168.20.200',
+        mask: '255.255.255.0'
+      })
+    )
+    s = unwrap(setDhcpOptions(scope.state, srv, scope.value, { router: ['192.168.20.254'] })).state
+    const gi1 = s.devices[r1]!.interfaces.find((i) => i.name === 'Gi0/1')!.id
+    const r = dispatch(s, command('net.setHelperAddresses', r1, gi1, ['192.168.10.1']))
+    if (!r.ok) throw new Error(r.error.message)
+    return autoConfigureDhcp(r.state).state
+  },
   'lab-15-pare-feu': (s) => {
     const srv = id(s, 'SRV1')
     const exec = (cmd: AnyCommand) => {
@@ -422,9 +440,23 @@ const SOLUTIONS: Record<string, (s: LabState) => LabState> = {
 }
 
 describe('Labs', () => {
-  const labs = [lab1, lab2, lab3, lab4, lab5, lab6, lab7, lab8, lab9, lab10, lab11, lab12, lab13, lab15].map(
-    load
-  )
+  const labs = [
+    lab1,
+    lab2,
+    lab3,
+    lab4,
+    lab5,
+    lab6,
+    lab7,
+    lab8,
+    lab9,
+    lab10,
+    lab11,
+    lab12,
+    lab13,
+    lab14,
+    lab15
+  ].map(load)
 
   it('chaque lab a un identifiant unique, des critères uniques et des indices', () => {
     expect(new Set(labs.map((l) => l.id)).size).toBe(labs.length)

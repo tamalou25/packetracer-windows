@@ -11,7 +11,7 @@ import { clearEventLog } from '../core/eventlog'
 import type { EngineResult } from '../core/result'
 import { nextDeviceName } from '../model/factory'
 import type { LabState, Position } from '../model/schema'
-import { addStaticRoute, removeStaticRoute, setInterfaceIpv4 } from '../net/config'
+import { addStaticRoute, removeStaticRoute, setHelperAddresses, setInterfaceIpv4 } from '../net/config'
 import {
   addSubinterface,
   addVlan,
@@ -148,6 +148,11 @@ const CORE_COMMANDS = {
     (s, id, r) => `Ajouter la route ${r.network}/${r.mask}${on(s, id)}`
   ),
   'net.removeStaticRoute': def(removeStaticRoute, (s, id) => `Supprimer une route statique${on(s, id)}`),
+  'net.setHelperAddresses': def(setHelperAddresses, (s, id, ifaceId, list) =>
+    list.length > 0
+      ? `Relayer DHCP de ${interfaceName(s, id, ifaceId)} vers ${list.join(', ')}`
+      : `Désactiver le relais DHCP de ${interfaceName(s, id, ifaceId)}`
+  ),
   'net.addVlan': def(addVlan, (s, id, vlan) => `Créer le VLAN ${vlan}${on(s, id)}`),
   'net.renameVlan': def(renameVlan, (s, id, vlan, name) => `Renommer le VLAN ${vlan} en ${name}${on(s, id)}`),
   'net.removeVlan': def(removeVlan, (s, id, vlan) => `Supprimer le VLAN ${vlan}${on(s, id)}`),
