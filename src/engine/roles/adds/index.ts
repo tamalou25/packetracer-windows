@@ -8,6 +8,9 @@ import { adCmdlets } from './cmdlets'
 import { addsCommands } from './commands'
 import { addsCriteria } from './criteria'
 import { controlledDomain } from './directory'
+import { replicateDirectory } from './replication'
+import { siteCmdlets } from './site-cmdlets'
+import { netdomTool, nltestTool, repadminTool } from './site-tools'
 
 export const addsRole = defineRole({
   id: 'adds',
@@ -33,8 +36,8 @@ export const addsRole = defineRole({
     { name: 'RSAT-ADDS', displayName: 'Outils AD DS', role: false, parent: 'RSAT-AD-Tools' }
   ],
   commands: addsCommands,
-  cmdlets: [...adCmdlets, ...recycleBinCmdlets],
-  tools: [],
+  cmdlets: [...adCmdlets, ...recycleBinCmdlets, ...siteCmdlets],
+  tools: [repadminTool, netdomTool, nltestTool],
   views: [
     {
       app: 'aduc',
@@ -51,14 +54,38 @@ export const addsRole = defineRole({
       requires: { feature: 'RSAT-ADDS', domain: true }
     },
     {
+      app: 'dssite',
+      label: 'Sites et services Active Directory',
+      run: ['dssite.msc'],
+      tool: true,
+      requires: { feature: 'RSAT-ADDS', domain: true }
+    },
+    {
       app: 'adpromote',
       label: 'Assistant Configuration des services de domaine Active Directory',
       requires: { server: true }
     }
   ],
   criteria: addsCriteria,
-  backgroundTasks: [],
-  events: { sources: ['ActiveDirectory_DomainService', 'Security-Auditing'] },
+  backgroundTasks: [
+    {
+      id: 'adds.replication',
+      label: 'Réplication Active Directory',
+      // Annuaire, câblage et équipements (chemin réseau entre contrôleurs) : pas de passage sans changement
+      deps: (state) => [
+        state.domains,
+        state.links,
+        ...Object.values(state.devices).flatMap((d) => [
+          d.powered,
+          d.interfaces,
+          d.kind === 'server' ? d.roles['dns'] : null,
+          d.kind === 'server' || d.kind === 'client' ? d.host.firewall : null
+        ])
+      ],
+      run: replicateDirectory
+    }
+  ],
+  events: { sources: ['ActiveDirectory_DomainService', 'Security-Auditing', 'NTDS KCC'] },
   services: [
     { display: 'Services de domaine Active Directory', name: 'NTDS', when: 'domainController' },
     { display: 'Centre de distribution de clés Kerberos', name: 'Kdc', when: 'domainController' },

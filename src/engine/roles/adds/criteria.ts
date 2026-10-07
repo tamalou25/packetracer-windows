@@ -4,7 +4,10 @@
 import { z } from 'zod'
 import { firstDomain, fqdn, hostByName, sameName } from '../../labs/lookup'
 import { defineCriterion } from '../types'
+import { FSMO_ROLES } from '../../model/schema'
 import { allObjects, findContainer, groupsOf } from './directory'
+import { fsmoHolder } from './fsmo'
+import { dcSite } from './sites'
 
 export const addsCriteria = [
   defineCriterion(
@@ -47,5 +50,50 @@ export const addsCriteria = [
   defineCriterion(
     z.object({ type: z.literal('domainJoined'), device: z.string(), domain: z.string() }),
     (state, check) => hostByName(state, check.device)?.host.domain === fqdn(check.domain)
+  ),
+  defineCriterion(
+    z.object({ type: z.literal('adSite'), site: z.string(), subnet: z.string().optional() }),
+    (state, check) => {
+      const domain = firstDomain(state)
+      const site = domain?.sites.find((x) => sameName(x.name, check.site))
+      if (!domain || !site) return false
+      return (
+        !check.subnet || domain.subnets.some((n) => n.prefix === check.subnet && sameName(n.site, site.name))
+      )
+    }
+  ),
+  defineCriterion(
+    z.object({
+      type: z.literal('siteLink'),
+      sites: z.array(z.string()),
+      maxInterval: z.number().optional()
+    }),
+    (state, check) =>
+      !!firstDomain(state)?.siteLinks.some(
+        (l) =>
+          check.sites.every((s) => l.sites.some((x) => sameName(x, s))) &&
+          (check.maxInterval === undefined || l.interval <= check.maxInterval)
+      )
+  ),
+  defineCriterion(
+    z.object({ type: z.literal('domainController'), server: z.string(), site: z.string().optional() }),
+    (state, check) => {
+      const server = hostByName(state, check.server)
+      const domain = firstDomain(state)
+      if (!server || !domain?.controllers.includes(server.id)) return false
+      return !check.site || sameName(dcSite(domain, server.id), check.site)
+    }
+  ),
+  defineCriterion(
+    z.object({ type: z.literal('fsmoRole'), role: z.enum(FSMO_ROLES), server: z.string() }),
+    (state, check) => {
+      const domain = firstDomain(state)
+      const server = hostByName(state, check.server)
+      return !!domain && !!server && fsmoHolder(domain, check.role) === server.id
+    }
+  ),
+  defineCriterion(
+    z.object({ type: z.literal('logonServer'), client: z.string(), server: z.string() }),
+    (state, check) => sameName(hostByName(state, check.client)?.host.session?.logonServer ?? '', check.server)
   )
 ]

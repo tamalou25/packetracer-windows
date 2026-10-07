@@ -64,7 +64,7 @@ describe('AD DS : promotion', () => {
     const domain = s.domains['lab.local']
     expect(domain?.netbios).toBe('LAB')
     const srv = s.devices[ids.SRV1!]
-    expect(srv?.kind === 'server' && srv.host.session).toEqual({ user: 'Administrateur', domain: 'LAB' })
+    expect(srv?.kind === 'server' && srv.host.session).toEqual({ user: 'Administrateur', domain: 'LAB', logonServer: 'SRV1' })
     const zone =
       srv?.kind === 'server' ? dnsServerOf(srv)?.zones.find((z) => z.name === 'lab.local') : undefined
     expect(zone?.adIntegrated).toBe(true)
@@ -257,7 +257,7 @@ describe('AD DS : jonction et ouverture de session', () => {
     })
     expect(ok.ok).toBe(true)
     const pc = ok.state.devices[j.ids.PC1!]
-    expect(pc?.kind === 'client' && pc.host.session).toEqual({ user: 'jdupont', domain: 'LAB' })
+    expect(pc?.kind === 'client' && pc.host.session).toEqual({ user: 'jdupont', domain: 'LAB', logonServer: 'SRV1' })
     expect(ps(ok.state, j.ids.PC1!, 'whoami', ['']).text).toBe('lab\\jdupont')
     // DC éteint : aucun serveur d'accès disponible
     const off = {

@@ -7,6 +7,20 @@ import { fail, type EngineResult } from '../../core/result'
 import type { LabState } from '../../model/schema'
 import type { PacketTrace } from '../../sim/trace'
 import { installForest } from './forest'
+import { moveFsmoRoles } from './fsmo'
+import { installDomainController } from './promote'
+import { syncDomain } from './replication'
+import {
+  moveDcToSite,
+  newSite,
+  newSiteLink,
+  newSubnet,
+  removeAdSite,
+  removeSiteLink,
+  removeSubnet,
+  renameSite,
+  setSiteLink
+} from './sites'
 import {
   changePasswordAndLogon,
   joinDomain,
@@ -108,5 +122,27 @@ export const addsCommands = {
       directory(changePasswordAndLogon(s, id, input)),
     (s, id, input) => `Changer le mot de passe de ${input.user}${on(s, id)}`
   ),
-  'adds.logoff': def(closeSession, (s, id) => `Fermer la session${on(s, id)}`)
+  'adds.logoff': def(closeSession, (s, id) => `Fermer la session${on(s, id)}`),
+  'adds.installDomainController': def(
+    (s: LabState, id: string, input: Parameters<typeof installDomainController>[2]) =>
+      directory(installDomainController(s, id, input)),
+    (s, id, input) => `Promouvoir ${deviceName(s, id)} (contrôleur supplémentaire de ${input.domainName})`
+  ),
+  'adds.newSite': def(newSite, (_s, _d, input) => `Créer le site ${input.name}`),
+  'adds.renameSite': def(renameSite, (_s, _d, name, next) => `Renommer le site ${name} en ${next}`),
+  'adds.removeSite': def(removeAdSite, (_s, _d, name) => `Supprimer le site ${name}`),
+  'adds.newSubnet': def(newSubnet, (_s, _d, input) => `Créer le sous-réseau ${input.prefix} (${input.site})`),
+  'adds.removeSubnet': def(removeSubnet, (_s, _d, prefix) => `Supprimer le sous-réseau ${prefix}`),
+  'adds.newSiteLink': def(newSiteLink, (_s, _d, input) => `Créer le lien de sites ${input.name}`),
+  'adds.setSiteLink': def(setSiteLink, (_s, _d, name) => `Modifier le lien de sites ${name}`),
+  'adds.removeSiteLink': def(removeSiteLink, (_s, _d, name) => `Supprimer le lien de sites ${name}`),
+  'adds.moveDcToSite': def(
+    moveDcToSite,
+    (s, _d, id, site) => `Déplacer ${deviceName(s, id)} dans le site ${site}`
+  ),
+  'adds.moveFsmoRoles': def(
+    moveFsmoRoles,
+    (s, _d, id, roles) => `Transférer ${roles.join(', ')} vers ${deviceName(s, id)}`
+  ),
+  'adds.syncReplication': def(syncDomain, (_s, d) => `Répliquer maintenant (${d})`)
 }

@@ -118,7 +118,8 @@ function serverLookup(
   const zone = findZoneFor(dns, name)
   if (zone) {
     const rel = relativeName(zone, name)
-    const records = zone.records.filter((r) => r.name === rel)
+    // Noms DNS insensibles à la casse (RFC 4343)
+    const records = zone.records.filter((r) => r.name.toLowerCase() === rel)
     const toAnswer = (r: DnsRecord): DnsAnswerRecord => ({ name, type: r.type, data: r.data, ttl: r.ttl })
     const matches = records.filter((r) => r.type === qtype)
     if (matches.length > 0)

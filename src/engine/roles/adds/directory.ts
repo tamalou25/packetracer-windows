@@ -6,6 +6,7 @@ import type { Draft } from 'immer'
 import { raise } from '../../core/result'
 import { nextSeq } from '../../model/factory'
 import type { AdComputer, AdContainer, AdGroup, AdUser, Domain, LabState } from '../../model/schema'
+import { DEFAULT_AD_SITE, DEFAULT_AD_SITE_LINK } from '../../model/schema'
 import { DEFAULT_DC_POLICY_ID, DEFAULT_DOMAIN_POLICY_ID, defaultDomainGpos } from '../gpo/defaults'
 
 export type AdObject =
@@ -402,7 +403,13 @@ export function buildDomain(
     gpos: defaultDomainGpos(draft.clock),
     gpLinks: [{ gpoId: DEFAULT_DOMAIN_POLICY_ID, enabled: true, enforced: false }],
     recycleBin: false,
-    deletedObjects: []
+    deletedObjects: [],
+    sites: [{ name: DEFAULT_AD_SITE, description: '' }],
+    subnets: [],
+    siteLinks: [{ name: DEFAULT_AD_SITE_LINK, sites: [DEFAULT_AD_SITE], cost: 100, interval: 180 }],
+    dcSites: { [dc.deviceId]: DEFAULT_AD_SITE },
+    fsmo: {},
+    replication: { status: [], dnsBase: {}, syncedAt: {} }
   }
 }
 

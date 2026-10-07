@@ -104,7 +104,8 @@ export class CmdContext extends ExecContext {
       case 'userdnsdomain':
         return user.domain && host.host.domain ? host.host.domain.toUpperCase() : null
       case 'logonserver':
-        return `\\\\${user.domain ? (domainNetbios ?? host.name) : host.name}`
+        // Contrôleur qui a authentifié la session (nom de l'ordinateur pour un compte local)
+        return `\\\\${user.domain ? (host.host.session?.logonServer ?? domainNetbios ?? host.name) : host.name}`
       case 'userprofile':
         return `C:\\Users\\${user.name}`
       case 'systemroot':

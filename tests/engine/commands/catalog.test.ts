@@ -208,6 +208,36 @@ describe('catalogue des commandes', () => {
     done(r)
   })
 
+  it('sites, contrôleur supplémentaire, FSMO, réplication', () => {
+    const r = runner()
+    const srv = r.id('SRV1')
+    r.run(command('adds.renameSite', DOMAIN, 'Default-First-Site-Name', 'Paris'))
+    r.run(command('adds.newSite', DOMAIN, { name: 'Lyon' }))
+    r.run(command('adds.newSubnet', DOMAIN, { prefix: '192.168.20.0/24', site: 'Lyon' }))
+    r.run(command('adds.newSiteLink', DOMAIN, { name: 'PL', sites: ['Paris', 'Lyon'] }))
+    r.run(command('adds.setSiteLink', DOMAIN, 'PL', { cost: 50, interval: 15 }))
+    r.run(command('adds.moveDcToSite', DOMAIN, srv, 'Lyon'))
+    r.run(command('adds.moveDcToSite', DOMAIN, srv, 'Paris'))
+    r.run(command('adds.removeSiteLink', DOMAIN, 'PL'))
+    r.run(command('adds.removeSubnet', DOMAIN, '192.168.20.0/24'))
+    r.run(command('adds.removeSite', DOMAIN, 'Lyon'))
+    r.run(command('adds.moveFsmoRoles', DOMAIN, srv, ['PDCEmulator']), false)
+    // Un seul contrôleur : refus métier (la réplication à deux DC est testée dans ad-sites.test.ts)
+    const sync = dispatch(r.state, command('adds.syncReplication', DOMAIN))
+    expect(!sync.ok && sync.error.code).toBe('SingleController')
+    r.covered.add('adds.syncReplication')
+    r.run(
+      command('adds.installDomainController', r.id('SRV1'), {
+        domainName: DOMAIN,
+        user: 'LAB\\Administrateur',
+        password: 'x',
+        safeModePassword: 'P@ssw0rd!'
+      }),
+      false
+    )
+    done(r)
+  })
+
   it('consoles, tâches de fond et lots', () => {
     const r = runner()
     const session = createShellSession(r.state, r.id('SRV1'), 'powershell')
