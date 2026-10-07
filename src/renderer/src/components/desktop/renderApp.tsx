@@ -17,6 +17,7 @@ import { HyperVApp } from '../apps/HyperVApp'
 import { IisApp } from '../apps/IisApp'
 import { RdsApp } from '../apps/RdsApp'
 import { RrasApp } from '../apps/RrasApp'
+import { DssiteApp } from '../apps/DssiteApp'
 import { WbadminApp } from '../apps/WbadminApp'
 import { WsusApp } from '../apps/WsusApp'
 import { Terminal } from '../console/Terminal'
@@ -117,6 +118,8 @@ export function renderApp(win: DesktopWindow, device: HostDevice): ReactNode {
       return server ? <RdsApp device={server} /> : unavailable()
     case 'mstsc':
       return <RemoteDesktop device={device} />
+    case 'dssite':
+      return <DssiteApp device={device} />
     case 'rrasmgmt':
       return server ? <RrasApp device={server} /> : unavailable()
     case 'vpnclient':

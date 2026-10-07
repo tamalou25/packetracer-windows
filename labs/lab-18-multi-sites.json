@@ -1,0 +1,102 @@
+{
+  "formatVersion": 1,
+  "id": "lab-18-multi-sites",
+  "title": "Domaine multi-sites, second contrôleur et rôles FSMO",
+  "difficulty": "Avancé",
+  "duration": "50 min",
+  "summary": "Déclarer les sites Paris et Lyon, ajouter un contrôleur à Lyon, vérifier la réplication et transférer des rôles FSMO.",
+  "statement": "# Contexte\n\nLe domaine `lab.local` a un seul contrôleur, **SRV1** (`192.168.10.1`), à Paris. L’agence de Lyon (`192.168.20.0/24`, routée par **R1**) dispose de **SRV2** (rôle Services AD DS installé, serveur membre du groupe de travail) et du poste **PC3**, joint au domaine.\n\nCompte d’administration : `LAB\\Administrateur` / `P@ssw0rd`. Mot de passe des utilisateurs : `Azerty123!`.\n\n## Travail demandé\n\n1. Dans **Sites et services Active Directory** (`dssite.msc`) sur SRV1, renommez `Default-First-Site-Name` en `Paris` et créez le site `Lyon`.\n2. Créez les sous-réseaux `192.168.10.0/24` (Paris) et `192.168.20.0/24` (Lyon), puis un lien de sites `Paris-Lyon` répliquant toutes les **15 minutes**.\n3. Sur SRV2, ajoutez un contrôleur au domaine existant : `Install-ADDSDomainController -DomainName lab.local -Credential (Get-Credential) -SafeModeAdministratorPassword …`.\n4. Vérifiez la réplication (`repadmin /replsummary`, `repadmin /showrepl`).\n5. Transférez le rôle **PDCEmulator** à SRV2 (`Move-ADDirectoryServerOperationMasterRole`) et contrôlez avec `netdom query fsmo`.\n6. Ouvrez une session `LAB\\jdupont` sur PC3 : `$env:LOGONSERVER` doit désigner le contrôleur de Lyon.",
+  "start": {
+    "devices": [
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 100,
+        "y": 100,
+        "ip": "192.168.10.1/24",
+        "gateway": "192.168.10.254",
+        "dns": ["127.0.0.1"]
+      },
+      { "kind": "switch", "name": "SW1", "x": 100, "y": 300 },
+      {
+        "kind": "router",
+        "name": "R1",
+        "x": 330,
+        "y": 300,
+        "interfaces": { "Gi0/0": "192.168.10.254/24", "Gi0/1": "192.168.20.254/24" }
+      },
+      { "kind": "switch", "name": "SW2", "x": 560, "y": 300 },
+      {
+        "kind": "server",
+        "name": "SRV2",
+        "x": 560,
+        "y": 100,
+        "ip": "192.168.20.1/24",
+        "gateway": "192.168.20.254",
+        "dns": ["192.168.10.1"],
+        "features": ["AD-Domain-Services"]
+      },
+      {
+        "kind": "client",
+        "name": "PC3",
+        "x": 760,
+        "y": 420,
+        "ip": "192.168.20.10/24",
+        "gateway": "192.168.20.254",
+        "dns": ["192.168.10.1"]
+      }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["R1:Gi0/0", "SW1:Fa0/2"],
+      ["R1:Gi0/1", "SW2:Fa0/1"],
+      ["SRV2:Ethernet0", "SW2:Fa0/2"],
+      ["PC3:Ethernet0", "SW2:Fa0/3"]
+    ],
+    "domain": {
+      "name": "lab.local",
+      "netbios": "LAB",
+      "dc": "SRV1",
+      "users": [{ "name": "Jean Dupont", "sam": "jdupont", "password": "Azerty123!" }],
+      "join": ["PC3"]
+    }
+  },
+  "criteria": [
+    {
+      "id": "sites",
+      "label": "Le site Lyon existe avec son sous-réseau",
+      "hint": "Un client est rattaché au site dont un sous-réseau contient son adresse IP.",
+      "check": { "type": "adSite", "site": "Lyon", "subnet": "192.168.20.0/24" }
+    },
+    {
+      "id": "paris",
+      "label": "Le premier site s’appelle Paris",
+      "hint": "Le site créé avec la forêt peut être renommé dans la console des sites.",
+      "check": { "type": "adSite", "site": "Paris", "subnet": "192.168.10.0/24" }
+    },
+    {
+      "id": "link",
+      "label": "Un lien de sites relie Paris et Lyon (15 minutes au plus)",
+      "hint": "Sans lien commun, les contrôleurs de deux sites ne répliquent pas ; l’intervalle se règle dans les propriétés du lien.",
+      "check": { "type": "siteLink", "sites": ["Paris", "Lyon"], "maxInterval": 15 }
+    },
+    {
+      "id": "dc2",
+      "label": "SRV2 est contrôleur du domaine dans le site Lyon",
+      "hint": "La promotion place le contrôleur dans le site de son sous-réseau ; elle exige un compte du groupe Admins du domaine.",
+      "check": { "type": "domainController", "server": "SRV2", "site": "Lyon" }
+    },
+    {
+      "id": "pdc",
+      "label": "SRV2 détient le rôle d’émulateur PDC",
+      "hint": "Les rôles de maître d’opérations se transfèrent vers un contrôleur joignable ; netdom affiche leurs détenteurs.",
+      "check": { "type": "fsmoRole", "role": "PDCEmulator", "server": "SRV2" }
+    },
+    {
+      "id": "logon",
+      "label": "PC3 est authentifié par le contrôleur de son site",
+      "hint": "Le contrôleur contacté en premier indique au client son site ; le client cherche alors un contrôleur de ce site dans le DNS.",
+      "check": { "type": "logonServer", "client": "PC3", "server": "SRV2" }
+    }
+  ]
+}

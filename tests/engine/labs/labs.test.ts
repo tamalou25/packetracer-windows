@@ -49,6 +49,8 @@ import lab13 from '../../../labs/lab-13-vlan.json'
 import lab14 from '../../../labs/lab-14-relais-dhcp.json'
 import lab15 from '../../../labs/lab-15-pare-feu.json'
 import lab16 from '../../../labs/lab-16-acces-distant.json'
+import lab17 from '../../../labs/lab-17-nps-radius.json'
+import lab18 from '../../../labs/lab-18-multi-sites.json'
 import { run } from '../shell/helpers'
 
 function load(raw: unknown): LabDefinition {
@@ -461,6 +463,36 @@ const SOLUTIONS: Record<string, (s: LabState) => LabState> = {
     )
     exec(command('vpn.addConnection', id(s, 'PCR'), { name: 'Entreprise', server: '203.0.113.2' }))
     exec(command('vpn.connect', id(s, 'PCR'), 'Entreprise', { user: 'LAB\\jdupont', password: 'Azerty123!' }))
+    return s
+  },
+  'lab-18-multi-sites': (s) => {
+    const exec = (cmd: AnyCommand) => {
+      const r = dispatch(s, cmd)
+      if (!r.ok) throw new Error(r.error.message)
+      s = r.state
+      return r.value
+    }
+    const D = 'lab.local'
+    exec(command('adds.renameSite', D, 'Default-First-Site-Name', 'Paris'))
+    exec(command('adds.newSite', D, { name: 'Lyon' }))
+    exec(command('adds.newSubnet', D, { prefix: '192.168.10.0/24', site: 'Paris' }))
+    exec(command('adds.newSubnet', D, { prefix: '192.168.20.0/24', site: 'Lyon' }))
+    exec(command('adds.newSiteLink', D, { name: 'Paris-Lyon', sites: ['Paris', 'Lyon'], interval: 15 }))
+    const promoted = exec(
+      command('adds.installDomainController', id(s, 'SRV2'), {
+        domainName: D,
+        user: 'LAB\\Administrateur',
+        password: 'P@ssw0rd',
+        safeModePassword: 'P@ssw0rd!'
+      })
+    ) as { success: boolean; message: string }
+    if (!promoted.success) throw new Error(promoted.message)
+    s = run(s, id(s, 'SRV1'), 'netdom query fsmo', { shell: 'cmd' }).state
+    exec(command('adds.moveFsmoRoles', D, id(s, 'SRV2'), ['PDCEmulator']))
+    const logged = exec(
+      command('adds.logon', id(s, 'PC3'), { user: 'jdupont', password: 'Azerty123!', domain: 'LAB' })
+    ) as { success: boolean; message: string }
+    if (!logged.success) throw new Error(logged.message)
     return s
   }
 }
