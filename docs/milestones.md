@@ -325,3 +325,15 @@ Milestone terminé : `CHANGELOG.md` [2.2.0], `package.json` 2.2.0 ; tag `v2.2.0`
   Exporter / Importer / Essayer) et **Importer un lab…** ; onglet Lab : « Indice suivant ».
 - Main (`main/labfiles.ts`) : import / export JSON par dialogues natifs, 1 Mo au plus.
 - Limite : un lab importé n'est pas conservé dans le `.slab` enregistré (seuls les labs fournis le sont).
+
+### #34 Mode examen
+
+- Moteur (`labs/exam.ts`) : `startExam` (durée tirée de la durée indicative du lab : « 25 min », « 1 h 30 »),
+  `remainingMs`, `recordExamEvent` (perte et retour du focus, une sortie par absence), `finishExam`
+  (vérification finale unique, note sur 20 au dixième, détail par critère, fin : terminé, temps écoulé —
+  durée bornée à l'échéance — ou abandon), `examResultText` (résultat exporté). Le temps réel est fourni
+  par l'interface.
+- Interface : onglet Lab › **Examen** (le lab repart de son départ), bandeau du chronomètre, indices et
+  résultats intermédiaires masqués, **Terminer l'examen** ; résultat (note, critères, durée, fin, sorties
+  horodatées) et **Exporter le résultat…** (texte, dialogue natif). Sorties signalées : fenêtre quittée
+  (blur), lab fermé ou autre document ouvert (abandon, noté sur l'état d'avant), temps écoulé.

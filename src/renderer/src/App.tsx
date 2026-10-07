@@ -18,6 +18,7 @@ import { useDocumentLifecycle } from './hooks/useDocumentLifecycle'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { LabPicker } from './components/labs/LabPicker'
 import { LabEditor } from './components/labs/LabEditor'
+import { useExamGuards } from './lib/exam'
 import { useLabsStore } from './store/labs'
 import { useConsoleSessionSync } from './hooks/useConsoleSessionSync'
 import { useMenuBridge } from './hooks/useMenuBridge'
@@ -132,6 +133,7 @@ export function App() {
   useDocumentLifecycle()
   useSimulationPlayback()
   useConsoleSessionSync()
+  useExamGuards()
 
   return (
     <ReactFlowProvider>
