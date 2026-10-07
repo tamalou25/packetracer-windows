@@ -161,10 +161,11 @@ et se relance par **Aide > Tutoriel interactif**.
 
 ## Labs pédagogiques
 
-L'accueil et **Fichier > Ouvrir un lab…** (`Ctrl+L`) proposent dix-huit labs prêts à l'emploi, du plus simple au plus
-complet : adressage et routage, DHCP, DNS, Active Directory + GPO, partages et NTFS, puis un lab par rôle de la
-2.1 (WSUS, IIS, Bureau à distance, Hyper-V, AD CS, DFS, sauvegarde et Corbeille AD) et par fonctionnalité réseau
-de la 2.2 (VLAN, relais DHCP, pare-feu, NAT et VPN, NPS/RADIUS, multi-sites AD). Chaque lab
+L'accueil et **Fichier > Ouvrir un lab…** (`Ctrl+L`) proposent vingt et un labs prêts à l'emploi, du plus simple au
+plus complet : adressage et routage, DHCP, DNS, Active Directory + GPO, partages et NTFS, puis un lab par rôle de la
+2.1 (WSUS, IIS, Bureau à distance, Hyper-V, AD CS, DFS, sauvegarde et Corbeille AD), par fonctionnalité réseau
+de la 2.2 (VLAN, relais DHCP, pare-feu, NAT et VPN, NPS/RADIUS, multi-sites AD) et trois labs de durcissement
+de la 2.3 (Active Directory, partages, pare-feu). Chaque lab
 construit sa topologie de départ ; l'onglet **Lab** affiche l'énoncé et les objectifs, et
 **Vérifier** valide chaque critère (✅ / ❌) avec un indice qui oriente sans donner la solution.
 Le lab en cours est conservé dans le fichier `.slab` enregistré.
@@ -185,3 +186,11 @@ une seule vérification finale, note sur 20 détaillée par critère et exportab
 l'application ou abandon est signalé dans le résultat.
 
 ![Vérification d'un lab](docs/captures/labs/2-verification.webp)
+
+## Audit de sécurité
+
+L'onglet **Audit** du panneau latéral note la sécurité du lab sur 100 et liste les recommandations par
+gravité (objets en cause, correction suggérée), en direct. Il compte les recommandations corrigées depuis
+l'ouverture du lab et exporte un **rapport PDF** (lab, date, score, recommandations corrigées ou non).
+Les journaux de sécurité (ouvertures de session, gestion des comptes, verrouillages) se filtrent dans
+l'Observateur d'événements ou avec `Get-WinEvent`.
