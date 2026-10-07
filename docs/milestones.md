@@ -125,7 +125,7 @@ Milestone terminé : `CHANGELOG.md` [2.1.0], `package.json` 2.1.0 ; tag `v2.1.0`
 
 | Issue | Sujet                   | Branche              | PR  | État     |
 | ----- | ----------------------- | -------------------- | --- | -------- |
-| #22   | VLAN, trunk, inter-VLAN | `feat/22-vlan`       |     | en cours |
+| #22   | VLAN, trunk, inter-VLAN | `feat/22-vlan`       | #82 | fusionné |
 | #23   | Relais DHCP             | `feat/23-dhcp-relay` |     | en cours |
 | #24   | Pare-feu simulé         |                      |     | à faire  |
 | #25   | RRAS : VPN et NAT       |                      |     | à faire  |
