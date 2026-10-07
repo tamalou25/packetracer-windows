@@ -421,7 +421,23 @@ export const RemoteSessionSchema = z.object({
 })
 
 /** Partie « système d'exploitation » commune aux serveurs et postes clients. */
+/** Système d'un ordinateur : Windows (serveur, poste) ou poste Ubuntu simulé. */
+export const HOST_OS = ['windows', 'linux'] as const
+export type HostOs = (typeof HOST_OS)[number]
+
+/** Partage SMB monté sur un poste Linux (mount -t cifs). */
+export const CifsMountSchema = z.object({
+  /** Source au format Linux (//srv1/Compta). */
+  source: z.string(),
+  /** Point de montage (/mnt/compta). */
+  target: z.string(),
+  /** Compte utilisé pour toutes les opérations du montage (LAB\jdupont). */
+  account: z.string()
+})
+export type CifsMount = z.infer<typeof CifsMountSchema>
+
 export const HostSchema = z.object({
+  os: z.enum(HOST_OS).default('windows'),
   workgroup: z.string().default('WORKGROUP'),
   /** Domaine AD rejoint (FQDN) ou null si groupe de travail. */
   domain: z.string().nullable().default(null),
@@ -450,7 +466,9 @@ export const HostSchema = z.object({
   vpnConnections: z.array(VpnConnectionSchema).default([]),
   /** Protocole SMB 1.0 accepté par le serveur SMB (EnableSMB1Protocol). */
   smb1: z.boolean().default(false),
-  eventLog: z.array(EventLogEntrySchema).default([])
+  eventLog: z.array(EventLogEntrySchema).default([]),
+  /** Poste Linux : partages SMB montés. */
+  mounts: z.array(CifsMountSchema).default([])
 })
 
 // ---------------------------------------------------------------------------

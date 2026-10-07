@@ -29,6 +29,8 @@ import {
 export interface CommandCatalog {
   cmdlets: CmdletDef[]
   tools: ToolDef[]
+  /** Commandes de la console bash (postes Linux). */
+  bashTools: ToolDef[]
 }
 
 const TYPE_NAMES: Record<string, string> = {

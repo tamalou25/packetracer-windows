@@ -272,3 +272,19 @@ describe('migration 6 → 7 (sécurité de la v2.3)', () => {
     expect(srv?.kind === 'server' && srv.host.smb1).toBe(false)
   })
 })
+
+describe('migration 7 → 8 (postes Linux de la v2.4)', () => {
+  it('change seulement la version ; les ordinateurs existants sont des ordinateurs Windows sans montage', () => {
+    const doc = JSON.parse(readFixture(7)) as Record<string, unknown>
+    expect(migrations[7]!(doc)).toEqual({ ...doc, schemaVersion: 8 })
+    const parsed = parseSlab(readFixture(7))
+    if (!parsed.ok) throw new Error(parsed.message)
+    for (const name of ['SRV1', 'PC1', 'PC2']) {
+      const d = parsed.doc.lab.devices[deviceId(parsed.doc.lab, name)]
+      expect(d && (d.kind === 'server' || d.kind === 'client') && [d.host.os, d.host.mounts]).toEqual([
+        'windows',
+        []
+      ])
+    }
+  })
+})

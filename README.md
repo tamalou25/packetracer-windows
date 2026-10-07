@@ -187,6 +187,13 @@ l'application ou abandon est signalé dans le résultat.
 
 ![Vérification d'un lab](docs/captures/labs/2-verification.webp)
 
+## Poste Linux
+
+La palette propose un **Poste Linux** (Ubuntu simulé) avec une console bash : `ip a`, `ip route`, `ping`,
+`dig`, `realm join` pour rejoindre le domaine Active Directory, `mount -t cifs` ou `smbclient` pour accéder
+aux partages selon les autorisations NTFS du compte. Les sorties reprennent le format d'origine des outils
+(en anglais).
+
 ## Audit de sécurité
 
 L'onglet **Audit** du panneau latéral note la sécurité du lab sur 100 et liste les recommandations par

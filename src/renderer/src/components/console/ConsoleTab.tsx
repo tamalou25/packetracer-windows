@@ -1,5 +1,5 @@
 /**
- * Onglet Console : Invite de commandes ou PowerShell.
+ * Onglet Console : Invite de commandes ou PowerShell ; bash sur un poste Linux.
  */
 import { useState } from 'react'
 import type { HostDevice, ShellKind } from '@engine/index'
@@ -7,6 +7,12 @@ import { Terminal } from './Terminal'
 
 export function ConsoleTab({ device }: { device: HostDevice }) {
   const [kind, setKind] = useState<ShellKind>(device.kind === 'server' ? 'powershell' : 'cmd')
+  if (device.host.os === 'linux')
+    return (
+      <div className="h-full" data-testid="console-bash">
+        <Terminal key={k(device.id, 'bash')} deviceId={device.id} kind="bash" autoFocus />
+      </div>
+    )
   if (!device.host.session)
     return (
       <div className="flex h-full items-center justify-center p-8 text-center text-sm text-fg-muted">

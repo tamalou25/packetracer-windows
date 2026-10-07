@@ -10,7 +10,8 @@ import {
   type Host,
   type LabState,
   type NetInterface,
-  type Position
+  type Position,
+  type HostOs
 } from './schema'
 
 /** Nombre de ports par type d'équipement. */
@@ -41,19 +42,25 @@ export function macFromSeq(seq: number): string {
 /** Compte local par défaut (session ouverte automatiquement). */
 export const DEFAULT_LOCAL_USER = { server: 'Administrateur', client: 'Utilisateur' } as const
 
+/** Poste Linux : compte local, préfixe du nom d'hôte et carte réseau. */
+export const LINUX_USER = 'etudiant'
+export const LINUX_NAME_PREFIX = 'LNX'
+export const LINUX_INTERFACE = 'eth0'
+
 /** Fonctionnalités présentes dès l'installation d'un serveur. */
 export const DEFAULT_SERVER_FEATURES = ['FS-FileServer', 'PowerShell']
 
-export function createHost(kind: 'server' | 'client'): Host {
+export function createHost(kind: 'server' | 'client', os: HostOs = 'windows'): Host {
   return {
+    os,
     workgroup: 'WORKGROUP',
     domain: null,
-    features: kind === 'server' ? [...DEFAULT_SERVER_FEATURES] : ['PowerShell'],
+    features: kind === 'server' ? [...DEFAULT_SERVER_FEATURES] : os === 'linux' ? [] : ['PowerShell'],
     pendingReboot: false,
     pendingName: null,
     pendingDomain: null,
     localAdminPassword: 'P@ssw0rd',
-    session: { user: DEFAULT_LOCAL_USER[kind], domain: null },
+    session: { user: os === 'linux' ? LINUX_USER : DEFAULT_LOCAL_USER[kind], domain: null },
     bootedAt: 0,
     policy: { computer: null, user: null, attempt: null },
     drives: [],
@@ -63,7 +70,8 @@ export function createHost(kind: 'server' | 'client'): Host {
     firewall: defaultFirewall(),
     vpnConnections: [],
     smb1: false,
-    eventLog: []
+    eventLog: [],
+    mounts: []
   }
 }
 
@@ -125,9 +133,13 @@ export function defaultInterfaceNames(kind: DeviceKind): string[] {
 }
 
 /** Premier nom libre de la forme PREFIXEn (SRV1, SRV2…). Comparaison insensible à la casse. */
-export function nextDeviceName(state: LabState | Draft<LabState>, kind: DeviceKind): string {
+export function nextDeviceName(
+  state: LabState | Draft<LabState>,
+  kind: DeviceKind,
+  os: HostOs = 'windows'
+): string {
   const used = new Set(Object.values(state.devices).map((d) => d.name.toUpperCase()))
-  const prefix = DEVICE_KIND_INFO[kind].namePrefix
+  const prefix = os === 'linux' ? LINUX_NAME_PREFIX : DEVICE_KIND_INFO[kind].namePrefix
   for (let n = 1; ; n++) {
     const candidate = `${prefix}${n}`
     if (!used.has(candidate)) return candidate
@@ -139,11 +151,16 @@ export function buildDevice(
   draft: Draft<LabState>,
   kind: DeviceKind,
   position: Position,
-  name?: string
+  name?: string,
+  /** Poste Linux (Ubuntu simulé) : kind « client » et os « linux ». */
+  os: HostOs = 'windows'
 ): Device {
+  const linux = kind === 'client' && os === 'linux'
   const id = `d${nextSeq(draft)}`
-  const deviceName = name ?? nextDeviceName(draft, kind)
-  const interfaces = defaultInterfaceNames(kind).map((n) => createInterface(draft, n, kind))
+  const deviceName = name ?? nextDeviceName(draft, kind, linux ? 'linux' : 'windows')
+  const interfaces = (linux ? [LINUX_INTERFACE] : defaultInterfaceNames(kind)).map((n) =>
+    createInterface(draft, n, kind)
+  )
   const base = { id, name: deviceName, position: { ...position }, powered: true, interfaces, hostedBy: null }
   switch (kind) {
     case 'server':
@@ -155,7 +172,7 @@ export function buildDevice(
         storage: { rootAcl: defaultRootAcl(), nodes: defaultFsNodes(), shares: [] }
       }
     case 'client':
-      return { ...base, kind, host: createHost('client') }
+      return { ...base, kind, host: createHost('client', linux ? 'linux' : 'windows') }
     case 'switch':
       return { ...base, kind, vlans: [{ id: 1, name: 'default' }] }
     case 'router':

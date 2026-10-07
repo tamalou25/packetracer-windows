@@ -253,7 +253,13 @@ export function autoGroupPolicy(state: LabState): { state: LabState; traces: Pac
   let current = state
   const traces: PacketTrace[] = []
   for (const device of Object.values(state.devices)) {
-    if ((device.kind !== 'server' && device.kind !== 'client') || !device.powered || !device.host.domain)
+    // Postes Linux : les stratégies de groupe ne s'appliquent pas
+    if (
+      (device.kind !== 'server' && device.kind !== 'client') ||
+      !device.powered ||
+      !device.host.domain ||
+      device.host.os === 'linux'
+    )
       continue
     const computer = computerPolicyStale(device)
     const user = userPolicyStale(device)

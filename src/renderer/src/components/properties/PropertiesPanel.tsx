@@ -40,7 +40,7 @@ import {
 import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
 import { runCommand } from '../../lib/run'
-import { DEVICE_ICONS, KIND_STRIPE } from '../../lib/devices'
+import { DEVICE_ICONS, deviceIcon, deviceLabel, isLinux, KIND_STRIPE } from '../../lib/devices'
 import { formatSimTime } from '../../lib/format'
 import { EditableName } from '../common/EditableName'
 import { Button, StatusDot } from '../common/ui'
@@ -123,9 +123,10 @@ function KeyValues({ rows }: { rows: [string, ReactNode][] }) {
 function DeviceProperties({ device }: { device: Device }) {
   const lab = useLabStore((s) => s.lab)
   const ui = useUiStore.getState
-  const Icon = DEVICE_ICONS[device.kind]
+  const Icon = deviceIcon(device)
   const health = deviceHealth(lab, device)
   const host = isHostDevice(device) ? device : null
+  const linux = isLinux(device)
 
   return (
     <>
@@ -138,7 +139,7 @@ function DeviceProperties({ device }: { device: Device }) {
           <div className="min-w-0">
             <div className="truncate text-[15px] font-semibold text-fg">{device.name}</div>
             <div className="flex items-center gap-1.5 text-xs text-fg-muted" title={health.label}>
-              {DEVICE_KIND_INFO[device.kind].label}
+              {deviceLabel(device)}
               <span className="text-fg-subtle">·</span>
               <span className={`h-1.5 w-1.5 rounded-full ${HEALTH_DOT[health.status]}`} />
               <span className="truncate" data-testid="properties-health">
@@ -157,12 +158,14 @@ function DeviceProperties({ device }: { device: Device }) {
           />
           {host && (
             <>
-              <IconAction
-                icon={Monitor}
-                label="Ouvrir le Bureau"
-                onClick={() => ui().openWindow(device.id, 'desktop')}
-                testId="open-desktop"
-              />
+              {!linux && (
+                <IconAction
+                  icon={Monitor}
+                  label="Ouvrir le Bureau"
+                  onClick={() => ui().openWindow(device.id, 'desktop')}
+                  testId="open-desktop"
+                />
+              )}
               <IconAction
                 icon={SquareTerminal}
                 label="Ouvrir la console"
@@ -404,7 +407,7 @@ function MultiProperties({ devices }: { devices: Device[] }) {
       <ul className="mb-3 flex flex-col gap-1 text-[13px]">
         {devices.map((d) => (
           <li key={d.id}>
-            {d.name} <span className="text-xs text-fg-subtle">— {DEVICE_KIND_INFO[d.kind].label}</span>
+            {d.name} <span className="text-xs text-fg-subtle">— {deviceLabel(d)}</span>
           </li>
         ))}
       </ul>

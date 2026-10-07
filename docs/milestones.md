@@ -304,14 +304,14 @@ Milestone terminé : `CHANGELOG.md` [2.3.0], `package.json` 2.3.0 ; tag `v2.3.0`
 
 ## v2.4 — Pédagogie avancée
 
-| Issue | Sujet                      | Branche              | PR  | État     |
-| ----- | -------------------------- | -------------------- | --- | -------- |
-| #33   | Éditeur de labs intégré    | `feat/33-lab-editor` |     | en cours |
-| #34   | Mode examen                |                      |     | à faire  |
-| #35   | Bibliothèque communautaire |                      |     | à faire  |
-| #36   | Client Linux simulé        |                      |     | à faire  |
-| #37   | Interface FR / EN (i18n)   |                      |     | à faire  |
-| #38   | Signature de code          |                      |     | gelée    |
+| Issue | Sujet                      | Branche                | PR   | État     |
+| ----- | -------------------------- | ---------------------- | ---- | -------- |
+| #33   | Éditeur de labs intégré    | `feat/33-lab-editor`   | #97  | fusionné |
+| #34   | Mode examen                | `feat/34-exam-mode`    | #98  | fusionné |
+| #35   | Bibliothèque communautaire | `feat/35-lab-library`  | #100 | fusionné |
+| #36   | Client Linux simulé        | `feat/36-linux-client` | #99  | en cours |
+| #37   | Interface FR / EN (i18n)   |                        |      | à faire  |
+| #38   | Signature de code          |                        |      | gelée    |
 
 ### #33 Éditeur de labs intégré
 
@@ -354,3 +354,19 @@ Milestone terminé : `CHANGELOG.md` [2.3.0], `package.json` 2.3.0 ; tag `v2.3.0`
   erreurs claires, Réessayer).
 - **Dépôt public `tamalou25/serverlab-labs` à créer par Gary** (procédure : `docs/bibliotheque.md`) : sans
   lui, l'onglet affiche « Fichier introuvable dans la bibliothèque (HTTP 404) ».
+
+### #36 Client Linux simulé
+
+- Format 8 : système de l'ordinateur `host.os` (`windows` par défaut, `linux`) et partages montés
+  `host.mounts` ; migration 7 → 8 sans transformation, `fixtures/v8.slab`.
+- Poste Linux = poste client `os: 'linux'` (`topology.addDevice` avec `os`) : nom LNX1, carte `eth0`, compte
+  `etudiant`, TTL 64, pas de pare-feu Windows (ufw inactif), pas de stratégies de groupe, hors règle d'audit
+  du pare-feu.
+- Console bash (`shell/bash`) : guillemets, `sudo`, tube vers `grep`, `cd` / `pwd` ; commandes du système de
+  base (`ip a|r|link`, `ip addr add`, `ip route add default`, `ping -c`, `dhclient`, `hostname`, `whoami`)
+  et des modules de rôles (`RoleModule.bashTools`) : AD (`realm discover|join|list|leave`, `id`), DNS
+  (`dig`, `resolvectl`), fichiers (`mount -t cifs`, `umount`, `smbclient -L / -c ls`, `ls`, `touch`, `mkdir`,
+  `cat`) avec les autorisations partage ∩ NTFS du compte du montage.
+- Interface : palette › Postes › **Poste Linux**, icône terminal, fenêtre Config + Console (bash, thème
+  Ubuntu), sans Bureau Windows.
+- Écarts : `docs/fidelite.md` F97 à F105.

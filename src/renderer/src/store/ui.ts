@@ -2,8 +2,9 @@
  * État d'interface (non simulé) : mode, outils, sélection, fenêtres, notifications…
  * L'état simulé, lui, vit dans le moteur (voir store/lab.ts).
  */
+import type { PaletteKind } from '../lib/devices'
 import { create } from 'zustand'
-import type { Device, DeviceKind, Link } from '@engine/index'
+import type { Device, Link } from '@engine/index'
 import type { SimMode, Theme } from '@shared/ipc'
 import { readPref, writePref } from '../lib/prefs'
 import { useLabStore } from './lab'
@@ -91,7 +92,7 @@ export interface UiState {
   showMinimap: boolean
   tool: Tool
   /** Équipement de la palette « armé » (clic puis clic sur le canvas). */
-  armed: DeviceKind | null
+  armed: PaletteKind | null
   selection: Selection
   cableStart: CableStart | null
   /** Source choisie avec l'outil PDU simple. */
@@ -116,7 +117,7 @@ export interface UiState {
   toggleMinimap: () => void
   toggleProperties: () => void
   setTool: (tool: Tool) => void
-  setArmed: (kind: DeviceKind | null) => void
+  setArmed: (kind: PaletteKind | null) => void
   select: (selection: Partial<Selection>) => void
   clearSelection: () => void
   setCableStart: (start: CableStart | null) => void

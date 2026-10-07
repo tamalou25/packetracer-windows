@@ -1,9 +1,10 @@
 /**
  * Point d'entrée des consoles : création de session, invite, exécution d'une ligne.
  */
-import { DEFAULT_LOCAL_USER } from '../model/factory'
+import { DEFAULT_LOCAL_USER, LINUX_USER } from '../model/factory'
 import type { LabState } from '../model/schema'
 import { shellCatalog } from './catalog'
+import { bashPrompt, executeBash } from './bash/interpreter'
 import { executeCmd } from './cmd/interpreter'
 import { CommandFailure } from './context'
 import { CmdContext, executePowerShell } from './ps/interpreter'
@@ -15,7 +16,15 @@ function sessionUser(state: LabState, deviceId: string): string {
   return d.host.session?.user ?? DEFAULT_LOCAL_USER[d.kind]
 }
 
+/** Poste Linux (Ubuntu simulé) : console bash uniquement. */
+export function isLinuxHost(state: LabState, deviceId: string): boolean {
+  const d = state.devices[deviceId]
+  return d?.kind === 'client' && d.host.os === 'linux'
+}
+
 export function createShellSession(state: LabState, deviceId: string, kind: ShellKind): ShellSession {
+  if (isLinuxHost(state, deviceId))
+    return { deviceId, stack: ['bash'], cwd: `/home/${sessionUser(state, deviceId)}`, variables: {} }
   return { deviceId, stack: [kind], cwd: `C:\\Users\\${sessionUser(state, deviceId)}`, variables: {} }
 }
 
@@ -24,9 +33,16 @@ export function activeShell(session: ShellSession): ShellKind {
   return session.stack[session.stack.length - 1] ?? 'cmd'
 }
 
-/** Invite affichée avant la saisie. */
-export function shellPrompt(session: ShellSession): string {
-  return activeShell(session) === 'powershell' ? `PS ${session.cwd}> ` : `${session.cwd}>`
+/** Invite affichée avant la saisie (bash : utilisateur et nom du poste, lus dans l'état). */
+export function shellPrompt(session: ShellSession, state?: LabState): string {
+  const kind = activeShell(session)
+  if (kind === 'bash') {
+    const d = state?.devices[session.deviceId]
+    const host = d?.name ?? 'ubuntu'
+    const user = d && d.kind === 'client' ? (d.host.session?.user ?? LINUX_USER) : LINUX_USER
+    return bashPrompt({ host, user, cwd: session.cwd })
+  }
+  return kind === 'powershell' ? `PS ${session.cwd}> ` : `${session.cwd}>`
 }
 
 /** Message de l'invite de commandes désactivée par stratégie de groupe. */
@@ -46,6 +62,12 @@ export function cmdDisabledByPolicy(state: LabState, deviceId: string): boolean 
 
 /** Texte d'accueil d'une nouvelle console. */
 export function shellBanner(kind: ShellKind): string[] {
+  if (kind === 'bash')
+    return [
+      'Ubuntu 22.04 LTS (simulé) — ServerLab',
+      'Tapez help pour la liste des commandes simulées (sorties d’origine, en anglais).',
+      ''
+    ]
   return kind === 'powershell'
     ? [
         'PowerShell (simulé) — ServerLab',
@@ -73,7 +95,9 @@ export function executeLine(
   }
   try {
     const kind = activeShell(session)
-    if (kind === 'powershell') {
+    if (kind === 'bash') {
+      executeBash(ctx, line, shellCatalog().bashTools)
+    } else if (kind === 'powershell') {
       if (line.trim().toLowerCase() === 'exit') {
         if (session.stack.length > 1) ctx.session = { ...session, stack: session.stack.slice(0, -1) }
         else ctx.exit = true

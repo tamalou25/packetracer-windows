@@ -8,6 +8,7 @@ import { fileCmdlets } from './cmdlets'
 import { filesCommands } from './commands'
 import { filesCriteria } from './criteria'
 import { fileTools } from './tools'
+import { filesBashTools } from './bash'
 
 export const filesRole = defineRole({
   id: 'files',
@@ -26,6 +27,7 @@ export const filesRole = defineRole({
   commands: filesCommands,
   cmdlets: fileCmdlets,
   tools: fileTools,
+  bashTools: filesBashTools,
   views: [
     { app: 'fileprops', label: 'Propriétés', dialog: true, requires: { server: true } },
     { app: 'newshare', label: 'Assistant Nouveau partage', dialog: true, requires: { server: true } }

@@ -5,7 +5,7 @@ import type { LabState } from '../model/schema'
 import type { PacketTrace } from '../sim/trace'
 import type { PsValue } from './ps/values'
 
-export type ShellKind = 'cmd' | 'powershell'
+export type ShellKind = 'cmd' | 'powershell' | 'bash'
 
 export type LineKind = 'out' | 'error' | 'warning' | 'verbose'
 
