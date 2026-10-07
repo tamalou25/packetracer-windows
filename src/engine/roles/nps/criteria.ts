@@ -13,7 +13,8 @@ export const npsCriteria = [
   defineCriterion(
     z.object({ type: z.literal('radiusClient'), server: z.string(), address: z.string() }),
     (state, check) =>
-      !!npsOf(serverByName(state, check.server))?.radiusClients.some((c) => c.address === check.address)
+      !!npsOf(serverByName(state, check.server))?.radiusClients.some((c) => c.address === check.address),
+    'Client RADIUS'
   ),
   defineCriterion(
     z.object({
@@ -33,7 +34,8 @@ export const npsCriteria = [
           (p) => p.enabled && p.access === check.access && p.groups.includes(group.id)
         )
       )
-    }
+    },
+    'Stratégie réseau NPS'
   ),
   defineCriterion(
     z.object({ type: z.literal('npsAccess'), server: z.string(), user: z.string(), granted: z.boolean() }),
@@ -41,6 +43,7 @@ export const npsCriteria = [
       const server = serverByName(state, check.server)
       if (!server || !npsOf(server)) return false
       return npsAccessFor(state, server, check.user)?.granted === check.granted
-    }
+    },
+    'Accès accordé ou refusé par NPS'
   )
 ]

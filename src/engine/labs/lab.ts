@@ -11,6 +11,7 @@ import type { LabState } from '../model/schema'
 import { FIREWALL_PROFILES } from '../model/schema'
 import { localToken } from '../roles/files/acl'
 import { DEFAULT_DOMAIN_POLICY_ID } from '../roles/gpo/defaults'
+import { parseSlabValue } from '../serialization/slab'
 import { CriterionSchema, evaluateCriteria, type CriterionResult } from './criteria'
 
 export const LAB_FORMAT_VERSION = 1
@@ -95,12 +96,21 @@ export const LabDomainSchema = z.object({
   join: z.array(z.string()).default([])
 })
 
-export const LabStartSchema = z.object({
+/** Départ décrit équipement par équipement (labs fournis avec l'application). */
+export const LabDeclarativeStartSchema = z.object({
   devices: z.array(LabDeviceSchema),
   /** Câbles entre ports : ["PC1:Ethernet0", "SW1:Fa0/1"]. */
   links: z.array(z.tuple([z.string(), z.string()])).default([]),
   domain: LabDomainSchema.optional()
 })
+
+/**
+ * Départ « instantané » (éditeur de labs) : document .slab complet du lab de l'auteur, validé et
+ * migré comme un fichier ouvert (parseSlabValue) au moment de construire le départ.
+ */
+export const LabSnapshotStartSchema = z.object({ snapshot: z.record(z.string(), z.unknown()) })
+
+export const LabStartSchema = z.union([LabDeclarativeStartSchema, LabSnapshotStartSchema])
 
 export const LabDefinitionSchema = z.object({
   formatVersion: z.literal(LAB_FORMAT_VERSION),
@@ -118,6 +128,7 @@ export const LabDefinitionSchema = z.object({
 
 export type LabDefinition = z.infer<typeof LabDefinitionSchema>
 export type LabStart = z.infer<typeof LabStartSchema>
+export type LabDeclarativeStart = z.infer<typeof LabDeclarativeStartSchema>
 
 export type LabParseResult = { ok: true; lab: LabDefinition } | { ok: false; message: string }
 
@@ -164,6 +175,15 @@ const gatewayOf = (text: string): string | null => text.trim().split(/\s+/)[1] ?
 
 /** Construit l'état de départ d'un lab (lève une erreur si le lab est incohérent). */
 export function buildLabStart(start: LabStart): LabState {
+  if ('snapshot' in start) {
+    const parsed = parseSlabValue(start.snapshot)
+    if (!parsed.ok) throw new Error(`Topologie de départ invalide : ${parsed.message}`)
+    return parsed.doc.lab
+  }
+  return buildDeclarativeStart(start)
+}
+
+function buildDeclarativeStart(start: LabDeclarativeStart): LabState {
   let state = createLab()
   /** Applique une commande (mêmes commandes que l'interface et les consoles) ou lève une erreur. */
   const apply = <K extends CommandType>(cmd: Command<K>): CommandValue<K> => {

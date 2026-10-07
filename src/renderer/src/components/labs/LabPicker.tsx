@@ -2,8 +2,9 @@
  * Sélecteur de labs (Fichier > Ouvrir un lab…) : titre, difficulté, durée et résumé de chaque lab.
  */
 import { useEffect } from 'react'
-import { GraduationCap, X } from 'lucide-react'
+import { FlaskConical, GraduationCap, Upload, X } from 'lucide-react'
 import { LABS } from '../../lib/labCatalog'
+import { importAndOpenLab, openLabEditor } from '../../lib/labEditor'
 import { openLab } from '../../lib/labs'
 import { useLabsStore } from '../../store/labs'
 import { Button } from '../common/ui'
@@ -69,6 +70,14 @@ export function LabPicker() {
             </li>
           ))}
         </ul>
+        <div className="flex items-center gap-2 border-t border-line px-5 py-3">
+          <Button onClick={() => void importAndOpenLab()} data-testid="lab-import">
+            <Upload size={14} /> Importer un lab…
+          </Button>
+          <Button onClick={openLabEditor} data-testid="lab-create">
+            <FlaskConical size={14} /> Créer un lab…
+          </Button>
+        </div>
       </div>
     </div>
   )

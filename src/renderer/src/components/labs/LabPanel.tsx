@@ -77,11 +77,7 @@ export function LabPanel() {
                 )}
                 <div className="min-w-0 text-[13px]">
                   <div className={r?.ok ? 'text-fg' : 'text-fg-muted'}>{c.label}</div>
-                  {r && !r.ok && (
-                    <div className="mt-0.5 text-[12px] text-warn" data-testid={`lab-hint-${c.id}`}>
-                      Indice : {c.hint}
-                    </div>
-                  )}
+                  {r && !r.ok && <Hints id={c.id} levels={[c.hint, ...c.hints]} />}
                 </div>
               </li>
             )
@@ -110,6 +106,32 @@ export function LabPanel() {
           </Button>
         </div>
       </div>
+    </div>
+  )
+}
+
+/** Indices progressifs : le premier niveau, puis les suivants à la demande. */
+function Hints({ id, levels }: { id: string; levels: string[] }) {
+  const level = useLabsStore((s) => s.hintLevels[id] ?? 0)
+  const shown = levels.slice(0, level + 1)
+  return (
+    <div className="mt-0.5 flex flex-col gap-0.5 text-[12px] text-warn" data-testid={`lab-hint-${id}`}>
+      {shown.map((hint, i) => (
+        <div key={i}>
+          {shown.length > 1 ? `Indice ${i + 1} : ` : 'Indice : '}
+          {hint}
+        </div>
+      ))}
+      {level + 1 < levels.length && (
+        <button
+          type="button"
+          onClick={() => useLabsStore.getState().revealHint(id)}
+          className="self-start text-[11px] text-accent hover:underline"
+          data-testid={`lab-more-hint-${id}`}
+        >
+          Indice suivant ({level + 2} / {levels.length})
+        </button>
+      )}
     </div>
   )
 }

@@ -37,7 +37,8 @@ export const rdsCriteria = [
         !app ||
         collection.remoteApps.some((a) => sameAccount(a.alias, app) || sameAccount(a.displayName, app))
       )
-    }
+    },
+    'Collection de sessions RDS'
   ),
   defineCriterion(
     z.object({
@@ -60,6 +61,7 @@ export const rdsCriteria = [
           e.message.toLowerCase().includes(check.account.toLowerCase()) &&
           e.message.includes('Type d’ouverture de session : 10')
       )
-    }
+    },
+    'Session Bureau à distance'
   )
 ]

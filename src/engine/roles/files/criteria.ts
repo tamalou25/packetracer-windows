@@ -21,7 +21,8 @@ export const filesCriteria = [
         !!share &&
         (check.path === undefined || sameName(nodePath(server.storage, share.folderId), check.path))
       )
-    }
+    },
+    'Dossier partagé'
   ),
   defineCriterion(
     z.object({
@@ -49,7 +50,8 @@ export const filesCriteria = [
       const rights = effectiveAccess(server.storage, node?.id ?? null, token, share)
       const allowed = new Set(rights.filter((r) => r.allowed).map((r) => r.perm))
       return check.allow.every((p) => allowed.has(p)) && check.deny.every((p) => !allowed.has(p))
-    }
+    },
+    'Accès effectif d’un compte (partage et NTFS)'
   ),
   defineCriterion(
     z.object({
@@ -68,6 +70,7 @@ export const filesCriteria = [
       return sessionDrives(host, account).some(
         (d) => d.letter === check.letter.replace(/:$/, '').toUpperCase() && sameName(d.path, check.path)
       )
-    }
+    },
+    'Lecteur réseau connecté'
   )
 ]

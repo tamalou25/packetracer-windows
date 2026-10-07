@@ -28,7 +28,8 @@ export const dhcpCriteria = [
           (check.router === undefined || s.options.router.includes(check.router)) &&
           (check.dnsServer === undefined || s.options.dnsServers.includes(check.dnsServer))
       )
-    }
+    },
+    'Étendue DHCP'
   ),
   defineCriterion(
     z.object({ type: z.literal('dhcpLease'), client: z.string(), server: z.string().optional() }),
@@ -39,6 +40,7 @@ export const dhcpCriteria = [
         (i) =>
           i.addressing === 'dhcp' && !!i.dhcpLease && (!server || i.dhcpLease.serverDeviceId === server.id)
       )
-    }
+    },
+    'Bail DHCP obtenu par un client'
   )
 ]

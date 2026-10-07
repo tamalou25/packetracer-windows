@@ -28,7 +28,8 @@ export const gpoCriteria = [
       if (targetId === undefined) return false
       const link = linksAt(domain, targetId).find((l) => l.gpoId === gpo.id)
       return !!link && link.enabled && (check.enforced === undefined || link.enforced === check.enforced)
-    }
+    },
+    'GPO liée'
   ),
   defineCriterion(
     z.object({ type: z.literal('gpoSetting'), gpo: z.string(), setting: z.string(), value: z.string() }),
@@ -38,7 +39,8 @@ export const gpoCriteria = [
       if (!gpo) return false
       const value = settingValue(check.setting as SettingKey, gpo.computer, gpo.user)
       return value !== null && value.toLowerCase().startsWith(check.value.toLowerCase())
-    }
+    },
+    'Paramètre d’une GPO'
   ),
   defineCriterion(
     z.object({
@@ -56,6 +58,7 @@ export const gpoCriteria = [
         check.account === undefined ||
         (check.part === 'user' && sameName(host?.host.policy.user?.account ?? '', check.account))
       )
-    }
+    },
+    'GPO appliquée à un ordinateur'
   )
 ]

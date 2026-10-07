@@ -21,7 +21,8 @@ export const hypervCriteria = [
         (s) => s.name.toLowerCase() === check.name.toLowerCase()
       )
       return !!sw && (check.switchType === undefined || sw.type === check.switchType)
-    }
+    },
+    'Commutateur virtuel Hyper-V'
   ),
   defineCriterion(
     z.object({
@@ -44,6 +45,7 @@ export const hypervCriteria = [
       const nic = device.interfaces[0]
       const sw = nic ? switchOfAdapter(state, hv, device.id, nic.id) : null
       return check.switch === undefined || sw?.name.toLowerCase() === check.switch.toLowerCase()
-    }
+    },
+    'Machine virtuelle Hyper-V'
   )
 ]

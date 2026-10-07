@@ -44,6 +44,8 @@ export interface RoleStateDef<S> {
 /** Type de critère de lab (« dhcpScope », « gpoLinked »…) : schéma et évaluateur. */
 export interface CriterionType<C extends { type: string } = { type: string }> {
   type: string
+  /** Libellé français (éditeur de labs). */
+  label: string
   /** Objet zod portant le discriminant `type` (z.literal). */
   schema: z.ZodObject
   /** Lit l'état sans le modifier (mêmes fonctions que les consoles et l'interface). */
@@ -158,10 +160,12 @@ export function defineRole<C extends CommandDefs>(module: RoleModule<C>): RoleMo
 /** Déclare un type de critère : le type de la vérification est déduit du schéma. */
 export function defineCriterion<S extends z.ZodObject<{ type: z.ZodLiteral<string> }>>(
   schema: S,
-  evaluate: (state: LabState, check: z.output<S>) => boolean
+  evaluate: (state: LabState, check: z.output<S>) => boolean,
+  label: string
 ): CriterionType {
   return {
     type: schema.shape.type.value,
+    label,
     schema,
     evaluate: evaluate as CriterionType['evaluate']
   }

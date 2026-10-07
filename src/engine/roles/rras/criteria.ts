@@ -7,8 +7,10 @@ import { defineCriterion } from '../types'
 import { natEnabled, rrasOf } from './state'
 
 export const rrasCriteria = [
-  defineCriterion(z.object({ type: z.literal('natEnabled'), server: z.string() }), (state, check) =>
-    natEnabled(rrasOf(serverByName(state, check.server)))
+  defineCriterion(
+    z.object({ type: z.literal('natEnabled'), server: z.string() }),
+    (state, check) => natEnabled(rrasOf(serverByName(state, check.server))),
+    'NAT activé'
   ),
   defineCriterion(
     z.object({ type: z.literal('vpnConnected'), client: z.string(), server: z.string().optional() }),
@@ -18,6 +20,7 @@ export const rrasCriteria = [
       return !!client?.host.vpnConnections.some(
         (c) => !!c.connected && (!server || c.connected.serverDeviceId === server.id)
       )
-    }
+    },
+    'Client VPN connecté'
   )
 ]

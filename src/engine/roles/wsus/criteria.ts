@@ -11,7 +11,8 @@ import { findWsusGroup, wsusServerOf } from './state'
 export const wsusCriteria = [
   defineCriterion(
     z.object({ type: z.literal('wsusSynchronized'), server: z.string() }),
-    (state, check) => (wsusServerOf(serverByName(state, check.server))?.updates.length ?? 0) > 0
+    (state, check) => (wsusServerOf(serverByName(state, check.server))?.updates.length ?? 0) > 0,
+    'WSUS synchronisé'
   ),
   defineCriterion(
     z.object({ type: z.literal('wsusApproval'), server: z.string(), update: z.string(), group: z.string() }),
@@ -20,7 +21,8 @@ export const wsusCriteria = [
       const group = wsus ? findWsusGroup(wsus, check.group) : null
       const id = catalogUpdate(check.update)?.id
       return !!wsus && !!group && wsus.approvals.some((a) => a.updateId === id && a.group === group)
-    }
+    },
+    'Mise à jour WSUS approuvée'
   ),
   defineCriterion(
     z.object({
@@ -35,7 +37,8 @@ export const wsusCriteria = [
       if (!server || !computer) return false
       const entry = wsusComputers(state, server.id).find((c) => c.deviceId === computer.id)
       return entry?.group.toLowerCase() === check.group.toLowerCase()
-    }
+    },
+    'Groupe d’ordinateurs WSUS'
   ),
   defineCriterion(
     z.object({
@@ -52,6 +55,7 @@ export const wsusCriteria = [
       if (status.kind !== 'ok') return false
       const id = catalogUpdate(check.update)?.id
       return status.updates.some((u) => u.id === id) === (check.received !== false)
-    }
+    },
+    'Mise à jour reçue par un client WSUS'
   )
 ]
