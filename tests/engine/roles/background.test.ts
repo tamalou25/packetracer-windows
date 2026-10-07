@@ -22,7 +22,12 @@ describe('tâches de fond incrémentales', () => {
     const { state } = buildLargeLab()
     // Toutes les tâches déclarées par les modules, dans l'ordre du registre
     expect(runBackgroundTasks(state).ran).toEqual(roleBackgroundTasks().map((t) => t.id))
-    expect(roleBackgroundTasks().map((t) => t.id)).toEqual(['dhcp.client', 'gpo.refresh', 'dfs.replication'])
+    expect(roleBackgroundTasks().map((t) => t.id)).toEqual([
+      'dhcp.client',
+      'adds.replication',
+      'gpo.refresh',
+      'dfs.replication'
+    ])
   })
 
   it('déplacer ou renommer : aucune tâche relancée, état inchangé', () => {

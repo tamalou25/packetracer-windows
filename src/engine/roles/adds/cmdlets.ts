@@ -49,7 +49,7 @@ import {
 } from '../../shell/ps/values'
 import { hasFeature } from '../../shell/ps/cmdlets/helpers'
 
-const adAvailable = (ctx: CmdContext) => hasFeature(ctx, 'RSAT-AD-PowerShell')
+export const adAvailable = (ctx: CmdContext) => hasFeature(ctx, 'RSAT-AD-PowerShell')
 const str = (v: PsValue | undefined): string => psToString(v)
 
 /** GUID déterministe dérivé de l'identifiant interne. */
@@ -222,7 +222,7 @@ function toPs(domain: Domain, o: AdObject): PsObject {
 }
 
 /** Domaine de l'ordinateur ; `write` exige un administrateur du domaine. */
-function adDomain(ctx: CmdContext, write = false): Domain {
+export function adDomain(ctx: CmdContext, write = false): Domain {
   const name = ctx.host.host.domain
   const domain = name ? ctx.state.domains[name] : undefined
   const dcUp = domain?.controllers.some((id) => ctx.state.devices[id]?.powered)
@@ -327,7 +327,7 @@ const filterParams: ParamDef[] = [
   { name: 'Server', type: 'string' }
 ]
 
-function secureText(v: PsValue | undefined): string | undefined {
+export function secureText(v: PsValue | undefined): string | undefined {
   if (v === undefined) return undefined
   return isSecure(v) ? v.value : str(v)
 }

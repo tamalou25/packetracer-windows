@@ -101,7 +101,9 @@ export const StaticRouteSchema = z.object({
 /** Utilisateur connecté (session interactive). `domain` null = compte local. */
 export const HostSessionSchema = z.object({
   user: z.string(),
-  domain: z.string().nullable().default(null)
+  domain: z.string().nullable().default(null),
+  /** Contrôleur qui a authentifié la session de domaine (%LOGONSERVER%). */
+  logonServer: z.string().optional()
 })
 
 /** Lecteur réseau connecté manuellement (net use, « Connecter un lecteur réseau »). */
@@ -722,6 +724,63 @@ export const DeletedAdObjectSchema = z.discriminatedUnion('kind', [
   })
 ])
 
+/** Site créé avec la forêt. */
+export const DEFAULT_AD_SITE = 'Default-First-Site-Name'
+/** Lien de sites créé avec la forêt (transport IP). */
+export const DEFAULT_AD_SITE_LINK = 'DEFAULTIPSITELINK'
+
+/** Site Active Directory (Sites et services Active Directory). */
+export const AdSiteSchema = z.object({
+  name: z.string(),
+  description: z.string().default('')
+})
+
+/** Sous-réseau associé à un site (192.168.20.0/24). */
+export const AdSubnetSchema = z.object({
+  prefix: z.string(),
+  site: z.string(),
+  description: z.string().default('')
+})
+
+/** Lien de sites (transport IP) : coût et intervalle de réplication en minutes. */
+export const AdSiteLinkSchema = z.object({
+  name: z.string(),
+  sites: z.array(z.string()).default([]),
+  cost: z.number().int().default(100),
+  interval: z.number().int().default(180)
+})
+
+/** Rôles de maître d'opérations (FSMO), noms de Move-ADDirectoryServerOperationMasterRole. */
+export const FSMO_ROLES = [
+  'SchemaMaster',
+  'DomainNamingMaster',
+  'PDCEmulator',
+  'RIDMaster',
+  'InfrastructureMaster'
+] as const
+
+/** État d'une connexion de réplication entrante (contrôleur ← partenaire). */
+export const ReplicationStatusSchema = z.object({
+  dcId: z.string(),
+  partnerId: z.string(),
+  lastAttempt: z.number().nullable().default(null),
+  lastSuccess: z.number().nullable().default(null),
+  /** 0 : succès ; sinon code d'erreur Windows (1722 : serveur RPC indisponible). */
+  result: z.number().int().default(0),
+  failures: z.number().int().default(0)
+})
+
+export const ReplicationStateSchema = z.object({
+  status: z.array(ReplicationStatusSchema).default([]),
+  /**
+   * Contenu des zones DNS intégrées à AD lors de la dernière réplication réussie de chaque
+   * contrôleur (contrôleur → zone → clés « nom|type|données ») : base de la fusion multimaître.
+   */
+  dnsBase: z.record(z.string(), z.record(z.string(), z.array(z.string()))).default({}),
+  /** Horloge de la dernière réplication réussie de chaque contrôleur (base la plus récente). */
+  syncedAt: z.record(z.string(), z.number()).default({})
+})
+
 export const DomainSchema = z.object({
   /** Nom DNS du domaine (lab.local). */
   name: z.string(),
@@ -740,7 +799,17 @@ export const DomainSchema = z.object({
   /** Corbeille Active Directory activée (irréversible). */
   recycleBin: z.boolean().default(false),
   /** Objets supprimés restaurables (Corbeille activée). */
-  deletedObjects: z.array(DeletedAdObjectSchema).default([])
+  deletedObjects: z.array(DeletedAdObjectSchema).default([]),
+  sites: z.array(AdSiteSchema).default(() => [{ name: DEFAULT_AD_SITE, description: '' }]),
+  subnets: z.array(AdSubnetSchema).default([]),
+  siteLinks: z
+    .array(AdSiteLinkSchema)
+    .default(() => [{ name: DEFAULT_AD_SITE_LINK, sites: [DEFAULT_AD_SITE], cost: 100, interval: 180 }]),
+  /** Site de chaque contrôleur (identifiant d'équipement → site ; absent : premier site). */
+  dcSites: z.record(z.string(), z.string()).default({}),
+  /** Détenteur de chaque rôle FSMO (rôle → identifiant d'équipement ; absent : premier contrôleur). */
+  fsmo: z.record(z.string(), z.string()).default({}),
+  replication: ReplicationStateSchema.default(() => ({ status: [], dnsBase: {}, syncedAt: {} }))
 })
 
 /** État complet d'un lab : source de vérité unique de l'application. */
@@ -763,6 +832,11 @@ export type NetInterface = z.infer<typeof NetInterfaceSchema>
 export type Switchport = z.infer<typeof SwitchportSchema>
 export type FirewallRule = z.infer<typeof FirewallRuleSchema>
 export type VpnConnection = z.infer<typeof VpnConnectionSchema>
+export type AdSite = z.infer<typeof AdSiteSchema>
+export type AdSubnet = z.infer<typeof AdSubnetSchema>
+export type AdSiteLink = z.infer<typeof AdSiteLinkSchema>
+export type FsmoRole = (typeof FSMO_ROLES)[number]
+export type ReplicationStatus = z.infer<typeof ReplicationStatusSchema>
 export type FirewallProfileName = (typeof FIREWALL_PROFILES)[number]
 export type FirewallState = z.infer<typeof FirewallSchema>
 export type Subinterface = z.infer<typeof SubinterfaceSchema>

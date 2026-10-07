@@ -12,6 +12,8 @@ import { applyRestart } from '../../services/system'
 import { buildDomain, passwordMeetsPolicy } from './directory'
 import { DNS_STATE } from '../dns/state'
 import { ensureRoleState } from '../state'
+import { DEFAULT_AD_SITE } from '../../model/schema'
+import { dcRecords } from './sites'
 
 export interface ForestInput {
   domainName: string
@@ -24,27 +26,6 @@ export interface ForestResult {
   domain: string
   netbios: string
   warnings: string[]
-}
-
-/** Enregistrements DNS publiés par un contrôleur de domaine. */
-function dcRecords(dcName: string, domain: string, ip: string) {
-  const fqdn = `${dcName.toLowerCase()}.${domain}.`
-  const srv = (name: string, port: number) => ({
-    name,
-    type: 'SRV' as const,
-    data: `0 100 ${port} ${fqdn}`,
-    ttl: 600,
-    dynamic: true
-  })
-  return [
-    { name: '@', type: 'A' as const, data: ip, ttl: 600, dynamic: true },
-    { name: dcName.toLowerCase(), type: 'A' as const, data: ip, ttl: 3600, dynamic: true },
-    srv('_ldap._tcp', 389),
-    srv('_kerberos._tcp', 88),
-    srv('_ldap._tcp.dc._msdcs', 389),
-    srv('_kerberos._tcp.dc._msdcs', 88),
-    srv('_gc._tcp', 3268)
-  ]
 }
 
 export function installForest(
@@ -126,7 +107,7 @@ export function installForest(
             dynamic: false
           },
           { name: '@', type: 'NS', data: `${fqdn}.`, ttl: 3600, dynamic: false },
-          ...dcRecords(device.name, name, ip)
+          ...dcRecords(device.name, name, ip, DEFAULT_AD_SITE)
         ]
       })
       // Le serveur utilise désormais son propre service DNS ; les anciens serveurs deviennent redirecteurs
@@ -146,9 +127,9 @@ export function installForest(
       message: `Le démarrage des services de domaine Active Directory est terminé. Ce serveur est contrôleur du domaine ${name} (${netbios}).`
     })
     // Redémarrage automatique en fin de promotion ; session rouverte en administrateur du domaine
-    device.host.session = { user: 'Administrateur', domain: netbios }
+    device.host.session = { user: 'Administrateur', domain: netbios, logonServer: device.name }
     applyRestart(draft, device)
-    device.host.session = { user: 'Administrateur', domain: netbios }
+    device.host.session = { user: 'Administrateur', domain: netbios, logonServer: device.name }
     return { domain: name, netbios, warnings }
   })
 }

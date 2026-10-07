@@ -9,6 +9,7 @@ import { createContext, sendIp, sourceAddressFor } from '../../sim/forward'
 import { createRecorder, type PacketTrace, type PduLayer, type Protocol } from '../../sim/trace'
 import { normalizeName } from '../dns/server'
 import { firstAddress, resolveName } from '../dns/resolver'
+import { dcSite, siteControllers, siteOfAddress } from './sites'
 
 /** Contrôleur de domaine localisé par le client. */
 export interface LocatedDc {
@@ -96,14 +97,15 @@ export function exchange(
   return serverExchange(state, fromId, dstIp, { protocol, port, request, reply, fields })
 }
 
-/** Localise un contrôleur du domaine via le DNS du client puis le contacte (ping LDAP). */
-export function locateDc(
+/** Contrôleur désigné par un enregistrement SRV (cible résolue en adresse puis contactée). */
+function contactDc(
   state: LabState,
   clientId: string,
-  domainName: string,
+  domain: Domain,
+  srvName: string,
   traces: PacketTrace[]
-): LocatedDc | null {
-  const srv = resolveName(state, clientId, `_ldap._tcp.dc._msdcs.${domainName}`, 'SRV')
+): (LocatedDc & { clientSite: string | null }) | null {
+  const srv = resolveName(state, clientId, srvName, 'SRV')
   traces.push(srv.trace)
   if (srv.result.kind !== 'answer') return null
   const target = srv.result.records.find((r) => r.type === 'SRV')?.data.split(' ')[3]
@@ -115,10 +117,11 @@ export function locateDc(
   const dc = Object.values(state.devices).find(
     (d) => d.powered && d.interfaces.some((i) => effectiveIpv4(i)?.address === dcIp)
   )
-  const domain = Object.values(state.domains).find(
-    (d) => d.name === normalizeName(domainName) || d.netbios.toLowerCase() === domainName.toLowerCase()
-  )
-  if (!dc || !domain || !domain.controllers.includes(dc.id)) return null
+  if (!dc || !domain.controllers.includes(dc.id)) return null
+  // Le contrôleur indique au client son site, d'après le sous-réseau de son adresse
+  const from = state.devices[clientId]
+  const clientIp = from ? sourceAddressFor(state, from, dcIp) : null
+  const clientSite = clientIp ? siteOfAddress(domain, clientIp) : null
   const ldap = exchange(
     state,
     clientId,
@@ -127,8 +130,48 @@ export function locateDc(
     389,
     'LDAP ping (recherche du DC)',
     'LDAP réponse : contrôleur disponible',
-    [['Domaine', domain.name]]
+    [
+      ['Domaine', domain.name],
+      ['Site du contrôleur', dcSite(domain, dc.id)],
+      ['Site du client', clientSite ?? '(aucun sous-réseau correspondant)']
+    ]
   )
   traces.push(ldap.trace)
-  return ldap.ok ? { domain, dcId: dc.id, dcIp } : null
+  return ldap.ok ? { domain, dcId: dc.id, dcIp, clientSite } : null
+}
+
+/**
+ * Localise un contrôleur du domaine via le DNS du client puis le contacte (ping LDAP). Le
+ * contrôleur trouvé indique le site du client : s'il n'en fait pas partie et que ce site a un
+ * contrôleur, le client interroge l'enregistrement SRV du site et s'adresse à celui-ci.
+ */
+export function locateDc(
+  state: LabState,
+  clientId: string,
+  domainName: string,
+  traces: PacketTrace[]
+): LocatedDc | null {
+  const domain = Object.values(state.domains).find(
+    (d) => d.name === normalizeName(domainName) || d.netbios.toLowerCase() === domainName.toLowerCase()
+  )
+  if (!domain) {
+    // Requête tracée même pour un domaine inconnu (le client ne le sait pas encore)
+    const srv = resolveName(state, clientId, `_ldap._tcp.dc._msdcs.${domainName}`, 'SRV')
+    traces.push(srv.trace)
+    return null
+  }
+  const first = contactDc(state, clientId, domain, `_ldap._tcp.dc._msdcs.${domain.name}`, traces)
+  if (!first) return null
+  const site = first.clientSite
+  if (site && dcSite(domain, first.dcId) !== site && siteControllers(domain, site).length > 0) {
+    const close = contactDc(
+      state,
+      clientId,
+      domain,
+      `_ldap._tcp.${site}._sites.dc._msdcs.${domain.name}`,
+      traces
+    )
+    if (close) return { domain, dcId: close.dcId, dcIp: close.dcIp }
+  }
+  return { domain, dcId: first.dcId, dcIp: first.dcIp }
 }

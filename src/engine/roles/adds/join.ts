@@ -280,7 +280,11 @@ export function logon(state: LabState, deviceId: string, input: LogonInput): Log
     }
   const r = transact(state, (draft) => {
     const d = draft.devices[deviceId] as Draft<HostDevice>
-    d.host.session = { user: user.sam, domain: domain.netbios }
+    d.host.session = {
+      user: user.sam,
+      domain: domain.netbios,
+      logonServer: draft.devices[located.dcId]?.name ?? ''
+    }
     audit(draft, true)
     logEvent(draft, deviceId, {
       level: 'information',
