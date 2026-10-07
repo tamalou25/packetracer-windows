@@ -1,0 +1,84 @@
+{
+  "formatVersion": 1,
+  "id": "lab-16-acces-distant",
+  "title": "Partage de connexion (NAT) et accès VPN",
+  "difficulty": "Avancé",
+  "duration": "40 min",
+  "summary": "Faire de SRV1 la passerelle NAT du réseau privé et le serveur VPN des postes nomades.",
+  "statement": "# Contexte\n\n**SRV1** possède deux cartes : `Ethernet0` sur le réseau privé `192.168.10.0/24` et `Ethernet1` reliée à Internet (`203.0.113.2/24`, passerelle `203.0.113.1`). Les postes du réseau privé l’utilisent comme passerelle mais n’accèdent pas encore à Internet. Le portable **PCR**, connecté à Internet, doit joindre le réseau de l’entreprise par VPN.\n\nCompte d’administration : `LAB\\Administrateur` / `P@ssw0rd`. Mot de passe des utilisateurs : `Azerty123!`.\n\n## Travail demandé\n\n1. Sur SRV1, installez le rôle **Accès à distance** avec les services **DirectAccess et VPN** et **Routage**.\n2. Dans la console **Routage et accès distant** (`rrasmgmt.msc`), choisissez la configuration **Accès VPN et NAT** : interface Internet `Ethernet1`, pool d’adresses `192.168.10.200` – `192.168.10.220`.\n3. Vérifiez que PC1 joint `8.8.8.8` ; en mode **Simulation**, repérez la traduction d’adresse effectuée par SRV1.\n4. Sur PCR, ajoutez une connexion VPN vers `203.0.113.2` (Paramètres › Réseau › VPN ou `Add-VpnConnection`) et connectez-vous avec `LAB\\jdupont`.\n5. Depuis PCR, pingez PC1 (`192.168.10.10`) à travers le tunnel.",
+  "start": {
+    "devices": [
+      { "kind": "cloud", "name": "INTERNET", "x": 640, "y": 80, "interfaces": { "WAN": "203.0.113.1/24" } },
+      { "kind": "switch", "name": "SWX", "x": 640, "y": 260 },
+      {
+        "kind": "client",
+        "name": "PCR",
+        "x": 820,
+        "y": 420,
+        "ip": "203.0.113.50/24",
+        "gateway": "203.0.113.1"
+      },
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 380,
+        "y": 260,
+        "nics": 2,
+        "ip": "192.168.10.1/24",
+        "dns": ["127.0.0.1"],
+        "interfaces": { "Ethernet1": "203.0.113.2/24 203.0.113.1" }
+      },
+      { "kind": "switch", "name": "SW1", "x": 380, "y": 420 },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 380,
+        "y": 560,
+        "ip": "192.168.10.10/24",
+        "gateway": "192.168.10.1",
+        "dns": ["192.168.10.1"]
+      }
+    ],
+    "links": [
+      ["INTERNET:WAN", "SWX:Fa0/1"],
+      ["SRV1:Ethernet1", "SWX:Fa0/2"],
+      ["PCR:Ethernet0", "SWX:Fa0/3"],
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/2"]
+    ],
+    "domain": {
+      "name": "lab.local",
+      "netbios": "LAB",
+      "dc": "SRV1",
+      "ous": ["Nomades"],
+      "users": [{ "name": "Jean Dupont", "sam": "jdupont", "ou": "Nomades", "password": "Azerty123!" }],
+      "join": ["PC1"]
+    }
+  },
+  "criteria": [
+    {
+      "id": "nat",
+      "label": "SRV1 traduit les adresses du réseau privé (NAT)",
+      "hint": "La traduction d’adresses fait partie des configurations proposées par l’assistant du serveur de routage et d’accès distant.",
+      "check": { "type": "natEnabled", "server": "SRV1" }
+    },
+    {
+      "id": "internet",
+      "label": "PC1 joint un hôte Internet",
+      "hint": "Le poste utilise SRV1 comme passerelle : le serveur doit router et masquer les adresses privées derrière son adresse publique.",
+      "check": { "type": "ping", "from": "PC1", "to": "8.8.8.8" }
+    },
+    {
+      "id": "vpn",
+      "label": "PCR est connecté au VPN de SRV1",
+      "hint": "Le client a besoin d’une connexion VPN vers l’adresse publique du serveur et d’un compte du domaine ; le serveur attribue l’adresse depuis son pool.",
+      "check": { "type": "vpnConnected", "client": "PCR", "server": "SRV1" }
+    },
+    {
+      "id": "tunnel",
+      "label": "PCR joint PC1 à travers le tunnel",
+      "hint": "Internet ne route pas les adresses privées : seul le tunnel VPN y donne accès.",
+      "check": { "type": "ping", "from": "PCR", "to": "PC1" }
+    }
+  ]
+}
