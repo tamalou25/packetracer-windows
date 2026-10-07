@@ -30,7 +30,7 @@ export function ensureTerminal(deviceId: string, kind: ShellKind): string {
 
 /** Invite affichée (dépend de l'interpréteur actif et du dossier courant). */
 export function promptOf(session: ShellSession | null): string {
-  return session ? shellPrompt(session) : '> '
+  return session ? shellPrompt(session, useLabStore.getState().lab) : '> '
 }
 
 /** Valide l'état produit par une ligne de console, journalisée comme commande `shell.exec`. */

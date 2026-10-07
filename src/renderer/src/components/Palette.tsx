@@ -4,8 +4,8 @@
  */
 import { useMemo, useState, type DragEvent } from 'react'
 import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, Search, X } from 'lucide-react'
-import { DEVICE_KIND_INFO, type DeviceKind } from '@engine/index'
-import { DEVICE_ICONS, KIND_STRIPE } from '../lib/devices'
+import { DEVICE_KIND_INFO } from '@engine/index'
+import { DEVICE_ICONS, KIND_STRIPE, LINUX_INFO, paletteLabel, type PaletteKind } from '../lib/devices'
 import { readPref, writePref } from '../lib/prefs'
 import { useUiStore } from '../store/ui'
 
@@ -15,20 +15,21 @@ export const DND_DEVICE_MIME = 'application/x-serverlab-device'
 interface PaletteGroup {
   id: string
   label: string
-  kinds: DeviceKind[]
+  kinds: PaletteKind[]
 }
 
 const GROUPS: PaletteGroup[] = [
   { id: 'servers', label: 'Serveurs', kinds: ['server'] },
-  { id: 'clients', label: 'Postes', kinds: ['client'] },
+  { id: 'clients', label: 'Postes', kinds: ['client', 'linux'] },
   { id: 'network', label: 'Réseau', kinds: ['switch', 'router'] },
   { id: 'internet', label: 'Internet', kinds: ['cloud'] }
 ]
 
 /** Modèle affiché sous le nom de l'équipement. */
-const MODELS: Record<DeviceKind, string> = {
+const MODELS: Record<PaletteKind, string> = {
   server: '1 à 4 cartes réseau',
   client: 'Poste de travail · 1 carte',
+  linux: LINUX_INFO.model,
   switch: 'Niveau 2 · 16 ports Fa0/x',
   router: 'Statique · 4 ports Gi0/x',
   cloud: 'FAI simulé · port WAN'
@@ -46,7 +47,11 @@ interface PaletteState {
 
 const DEFAULT_STATE: PaletteState = { collapsed: false, closedGroups: [] }
 
-function startDrag(e: DragEvent, kind: DeviceKind) {
+/** Description (infobulle, recherche). */
+const describe = (kind: PaletteKind) =>
+  kind === 'linux' ? LINUX_INFO.description : DEVICE_KIND_INFO[kind].description
+
+function startDrag(e: DragEvent, kind: PaletteKind) {
   e.dataTransfer.setData(DND_DEVICE_MIME, kind)
   e.dataTransfer.effectAllowed = 'copy'
 }
@@ -66,13 +71,13 @@ export function Palette() {
     const q = normalize(query.trim())
     if (!q) return null
     return new Set(
-      (Object.keys(DEVICE_KIND_INFO) as DeviceKind[]).filter((k) =>
-        normalize(`${DEVICE_KIND_INFO[k].label} ${MODELS[k]} ${DEVICE_KIND_INFO[k].description}`).includes(q)
+      GROUPS.flatMap((g) => g.kinds).filter((k) =>
+        normalize(`${paletteLabel(k)} ${MODELS[k]} ${describe(k)}`).includes(q)
       )
     )
   }, [query])
 
-  const arm = (kind: DeviceKind) => setArmed(armed === kind ? null : kind)
+  const arm = (kind: PaletteKind) => setArmed(armed === kind ? null : kind)
 
   if (state.collapsed) {
     return (
@@ -100,7 +105,7 @@ export function Palette() {
               onDragStart={(e) => startDrag(e, kind)}
               onClick={() => arm(kind)}
               aria-pressed={armed === kind}
-              title={`${DEVICE_KIND_INFO[kind].label} — ${MODELS[kind]}`}
+              title={`${paletteLabel(kind)} — ${MODELS[kind]}`}
               data-testid={`palette-${kind}`}
               className={`relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-md border transition-colors ${
                 armed === kind
@@ -190,7 +195,7 @@ export function Palette() {
                           onDragStart={(e) => startDrag(e, kind)}
                           onClick={() => arm(kind)}
                           aria-pressed={active}
-                          title={`${DEVICE_KIND_INFO[kind].description} — glisser vers le canvas`}
+                          title={`${describe(kind)} — glisser vers le canvas`}
                           data-testid={`palette-${kind}`}
                           className={`flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors ${
                             active ? 'bg-accent-soft ring-1 ring-accent' : 'hover:bg-surface-2'
@@ -201,9 +206,7 @@ export function Palette() {
                             <Icon size={15} strokeWidth={1.6} />
                           </span>
                           <span className="min-w-0 leading-tight">
-                            <span className="block truncate text-[13px] text-fg">
-                              {DEVICE_KIND_INFO[kind].label}
-                            </span>
+                            <span className="block truncate text-[13px] text-fg">{paletteLabel(kind)}</span>
                             <span className="block truncate text-[11px] text-fg-muted">{MODELS[kind]}</span>
                           </span>
                         </button>

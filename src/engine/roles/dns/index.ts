@@ -7,6 +7,7 @@ import { dnsCommands } from './commands'
 import { dnsCriteria } from './criteria'
 import { DNS_STATE } from './state'
 import { nslookupTool } from './tools'
+import { dnsBashTools } from './bash'
 
 export const dnsRole = defineRole({
   id: 'dns',
@@ -21,6 +22,7 @@ export const dnsRole = defineRole({
   commands: dnsCommands,
   cmdlets: dnsCmdlets,
   tools: [nslookupTool],
+  bashTools: dnsBashTools,
   views: [
     {
       app: 'dns',

@@ -7,7 +7,7 @@ import { logEvent } from '../core/eventlog'
 import { raise, transact, type EngineResult } from '../core/result'
 import { buildDevice, createInterface, SERVER_MAX_INTERFACES, nextSeq } from '../model/factory'
 import type { DeviceKind } from '../model/kinds'
-import type { Device, LabState, LinkEnd, Position } from '../model/schema'
+import type { Device, HostOs, LabState, LinkEnd, Position } from '../model/schema'
 import { linkOnInterface } from './queries'
 
 /** Refus d'une opération de topologie sur un équipement virtuel (géré par Hyper-V). */
@@ -52,6 +52,8 @@ export interface AddDeviceParams {
   kind: DeviceKind
   position: Position
   name?: string
+  /** Poste client : Windows (par défaut) ou Linux (Ubuntu simulé). */
+  os?: HostOs
 }
 
 /** Ajoute un équipement et renvoie son identifiant. */
@@ -62,7 +64,7 @@ export function addDevice(state: LabState, params: AddDeviceParams): EngineResul
       if (err) raise('InvalidName', err)
       assertNameAvailable(draft, params.name.trim())
     }
-    const device = buildDevice(draft, params.kind, params.position, params.name?.trim())
+    const device = buildDevice(draft, params.kind, params.position, params.name?.trim(), params.os)
     draft.devices[device.id] = device
     return device.id
   })

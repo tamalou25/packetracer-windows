@@ -9,7 +9,7 @@ import { canvasStatus, type DeviceHealth } from '@engine/index'
 import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
 import { PortTray } from './PortTray'
-import { DEVICE_ICONS, KIND_STRIPE } from '../../lib/devices'
+import { deviceIcon, KIND_STRIPE } from '../../lib/devices'
 import { countRender } from '../../lib/perf'
 
 export type DeviceNodeData = { deviceId: string }
@@ -60,7 +60,7 @@ function DeviceNodeComponent({ data, selected, dragging }: NodeProps<DeviceFlowN
   const cableMode = tool === 'cable'
   // Panneau de ports au survol (outils Sélection et Câble), jamais pendant un déplacement
   const showPorts = hover && !dragging && (tool === 'select' || cableMode)
-  const Icon = DEVICE_ICONS[device.kind]
+  const Icon = deviceIcon(device)
   const { health, ip } = view
   return (
     <div

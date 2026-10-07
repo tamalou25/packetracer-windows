@@ -239,6 +239,9 @@ function ruleMatches(rule: FirewallRule, packet: FirewallPacket, profile: Firewa
 /** Décision du pare-feu de l'ordinateur pour un paquet. */
 export function evaluateFirewall(host: HostDevice, packet: FirewallPacket): FirewallVerdict {
   const profile = activeProfile(host)
+  // Poste Ubuntu : pas de pare-feu Windows ; ufw est installé mais inactif par défaut
+  if (host.host.os === 'linux')
+    return { allowed: true, profile, rule: null, reason: 'poste Linux : pare-feu (ufw) inactif' }
   const label = PROFILE_LABELS[profile]
   if (!profileEnabled(host, profile))
     return { allowed: true, profile, rule: null, reason: `pare-feu désactivé pour le profil ${label}` }

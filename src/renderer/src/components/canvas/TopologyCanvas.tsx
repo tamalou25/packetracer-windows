@@ -15,6 +15,7 @@ import {
   type EdgeTypes
 } from '@xyflow/react'
 import { DEVICE_KINDS, type DeviceKind, command } from '@engine/index'
+import { paletteParams, type PaletteKind } from '../../lib/devices'
 import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
 import { runCommand } from '../../lib/run'
@@ -169,11 +170,11 @@ export function TopologyCanvas() {
   }, [])
 
   const placeDevice = useCallback(
-    (kind: DeviceKind, screen: { x: number; y: number }) => {
+    (kind: PaletteKind, screen: { x: number; y: number }) => {
       const p = flow.screenToFlowPosition(screen)
       const id = runCommand(
         command('topology.addDevice', {
-          kind,
+          ...paletteParams(kind),
           position: { x: Math.round(p.x - ICON_CENTER.x), y: Math.round(p.y - ICON_CENTER.y) }
         })
       )
@@ -186,8 +187,8 @@ export function TopologyCanvas() {
     (e: DragEvent) => {
       e.preventDefault()
       const kind = e.dataTransfer.getData(DND_DEVICE_MIME)
-      if ((DEVICE_KINDS as readonly string[]).includes(kind))
-        placeDevice(kind as DeviceKind, { x: e.clientX, y: e.clientY })
+      if ((DEVICE_KINDS as readonly string[]).includes(kind) || kind === 'linux')
+        placeDevice(kind as PaletteKind, { x: e.clientX, y: e.clientY })
     },
     [placeDevice]
   )

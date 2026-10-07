@@ -26,6 +26,8 @@ export class ExecContext {
   readonly traces: PacketTrace[] = []
   clear = false
   exit = false
+  /** Console bash : commande lancée avec sudo (droits root). */
+  root = false
   private answerIndex = 0
 
   constructor(

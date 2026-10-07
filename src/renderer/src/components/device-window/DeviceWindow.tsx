@@ -4,10 +4,9 @@
  */
 import { useRef, type PointerEvent } from 'react'
 import { Maximize2, Minimize2, Monitor, Settings, SquareTerminal, X, type LucideIcon } from 'lucide-react'
-import { DEVICE_KIND_INFO } from '@engine/index'
 import { useLabStore } from '../../store/lab'
 import { useUiStore, type DeviceTab, type DeviceWindowState } from '../../store/ui'
-import { DEVICE_COLORS, DEVICE_ICONS } from '../../lib/devices'
+import { DEVICE_COLORS, deviceIcon, deviceLabel, isLinux } from '../../lib/devices'
 import { ConfigTab } from './ConfigTab'
 import { ConsoleTab } from '../console/ConsoleTab'
 import { DesktopShell } from '../desktop/DesktopShell'
@@ -27,9 +26,14 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
   const resize = useRef<{ px: number; py: number; w: number; h: number } | null>(null)
 
   if (!device) return null
-  const Icon = DEVICE_ICONS[device.kind]
+  const Icon = deviceIcon(device)
   const isHost = device.kind === 'server' || device.kind === 'client'
-  const tabs = isHost ? TABS : TABS.filter((t) => t.id === 'config')
+  // Poste Linux : configuration et console bash (pas de Bureau Windows)
+  const tabs = !isHost
+    ? TABS.filter((t) => t.id === 'config')
+    : isLinux(device)
+      ? TABS.filter((t) => t.id !== 'desktop')
+      : TABS
   const tab = tabs.some((t) => t.id === win.tab) ? win.tab : 'config'
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
@@ -68,7 +72,7 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
       style={style}
       onPointerDownCapture={() => focusWindow(win.deviceId)}
       role="dialog"
-      aria-label={`${device.name} — ${DEVICE_KIND_INFO[device.kind].label}`}
+      aria-label={`${device.name} — ${deviceLabel(device)}`}
       data-testid={`device-window-${device.name}`}
     >
       <div
@@ -84,7 +88,7 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
           <Icon size={14} />
         </span>
         <span className="text-sm font-semibold">{device.name}</span>
-        <span className="text-xs text-fg-muted">— {DEVICE_KIND_INFO[device.kind].label}</span>
+        <span className="text-xs text-fg-muted">— {deviceLabel(device)}</span>
         <button
           type="button"
           className="ml-auto rounded p-1 text-fg-muted hover:bg-surface-2 hover:text-fg"

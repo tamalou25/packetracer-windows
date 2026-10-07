@@ -10,8 +10,11 @@ import type { AuditRule } from './types'
 
 export * from './types'
 
+/** Ordinateurs Windows (le pare-feu Windows ne concerne pas les postes Linux). */
 const hosts = (state: LabState): HostDevice[] =>
-  Object.values(state.devices).filter((d): d is HostDevice => d.kind === 'server' || d.kind === 'client')
+  Object.values(state.devices).filter(
+    (d): d is HostDevice => (d.kind === 'server' || d.kind === 'client') && d.host.os !== 'linux'
+  )
 
 /** Règles du système de base. */
 export const CORE_AUDIT_RULES: AuditRule[] = [

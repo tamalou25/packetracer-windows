@@ -32,6 +32,14 @@ const THEMES: Record<
     error: 'text-red-400',
     warning: 'text-yellow-300',
     verbose: 'text-cyan-300'
+  },
+  // Terminal d'Ubuntu (profil par défaut)
+  bash: {
+    root: 'bg-[#300a24]',
+    text: 'text-neutral-100',
+    error: 'text-neutral-100',
+    warning: 'text-yellow-300',
+    verbose: 'text-cyan-300'
   }
 }
 

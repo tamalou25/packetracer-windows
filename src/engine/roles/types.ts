@@ -119,6 +119,8 @@ export interface RoleModule<C extends CommandDefs = CommandDefs> {
   cmdlets: CmdletDef[]
   /** Outils en ligne de commande (CMD et PowerShell). */
   tools: ToolDef[]
+  /** Commandes de la console bash des postes Linux. */
+  bashTools?: ToolDef[]
   /** Applications du Bureau. */
   views: RoleView[]
   /** Types de critères de lab. */

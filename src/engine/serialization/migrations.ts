@@ -5,7 +5,7 @@
  */
 import { DEFAULT_DC_POLICY_ID, DEFAULT_DOMAIN_POLICY_ID, defaultDomainGpos } from '../roles/gpo/defaults'
 
-export const CURRENT_SCHEMA_VERSION = 7
+export const CURRENT_SCHEMA_VERSION = 8
 
 type RawDocument = Record<string, unknown>
 
@@ -96,6 +96,15 @@ function addV23Security(doc: RawDocument): RawDocument {
   return { ...doc, schemaVersion: 7 }
 }
 
+/**
+ * Version 8 (ServerLab 2.4) : postes Linux (système de l'ordinateur, partages montés). Rien à
+ * transformer : un ordinateur sans système est un ordinateur Windows ; le numéro de version
+ * empêche une version 2.3 d'ouvrir (et de tronquer) ces labs.
+ */
+function addV24Linux(doc: RawDocument): RawDocument {
+  return { ...doc, schemaVersion: 8 }
+}
+
 /** migrations[n] migre un document de la version n vers n + 1. */
 export const migrations: Record<number, (doc: RawDocument) => RawDocument> = {
   1: addDefaultGpos,
@@ -103,7 +112,8 @@ export const migrations: Record<number, (doc: RawDocument) => RawDocument> = {
   3: moveServicesToRoles,
   4: addV21Roles,
   5: addV22Network,
-  6: addV23Security
+  6: addV23Security,
+  7: addV24Linux
 }
 
 export type MigrationResult = { ok: true; doc: RawDocument } | { ok: false; message: string }

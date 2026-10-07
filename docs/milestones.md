@@ -329,3 +329,19 @@ Milestone terminé : `CHANGELOG.md` [2.3.0], `package.json` 2.3.0 ; tag `v2.3.0`
   Exporter / Importer / Essayer) et **Importer un lab…** ; onglet Lab : « Indice suivant ».
 - Main (`main/labfiles.ts`) : import / export JSON par dialogues natifs, 1 Mo au plus.
 - Limite : un lab importé n'est pas conservé dans le `.slab` enregistré (seuls les labs fournis le sont).
+
+### #36 Client Linux simulé
+
+- Format 8 : système de l'ordinateur `host.os` (`windows` par défaut, `linux`) et partages montés
+  `host.mounts` ; migration 7 → 8 sans transformation, `fixtures/v8.slab`.
+- Poste Linux = poste client `os: 'linux'` (`topology.addDevice` avec `os`) : nom LNX1, carte `eth0`, compte
+  `etudiant`, TTL 64, pas de pare-feu Windows (ufw inactif), pas de stratégies de groupe, hors règle d'audit
+  du pare-feu.
+- Console bash (`shell/bash`) : guillemets, `sudo`, tube vers `grep`, `cd` / `pwd` ; commandes du système de
+  base (`ip a|r|link`, `ip addr add`, `ip route add default`, `ping -c`, `dhclient`, `hostname`, `whoami`)
+  et des modules de rôles (`RoleModule.bashTools`) : AD (`realm discover|join|list|leave`, `id`), DNS
+  (`dig`, `resolvectl`), fichiers (`mount -t cifs`, `umount`, `smbclient -L / -c ls`, `ls`, `touch`, `mkdir`,
+  `cat`) avec les autorisations partage ∩ NTFS du compte du montage.
+- Interface : palette › Postes › **Poste Linux**, icône terminal, fenêtre Config + Console (bash, thème
+  Ubuntu), sans Bureau Windows.
+- Écarts : `docs/fidelite.md` F97 à F105.
