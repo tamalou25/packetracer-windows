@@ -202,3 +202,22 @@ Milestone terminé : `CHANGELOG.md` [2.1.0], `package.json` 2.1.0 ; tag `v2.1.0`
   d'authentification) ; sans réponse : événement 20073. Champ `radius` avec valeur par défaut (format 6).
 - **Acceptation** : seuls les membres du groupe autorisé établissent le VPN (`tests/engine/roles/nps.test.ts`,
   lab `lab-17-nps-radius`, `tests/e2e/nps.spec.ts`).
+
+### #27 Multi-sites AD, réplication et rôles FSMO
+
+- Domaine : sites, sous-réseaux, liens de sites (coût, intervalle 15 min à 1 semaine par pas de 15),
+  site de chaque contrôleur, détenteurs FSMO, état de réplication (valeurs par défaut, format 6).
+  Console `dssite.msc` ; cmdlets `Get/New/Remove-ADReplicationSite`, `…-ADReplicationSubnet`,
+  `Get/New/Set/Remove-ADReplicationSiteLink`, `Move-ADDirectoryServer`, `Get-ADDomainController`.
+- `Install-ADDSDomainController` : DC localisé par le DNS, compte Admins du domaine, site du sous-réseau,
+  zones DNS intégrées à AD copiées, enregistrements SRV génériques et de site.
+- Réplication (tâche de fond, `repadmin /replsummary | /showrepl | /syncall`, « Répliquer maintenant ») :
+  topologie KCC (DC d'un site entre eux ; têtes de pont sur l'arbre de liens de moindre coût), erreur 1722
+  et événement 1925 si le partenaire est injoignable, événement 1311 pour un site isolé, fusion multimaître
+  des zones DNS intégrées à AD.
+- FSMO : `netdom query fsmo`, `Move-ADDirectoryServerOperationMasterRole` (transfert ; `-Force` : prise de
+  force si le détenteur ne répond pas).
+- Localisation : le DC contacté indique le site du client, qui interroge alors le SRV du site ;
+  `%LOGONSERVER%` (contrôleur ayant authentifié la session), `nltest /dsgetdc:`. Résolution DNS insensible
+  à la casse. Critères `adSite`, `siteLink`, `domainController`, `fsmoRole`, `logonServer` ; lab
+  `lab-18-multi-sites`.
