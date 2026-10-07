@@ -153,6 +153,7 @@ describe('catalogue des commandes', () => {
     r.run(command('net.setSwitchport', sw, r.iface('SW1', 3), { mode: 'trunk', allowedVlans: [1, 20, 30] }))
     r.run(command('net.removeVlan', sw, 30))
     const sub = r.run<string>(command('net.addSubinterface', r.id('R1'), r.iface('R1'), 30))
+    r.run(command('net.setHelperAddresses', r.id('R1'), sub, ['192.168.10.1']))
     r.run(command('net.removeSubinterface', r.id('R1'), sub))
     done(r)
   })

@@ -123,14 +123,14 @@ Milestone terminé : `CHANGELOG.md` [2.1.0], `package.json` 2.1.0 ; tag `v2.1.0`
 
 ## v2.2 — Réseau d'entreprise
 
-| Issue | Sujet                   | Branche        | PR  | État     |
-| ----- | ----------------------- | -------------- | --- | -------- |
-| #22   | VLAN, trunk, inter-VLAN | `feat/22-vlan` |     | en cours |
-| #23   | Relais DHCP             |                |     | à faire  |
-| #24   | Pare-feu simulé         |                |     | à faire  |
-| #25   | RRAS : VPN et NAT       |                |     | à faire  |
-| #26   | NPS / RADIUS            |                |     | à faire  |
-| #27   | Multi-sites AD, FSMO    |                |     | à faire  |
+| Issue | Sujet                   | Branche              | PR  | État     |
+| ----- | ----------------------- | -------------------- | --- | -------- |
+| #22   | VLAN, trunk, inter-VLAN | `feat/22-vlan`       | #82 | fusionné |
+| #23   | Relais DHCP             | `feat/23-dhcp-relay` |     | en cours |
+| #24   | Pare-feu simulé         |                      |     | à faire  |
+| #25   | RRAS : VPN et NAT       |                      |     | à faire  |
+| #26   | NPS / RADIUS            |                      |     | à faire  |
+| #27   | Multi-sites AD, FSMO    |                      |     | à faire  |
 
 ### #22 VLAN
 
@@ -143,3 +143,13 @@ Milestone terminé : `CHANGELOG.md` [2.1.0], `package.json` 2.1.0 ; tag `v2.1.0`
 - Actions `net/vlan.ts` et commandes `net.addVlan`, `net.renameVlan`, `net.removeVlan`, `net.setSwitchport`,
   `net.addSubinterface`, `net.removeSubinterface` ; onglet Config : pages « VLAN » (switch) et
   « Sous-interfaces » (routeur) ; critère `switchport` ; lab `lab-13-vlan`.
+
+### #23 Relais DHCP
+
+- Interface de routeur (ou sous-interface) : `helperAddresses` (ip helper-address), champ optionnel du format 6 ;
+  action et commande `net.setHelperAddresses`, saisie dans l'onglet Config de l'interface.
+- `dhcpAcquire` : sans serveur sur le segment, l'agent de relais retransmet Discover et Request en unicast
+  (UDP 67, giaddr = adresse de l'interface) ; le serveur choisit l'étendue couvrant giaddr, répond à l'agent de
+  relais (route nécessaire), qui remet Offer et Ack au client. Champ « Agent relais (giaddr) » et choix de
+  l'étendue expliqués en mode Simulation.
+- Lab `lab-14-relais-dhcp` ; e2e `dhcp-relay.spec.ts`.
