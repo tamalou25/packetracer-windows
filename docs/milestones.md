@@ -128,9 +128,11 @@ Milestone terminé : `CHANGELOG.md` [2.1.0], `package.json` 2.1.0 ; tag `v2.1.0`
 | #22   | VLAN, trunk, inter-VLAN | `feat/22-vlan`       | #82 | fusionné |
 | #23   | Relais DHCP             | `feat/23-dhcp-relay` | #83 | fusionné |
 | #24   | Pare-feu simulé         | `feat/24-firewall`   | #84 | fusionné |
-| #25   | RRAS : VPN et NAT       | `feat/25-rras`       |     | en cours |
-| #26   | NPS / RADIUS            |                      |     | à faire  |
-| #27   | Multi-sites AD, FSMO    |                      |     | à faire  |
+| #25   | RRAS : VPN et NAT       | `feat/25-rras`       | #85 | fusionné |
+| #26   | NPS / RADIUS            | `feat/26-nps`        | #86 | fusionné |
+| #27   | Multi-sites AD, FSMO    | `feat/27-ad-sites`   | #87 | fusionné |
+
+Milestone terminé : `CHANGELOG.md` [2.2.0], `package.json` 2.2.0 ; tag `v2.2.0` à pousser par Gary.
 
 ### #22 VLAN
 
