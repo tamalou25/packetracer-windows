@@ -291,6 +291,25 @@ export function updateGpoSettings(
           'InvalidValue',
           'La longueur minimale du mot de passe doit être un nombre entier compris entre 0 et 14 caractères.'
         )
+      const range = (
+        key: 'lockoutThreshold' | 'lockoutDuration' | 'lockoutReset',
+        min: number,
+        max: number
+      ) => {
+        const v = patch.computer?.[key]
+        if (v !== undefined && v !== null && (!Number.isInteger(v) || v < min || v > max))
+          raise('InvalidValue', `La valeur doit être un nombre entier compris entre ${min} et ${max}.`)
+      }
+      range('lockoutThreshold', 0, 999)
+      range('lockoutDuration', 0, 99999)
+      range('lockoutReset', 1, 99999)
+      const duration = patch.computer.lockoutDuration ?? gpo.computer.lockoutDuration
+      const reset = patch.computer.lockoutReset ?? gpo.computer.lockoutReset
+      if (duration !== null && reset !== null && duration > 0 && reset > duration)
+        raise(
+          'InvalidValue',
+          'La valeur de réinitialisation du compteur de verrouillages doit être inférieure ou égale à la durée de verrouillage.'
+        )
       Object.assign(gpo.computer, patch.computer)
       gpo.computerVersion += 1
     }

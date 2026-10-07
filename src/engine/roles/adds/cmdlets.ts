@@ -28,9 +28,11 @@ import {
   resetPassword,
   setAccountEnabled,
   setOuProtection,
+  unlockAccount,
   setUserProperties
 } from './objects'
 import { restartComputer } from '../../services/system'
+import { isLockedOut } from './lockout'
 import { psError } from '../../shell/ps/errors'
 import { evaluateExpression } from '../../shell/ps/expression'
 import type { ExecContext } from '../../shell/context'
@@ -62,7 +64,7 @@ function sidOf(domain: Domain, id: string): string {
   return `S-1-5-21-${base}-${(base * 7) >>> 0}-${(base * 13) >>> 0}-${rid}`
 }
 
-function userObject(domain: Domain, u: AdUser): PsObject {
+function userObject(domain: Domain, u: AdUser, clock: number): PsObject {
   return psObject(
     'ADUser',
     {
@@ -79,6 +81,9 @@ function userObject(domain: Domain, u: AdUser): PsObject {
       Description: u.description || null,
       PasswordNeverExpires: u.passwordNeverExpires,
       LastLogonDate: u.lastLogon === null ? null : formatShortDate(u.lastLogon),
+      LockedOut: isLockedOut(domain, u, clock),
+      BadLogonCount: u.badPwdCount,
+      AccountLockoutTime: u.lockoutTime === null ? null : formatShortDate(u.lockoutTime),
       whenCreated: formatShortDate(u.whenCreated)
     },
     {
@@ -212,10 +217,10 @@ function computerObject(domain: Domain, c: AdComputer): PsObject {
   )
 }
 
-function toPs(domain: Domain, o: AdObject): PsObject {
+function toPs(domain: Domain, o: AdObject, clock: number): PsObject {
   switch (o.kind) {
     case 'user':
-      return userObject(domain, o.obj)
+      return userObject(domain, o.obj, clock)
     case 'group':
       return groupObject(domain, o.obj)
     case 'computer':
@@ -315,7 +320,7 @@ function select(
   }
   if (filter.trim() === '*') return items
   return items.filter((o) => {
-    const obj = toPs(domain, o)
+    const obj = toPs(domain, o, ctx.state.clock)
     return psToBool(
       evaluateExpression(filter, { variable: (n) => ctx.variable(n), bare: (w) => getProp(obj, w) })
     )
@@ -527,7 +532,7 @@ export const adCmdlets: CmdletDef[] = [
     params: [identityParam, ...filterParams],
     run(ctx, args) {
       const domain = adDomain(ctx)
-      return select(ctx, domain, args, 'container', true).map((o) => toPs(domain, o))
+      return select(ctx, domain, args, 'container', true).map((o) => toPs(domain, o, ctx.state.clock))
     }
   },
   {
@@ -622,7 +627,7 @@ export const adCmdlets: CmdletDef[] = [
       if (args['PassThru'] === true) {
         const d = ctx.state.domains[domain.name]
         const u = d?.users.find((x) => x.id === result.id)
-        return d && u ? [userObject(d, u)] : []
+        return d && u ? [userObject(d, u, ctx.state.clock)] : []
       }
       return []
     }
@@ -635,7 +640,9 @@ export const adCmdlets: CmdletDef[] = [
     params: [identityParam, ...filterParams],
     run(ctx, args) {
       const domain = adDomain(ctx)
-      return select(ctx, domain, args, 'user').map((o) => withProperties(toPs(domain, o), args['Properties']))
+      return select(ctx, domain, args, 'user').map((o) =>
+        withProperties(toPs(domain, o, ctx.state.clock), args['Properties'])
+      )
     }
   },
   {
@@ -673,6 +680,45 @@ export const adCmdlets: CmdletDef[] = [
       if (args['Enabled'] !== undefined)
         ctx.apply(setAccountEnabled(ctx.state, domain.name, identity, args['Enabled'] === true))
       return []
+    }
+  },
+  {
+    name: 'Unlock-ADAccount',
+    module: 'ActiveDirectory',
+    synopsis: 'Déverrouille un compte verrouillé.',
+    available: adAvailable,
+    params: [{ ...identityParam, mandatory: true }],
+    run(ctx, args) {
+      const domain = adDomain(ctx, true)
+      ctx.apply(unlockAccount(ctx.state, domain.name, str(args['Identity'])))
+      return []
+    }
+  },
+  {
+    name: 'Search-ADAccount',
+    module: 'ActiveDirectory',
+    synopsis: 'Recherche des comptes (verrouillés, désactivés).',
+    available: adAvailable,
+    params: [
+      { name: 'LockedOut', type: 'switch' },
+      { name: 'AccountDisabled', type: 'switch' },
+      { name: 'UsersOnly', type: 'switch' }
+    ],
+    run(ctx, args) {
+      const domain = adDomain(ctx)
+      if (args['LockedOut'] !== true && args['AccountDisabled'] !== true)
+        throw psError(
+          'Le jeu de paramètres ne peut pas être résolu à l’aide des paramètres nommés spécifiés.',
+          'InvalidArgument',
+          'AmbiguousParameterSet'
+        )
+      return domain.users
+        .filter(
+          (u) =>
+            (args['LockedOut'] !== true || isLockedOut(domain, u, ctx.state.clock)) &&
+            (args['AccountDisabled'] !== true || !u.enabled)
+        )
+        .map((u) => userObject(domain, u, ctx.state.clock))
     }
   },
   ...(['Enable', 'Disable'] as const).map((verb): CmdletDef => ({
@@ -762,7 +808,7 @@ export const adCmdlets: CmdletDef[] = [
     params: [identityParam, ...filterParams],
     run(ctx, args) {
       const domain = adDomain(ctx)
-      return select(ctx, domain, args, 'group').map((o) => toPs(domain, o))
+      return select(ctx, domain, args, 'group').map((o) => toPs(domain, o, ctx.state.clock))
     }
   },
   {
@@ -890,7 +936,7 @@ export const adCmdlets: CmdletDef[] = [
     params: [identityParam, ...filterParams],
     run(ctx, args) {
       const domain = adDomain(ctx)
-      return select(ctx, domain, args, 'computer').map((o) => toPs(domain, o))
+      return select(ctx, domain, args, 'computer').map((o) => toPs(domain, o, ctx.state.clock))
     }
   },
   {

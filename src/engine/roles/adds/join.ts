@@ -5,6 +5,7 @@
  */
 import type { Draft } from 'immer'
 import { logEvent } from '../../core/eventlog'
+import { logAudited } from '../gpo/auditpolicy'
 import { transact } from '../../core/result'
 import type { Domain, HostDevice, LabState } from '../../model/schema'
 import { effectiveIpv4 } from '../../net/addressing'
@@ -21,10 +22,16 @@ import {
   PASSWORD_POLICY_ERROR,
   resolveContainerDn
 } from './directory'
-import { domainPasswordPolicy } from '../gpo/scope'
+import { domainLockoutPolicy, domainPasswordPolicy } from '../gpo/scope'
+import { fsmoHolder } from './fsmo'
+import { isLockedOut, lockoutExpired } from './lockout'
 import { computerPolicyStale, processGroupPolicy } from '../gpo/processing'
 import { exchange, locateDc } from './locator'
 import { dnsServerOf } from '../dns/state'
+
+/** Message d'un compte verrouillé (ouverture de session). */
+export const ACCOUNT_LOCKED =
+  'Le compte référencé est actuellement verrouillé et vous ne pourrez peut-être pas vous y connecter.'
 
 export interface DirectoryOperation {
   state: LabState
@@ -133,7 +140,7 @@ export function joinDomain(state: LabState, deviceId: string, input: JoinInput):
     }
     device.host.pendingDomain = domain.name
     device.host.pendingReboot = true
-    logEvent(draft, located.dcId, {
+    logAudited(draft, located.dcId, 'accountManagement', 'success', {
       level: 'information',
       source: 'Security-Auditing',
       eventId: 4741,
@@ -173,7 +180,7 @@ export function leaveDomain(state: LabState, deviceId: string): DirectoryOperati
 
 /** Évènement 4672 : ouverture de session d'un compte administrateur (privilèges sensibles). */
 function logSpecialPrivileges(draft: Draft<LabState>, deviceId: string, account: string): void {
-  logEvent(draft, deviceId, {
+  logAudited(draft, deviceId, 'logon', 'success', {
     level: 'information',
     source: 'Security-Auditing',
     eventId: 4672,
@@ -207,7 +214,7 @@ export function logon(state: LabState, deviceId: string, input: LogonInput): Log
     const localAccount = `${host.name}\\${sam.toLowerCase() === 'administrateur' ? 'Administrateur' : sam}`
     if (!localOk) {
       const failed = transact(state, (draft) => {
-        logEvent(draft, deviceId, {
+        logAudited(draft, deviceId, 'logon', 'failure', {
           level: 'warning',
           source: 'Security-Auditing',
           eventId: 4625,
@@ -224,7 +231,7 @@ export function logon(state: LabState, deviceId: string, input: LogonInput): Log
         user: sam.toLowerCase() === 'administrateur' ? 'Administrateur' : 'Utilisateur',
         domain: null
       }
-      logEvent(draft, deviceId, {
+      logAudited(draft, deviceId, 'logon', 'success', {
         level: 'information',
         source: 'Security-Auditing',
         eventId: 4624,
@@ -259,7 +266,10 @@ export function logon(state: LabState, deviceId: string, input: LogonInput): Log
     }
   const principal = findPrincipal(domain, sam)
   const user = principal?.kind === 'user' ? principal.obj : null
-  const good = !!user && user.password === input.password
+  // Verrouillage : un compte verrouillé est refusé tant que la durée n'est pas écoulée
+  const lockout = domainLockoutPolicy(domain)
+  const locked = !!user && isLockedOut(domain, user, state.clock)
+  const good = !!user && !locked && user.password === input.password
   const kerberos = exchange(
     state,
     deviceId,
@@ -272,29 +282,63 @@ export function logon(state: LabState, deviceId: string, input: LogonInput): Log
   )
   traces.push(kerberos.trace)
   const trace = concatTraces(`Ouverture de session ${domain.netbios}\\${sam}`, traces)
+  // Compte verrouillé : le KDC répond KDC_ERR_CLIENT_REVOKED (4768 en échec, code 0x12)
+  // au lieu d'évaluer le mot de passe (4771, code 0x18)
   const audit = (draft: Draft<LabState>, ok: boolean) =>
     logEvent(draft, located.dcId, {
       level: ok ? 'information' : 'warning',
       source: 'Security-Auditing',
-      eventId: ok ? 4768 : 4771,
+      eventId: ok || locked ? 4768 : 4771,
       log: 'Sécurité',
       message: ok
         ? `Un ticket d’authentification Kerberos (TGT) a été demandé pour ${domain.netbios}\\${sam} depuis ${host.name}.`
-        : `La pré-authentification Kerberos a échoué pour le compte ${sam} depuis ${host.name}.`
+        : locked
+          ? `Un ticket d’authentification Kerberos (TGT) a été demandé pour ${domain.netbios}\\${sam} depuis ${host.name}. Code d’échec : 0x12.`
+          : `La pré-authentification Kerberos a échoué pour le compte ${sam} depuis ${host.name}.`
     })
   if (!user || !good) {
     const r = transact(state, (draft) => {
       audit(draft, false)
-      logEvent(draft, deviceId, {
+      logAudited(draft, deviceId, 'logon', 'failure', {
         level: 'warning',
         source: 'Security-Auditing',
         eventId: 4625,
         log: 'Sécurité',
-        message: `Échec d’ouverture de session pour ${domain.netbios}\\${sam}.`
+        message: `Échec d’ouverture de session pour ${domain.netbios}\\${sam}.${locked ? ' Raison : le compte est verrouillé.' : ''}`
       })
+      const account = user ? draft.domains[domain.name]?.users.find((u) => u.id === user.id) : undefined
+      if (account && !locked) {
+        if (lockoutExpired(domain, account, state.clock)) account.lockoutTime = null
+        // Compteur d'échecs remis à zéro passé le délai de réinitialisation
+        if (
+          account.lastBadPassword !== null &&
+          state.clock - account.lastBadPassword >= lockout.reset * 60_000
+        )
+          account.badPwdCount = 0
+        account.badPwdCount += 1
+        account.lastBadPassword = draft.clock
+        if (lockout.threshold > 0 && account.badPwdCount >= lockout.threshold) {
+          account.lockoutTime = draft.clock
+          const pdc = fsmoHolder(domain, 'PDCEmulator') ?? located.dcId
+          logAudited(draft, pdc, 'accountManagement', 'success', {
+            level: 'information',
+            source: 'Security-Auditing',
+            eventId: 4740,
+            log: 'Sécurité',
+            message: `Un compte d’utilisateur a été verrouillé. Compte : ${domain.netbios}\\${account.sam}. Ordinateur appelant : ${host.name}.`
+          })
+        }
+      }
       return undefined
     })
-    return { state: r.ok ? r.state : state, trace, ok: false, message: incorrect }
+    return {
+      state: r.ok ? r.state : state,
+      trace,
+      ok: false,
+      // La tentative qui atteint le seuil reste un mauvais mot de passe : seules les suivantes
+      // voient le verrouillage
+      message: locked ? ACCOUNT_LOCKED : incorrect
+    }
   }
   if (!user.enabled)
     return {
@@ -313,6 +357,12 @@ export function logon(state: LabState, deviceId: string, input: LogonInput): Log
     }
   const r = transact(state, (draft) => {
     const d = draft.devices[deviceId] as Draft<HostDevice>
+    const acct = draft.domains[domain.name]?.users.find((u) => u.id === user.id)
+    if (acct) {
+      acct.badPwdCount = 0
+      acct.lastBadPassword = null
+      acct.lockoutTime = null
+    }
     d.host.session = {
       user: user.sam,
       domain: domain.netbios,
@@ -321,7 +371,7 @@ export function logon(state: LabState, deviceId: string, input: LogonInput): Log
     audit(draft, true)
     const account = draft.domains[domain.name]?.users.find((u) => u.id === user.id)
     if (account) account.lastLogon = draft.clock
-    logEvent(draft, deviceId, {
+    logAudited(draft, deviceId, 'logon', 'success', {
       level: 'information',
       source: 'Security-Auditing',
       eventId: 4624,
@@ -407,7 +457,7 @@ export function logoff(state: LabState, deviceId: string): LabState {
   const r = transact(state, (draft) => {
     const d = draft.devices[deviceId]
     if (d && (d.kind === 'server' || d.kind === 'client') && d.host.session) {
-      logEvent(draft, deviceId, {
+      logAudited(draft, deviceId, 'logon', 'success', {
         level: 'information',
         source: 'Security-Auditing',
         eventId: 4634,

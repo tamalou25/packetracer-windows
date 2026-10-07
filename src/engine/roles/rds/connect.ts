@@ -4,7 +4,7 @@
  * session, sinon groupe Utilisateurs du Bureau à distance). Évènements 4624 / 4625 de type 10.
  */
 import type { Draft } from 'immer'
-import { logEvent } from '../../core/eventlog'
+import { logAudited } from '../gpo/auditpolicy'
 import { transact } from '../../core/result'
 import { nextSeq } from '../../model/factory'
 import type { HostDevice, LabState } from '../../model/schema'
@@ -95,7 +95,7 @@ export function rdpConnect(state: LabState, clientId: string, input: RdpInput): 
   if (!exchange.ok || !target || !listening) return done(false, RDP_UNREACHABLE)
 
   const audit = (draft: Draft<LabState>, ok: boolean, account: string, detail: string) =>
-    logEvent(draft, target.id, {
+    logAudited(draft, target.id, 'logon', ok ? 'success' : 'failure', {
       level: ok ? 'information' : 'warning',
       source: 'Security-Auditing',
       eventId: ok ? 4624 : 4625,
