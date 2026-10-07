@@ -211,6 +211,36 @@ function memberAllowed(group: AdGroup, member: AdObject): string | null {
   return null
 }
 
+/** Évènements de modification d'un groupe de sécurité (ajout / retrait d'un membre), selon l'étendue. */
+const MEMBERSHIP_EVENTS: Record<AdGroup['scope'], { added: number; removed: number; label: string }> = {
+  Global: { added: 4728, removed: 4729, label: 'global' },
+  DomainLocal: { added: 4732, removed: 4733, label: 'local' },
+  Universal: { added: 4756, removed: 4757, label: 'universel' }
+}
+
+function logMembership(
+  draft: Draft<LabState>,
+  domain: Draft<Domain>,
+  group: Draft<AdGroup>,
+  member: string,
+  added: boolean
+): void {
+  const dc = domain.controllers[0]
+  if (!dc || group.category !== 'Security') return
+  const ev = MEMBERSHIP_EVENTS[group.scope]
+  logEvent(draft, dc, {
+    level: 'information',
+    source: 'Security-Auditing',
+    eventId: added ? ev.added : ev.removed,
+    log: 'Sécurité',
+    message: `Un membre a été ${added ? 'ajouté à' : 'supprimé d’'}un groupe ${ev.label} de sécurité. Membre : ${domain.netbios}\\${member}. Groupe : ${domain.netbios}\\${group.sam}.`
+  })
+}
+
+/** Nom d'ouverture de session d'un membre (ordinateur : NOM$). */
+const memberSam = (m: { kind: string; obj: { name: string; sam?: string } }) =>
+  m.kind === 'computer' ? `${m.obj.name}$` : (m.obj.sam ?? m.obj.name)
+
 export function addGroupMembers(
   state: LabState,
   domainName: string,
@@ -227,7 +257,10 @@ export function addGroupMembers(
       if (!member) notFound(domain as Domain, m)
       const err = memberAllowed(target as AdGroup, member)
       if (err) raise('InvalidMember', err)
-      if (!target.members.includes(member.obj.id)) target.members.push(member.obj.id)
+      if (!target.members.includes(member.obj.id)) {
+        target.members.push(member.obj.id)
+        logMembership(draft, domain, target, memberSam(member), true)
+      }
     }
     return undefined
   })
@@ -250,6 +283,7 @@ export function removeGroupMembers(
       if (!target.members.includes(member.obj.id))
         raise('NotMember', `« ${member.obj.name} » n’est pas membre du groupe « ${target.name} ».`)
       target.members = target.members.filter((id) => id !== member.obj.id)
+      logMembership(draft, domain, target, memberSam(member), false)
     }
     return undefined
   })

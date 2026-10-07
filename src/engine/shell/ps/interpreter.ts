@@ -13,6 +13,7 @@ import { PsSyntaxError } from './lexer'
 import { parse, type Arg, type Element, type Expr, type Pipeline, type Statement } from './parser'
 import { COMMON_PARAMS, type BoundArgs, type CmdletDef, type ParamDef } from './registry'
 import {
+  psObject,
   flatten,
   getProp,
   isCredential,
@@ -177,6 +178,11 @@ function evalExpr(ctx: CmdContext, expr: Expr): PsValue {
       return expr.items.map((i) => evalExpr(ctx, i))
     case 'script':
       return { kind: 'script', source: expr.source }
+    case 'hash':
+      return psObject(
+        'System.Collections.Hashtable',
+        Object.fromEntries(expr.entries.map((e) => [e.key, evalExpr(ctx, e.value)]))
+      )
     case 'sub': {
       const values = flatten(runStatements(ctx, expr.statements, ctx.source, false))
       let v: PsValue = values.length === 1 ? (values[0] as PsValue) : values

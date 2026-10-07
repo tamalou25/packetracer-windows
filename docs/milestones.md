@@ -229,8 +229,8 @@ Milestone terminé : `CHANGELOG.md` [2.2.0], `package.json` 2.2.0 ; tag `v2.2.0`
 | Issue | Sujet                           | Branche                  | PR  | État     |
 | ----- | ------------------------------- | ------------------------ | --- | -------- |
 | #28   | Mode Audit                      | `feat/28-audit`          | #89 | fusionné |
-| #29   | Labs de durcissement            | `feat/29-hardening-labs` |     | en cours |
-| #30   | Journaux de sécurité filtrables |                          |     | à faire  |
+| #29   | Labs de durcissement            | `feat/29-hardening-labs` | #90 | fusionné |
+| #30   | Journaux de sécurité filtrables | `feat/30-security-logs`  | #91 | en cours |
 | #31   | Verrouillage et audit par GPO   |                          |     | à faire  |
 | #32   | Rapport d'audit PDF             |                          |     | à faire  |
 
@@ -257,3 +257,15 @@ Milestone terminé : `CHANGELOG.md` [2.2.0], `package.json` 2.2.0 ; tag `v2.2.0`
   session affichée).
 - Labs `lab-19-durcissement-ad`, `lab-20-durcissement-partages`, `lab-21-durcissement-pare-feu` : départ sous
   100 avec toutes les règles ciblées enfreintes (testé), solution appliquée par les consoles → 100 %.
+
+### #30 Journaux de sécurité filtrables
+
+- Évènements : 4624 / 4625 (ouverture de session interactive, locale ou de domaine, type 2), 4672
+  (privilèges spéciaux : administrateur local ou du domaine), 4720 (création de compte), 4728 / 4729, 4732 /
+  4733, 4756 / 4757 (membre ajouté / retiré d'un groupe de sécurité global, local, universel) ; 4740 :
+  verrouillage, issue #31.
+- `core/eventlog.ts` : `filterEvents` (ID, niveau, source, période). Observateur d'événements : « Filtrer le
+  journal actuel… » (période, niveau, source, ID), « Effacer le filtre », nombre filtré.
+- PowerShell : tables de hachage `@{ Clé = Valeur }` (lexer, analyseur, interpréteur) ; `Get-WinEvent`
+  (-LogName, -FilterHashtable LogName / Id / Level / ProviderName / StartTime / EndTime, -MaxEvents, -Oldest,
+  erreur « Aucun événement correspondant… ») ; `parseLabDate` (dates JJ/MM/AAAA ou AAAA-MM-JJ).

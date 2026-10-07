@@ -1,12 +1,15 @@
 /**
  * Observateur d'événements : journaux système (Application, Sécurité, Système) et journaux des
- * applications et des services (Service d'annuaire, Serveur DNS), détail de l'événement, effacement.
+ * applications et des services (Service d'annuaire, Serveur DNS), filtre du journal actuel (ID,
+ * niveau, source, période), détail de l'événement, effacement.
  */
 import { useState } from 'react'
 import { BookOpen, CircleAlert, FolderClosed, Info, ScrollText, TriangleAlert } from 'lucide-react'
-import { type EventLogEntry, type HostDevice, command } from '@engine/index'
+import { type EventFilter, type EventLogEntry, type HostDevice, command, filterEvents } from '@engine/index'
+import { FormDialog } from '../../common/FormDialog'
 import { formatSimTime } from '../../../lib/format'
 import { runCommand } from '../../../lib/run'
+import { useLabStore } from '../../../store/lab'
 import { Mmc, MmcAction, type MmcNode } from '../../mmc/Mmc'
 import { MessageBox } from '../shell/classic'
 
@@ -15,6 +18,15 @@ type LogName = EventLogEntry['log']
 const SYSTEM_LOGS: LogName[] = ['Application', 'Sécurité', 'Système']
 const SERVICE_LOGS: LogName[] = ['Service d’annuaire', 'Serveur DNS']
 
+/** Périodes du filtre (« Connecté » : à tout moment, dernière heure…). */
+const PERIODS = [
+  { label: 'À tout moment', ms: 0 },
+  { label: 'Dernière heure', ms: 3_600_000 },
+  { label: '12 dernières heures', ms: 12 * 3_600_000 },
+  { label: '24 dernières heures', ms: 24 * 3_600_000 },
+  { label: '7 derniers jours', ms: 7 * 86_400_000 }
+]
+
 const LEVELS = {
   information: { label: 'Information', icon: Info, cls: 'text-[#0078d7]' },
   warning: { label: 'Avertissement', icon: TriangleAlert, cls: 'text-[#d39c00]' },
@@ -22,11 +34,15 @@ const LEVELS = {
 } as const
 
 export function EventViewer({ device }: { device: HostDevice }) {
+  const lab = useLabStore((s) => s.lab)
   const [selected, setSelected] = useState('log:Système')
   const [eventId, setEventId] = useState<number | null>(null)
   const [confirmClear, setConfirmClear] = useState(false)
+  const [filter, setFilter] = useState<EventFilter | null>(null)
+  const [filterDialog, setFilterDialog] = useState(false)
   const log = selected.startsWith('log:') ? (selected.slice(4) as LogName) : null
-  const entries = log ? device.host.eventLog.filter((e) => e.log === log).reverse() : []
+  const all = log ? device.host.eventLog.filter((e) => e.log === log) : []
+  const entries = (filter ? filterEvents(all, filter) : all).reverse()
   const current = entries.find((e) => e.id === eventId) ?? entries[0]
   const fqdn = device.host.domain ? `${device.name}.${device.host.domain}` : device.name
 
@@ -69,13 +85,24 @@ export function EventViewer({ device }: { device: HostDevice }) {
         onSelect={(id) => {
           setSelected(id)
           setEventId(null)
+          setFilter(null)
         }}
         testId="eventvwr"
         actions={
           log ? (
-            <MmcAction onClick={() => setConfirmClear(true)} testId="eventvwr-clear">
-              Effacer le journal…
-            </MmcAction>
+            <>
+              <MmcAction onClick={() => setFilterDialog(true)} testId="eventvwr-filter">
+                Filtrer le journal actuel…
+              </MmcAction>
+              {filter && (
+                <MmcAction onClick={() => setFilter(null)} testId="eventvwr-unfilter">
+                  Effacer le filtre
+                </MmcAction>
+              )}
+              <MmcAction onClick={() => setConfirmClear(true)} testId="eventvwr-clear">
+                Effacer le journal…
+              </MmcAction>
+            </>
           ) : undefined
         }
       >
@@ -110,7 +137,11 @@ export function EventViewer({ device }: { device: HostDevice }) {
           <div className="flex h-full flex-col text-xs text-black">
             <div className="border-b border-slate-200 bg-[#f7f7f7] px-2 py-1">
               <span className="font-semibold">{log}</span>
-              <span className="ml-2 text-[#555]">Nombre d’événements : {entries.length}</span>
+              <span className="ml-2 text-[#555]" data-testid="eventvwr-count">
+                {filter
+                  ? `Filtré : journal : ${log} ; nombre d’événements : ${entries.length} sur ${all.length}`
+                  : `Nombre d’événements : ${entries.length}`}
+              </span>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
               <table className="w-full" data-testid="eventvwr-events">
@@ -182,6 +213,51 @@ export function EventViewer({ device }: { device: HostDevice }) {
           </div>
         )}
       </Mmc>
+      {filterDialog && log && (
+        <FormDialog
+          title="Filtrer le journal actuel"
+          fields={[
+            {
+              key: 'period',
+              label: 'Connecté',
+              type: 'select',
+              options: PERIODS.map((p) => ({ value: String(p.ms), label: p.label }))
+            },
+            {
+              key: 'level',
+              label: 'Niveau de l’événement',
+              type: 'select',
+              options: [
+                { value: '', label: 'Tous' },
+                { value: 'error', label: 'Erreur' },
+                { value: 'warning', label: 'Avertissement' },
+                { value: 'information', label: 'Information' }
+              ]
+            },
+            { key: 'source', label: 'Sources d’événements', placeholder: 'Security-Auditing' },
+            { key: 'ids', label: 'ID d’événements (séparés par des virgules)', placeholder: '4624, 4625' }
+          ]}
+          onSubmit={(v) => {
+            const ids = String(v['ids'] ?? '')
+              .split(/[,;\s]+/)
+              .map((x) => Number(x))
+              .filter((n) => Number.isInteger(n) && n > 0)
+            const ms = Number(v['period'])
+            const level = String(v['level'] ?? '')
+            const source = String(v['source'] ?? '').trim()
+            setFilter({
+              ...(ids.length > 0 ? { ids } : {}),
+              ...(level ? { levels: [level as EventLogEntry['level']] } : {}),
+              ...(source ? { sources: [source] } : {}),
+              ...(ms > 0 ? { since: lab.clock - ms } : {})
+            })
+            setEventId(null)
+            return true
+          }}
+          onClose={() => setFilterDialog(false)}
+          testId="eventvwr-filter-dialog"
+        />
+      )}
       {confirmClear && log && (
         <MessageBox
           title="Observateur d’événements"

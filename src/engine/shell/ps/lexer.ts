@@ -14,6 +14,7 @@ export type TokenType =
   | 'lparen'
   | 'rparen'
   | 'atparen'
+  | 'hash'
   | 'script'
   | 'assign'
   | 'eof'
@@ -94,8 +95,10 @@ export function tokenize(source: string): Token[] {
       tokens.push({ type: 'atparen', text: '@(', value: '@(', start, end: i })
       continue
     }
-    if (c === '{') {
-      // Bloc de script : contenu brut jusqu'à l'accolade fermante correspondante
+    if (c === '{' || (c === '@' && source[i + 1] === '{')) {
+      // Bloc de script (ou table de hachage @{ … }) : contenu brut jusqu'à l'accolade fermante
+      const hash = c === '@'
+      if (hash) i++
       let depth = 1
       let j = i + 1
       let quote: string | null = null
@@ -115,9 +118,9 @@ export function tokenize(source: string): Token[] {
           'MissingEndCurlyBrace'
         )
       tokens.push({
-        type: 'script',
+        type: hash ? 'hash' : 'script',
         text: source.slice(start, j),
-        value: source.slice(start + 1, j - 1).trim(),
+        value: source.slice(i + 1, j - 1).trim(),
         start,
         end: j
       })
