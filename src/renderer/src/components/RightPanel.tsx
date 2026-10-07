@@ -2,16 +2,21 @@
  * Panneau de droite à onglets : Propriétés / Simulation / Audit, et Lab quand un lab est ouvert.
  */
 import { AuditPanel } from './audit/AuditPanel'
+import { ExamResultPanel } from './labs/Exam'
 import { LabPanel } from './labs/LabPanel'
 import { SimulationPanel } from './simulation/SimulationPanel'
 import { PropertiesPanel } from './properties/PropertiesPanel'
+import { useExamStore } from '../store/exam'
 import { useLabsStore } from '../store/labs'
 import { useUiStore, type RightTab } from '../store/ui'
 
 export function RightPanel() {
   const selected = useUiStore((s) => s.rightTab)
   const setTab = useUiStore((s) => s.setRightTab)
-  const lab = useLabsStore((s) => s.active)
+  const active = useLabsStore((s) => s.active)
+  const examResult = useExamStore((s) => s.result)
+  // Le résultat d'un examen reste consultable même si le lab a été fermé
+  const lab = active ?? examResult
   const TABS: { id: RightTab; label: string }[] = [
     ...(lab ? [{ id: 'lab' as const, label: 'Lab' }] : []),
     { id: 'properties', label: 'Propriétés' },
@@ -40,7 +45,11 @@ export function RightPanel() {
         ))}
       </div>
       {tab === 'lab' ? (
-        <LabPanel />
+        examResult ? (
+          <ExamResultPanel result={examResult} />
+        ) : (
+          <LabPanel />
+        )
       ) : tab === 'properties' ? (
         <PropertiesPanel />
       ) : tab === 'audit' ? (
