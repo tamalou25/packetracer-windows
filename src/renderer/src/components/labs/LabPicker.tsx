@@ -1,7 +1,8 @@
 /**
- * Sélecteur de labs (Fichier > Ouvrir un lab…) : titre, difficulté, durée et résumé de chaque lab.
+ * Sélecteur de labs (Fichier > Ouvrir un lab…) : labs fournis (titre, difficulté, durée, résumé)
+ * et bibliothèque communautaire.
  */
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { FlaskConical, GraduationCap, Upload, X } from 'lucide-react'
 import { LABS } from '../../lib/labCatalog'
 import { importAndOpenLab, openLabEditor } from '../../lib/labEditor'
@@ -9,9 +10,11 @@ import { openLab } from '../../lib/labs'
 import { useLabsStore } from '../../store/labs'
 import { Button } from '../common/ui'
 import { DifficultyBadge } from './DifficultyBadge'
+import { LibraryList } from './LibraryList'
 
 export function LabPicker() {
   const open = useLabsStore((s) => s.pickerOpen)
+  const [tab, setTab] = useState<'builtin' | 'library'>('builtin')
   const close = () => useLabsStore.getState().setPickerOpen(false)
   useEffect(() => {
     if (!open) return
@@ -42,34 +45,67 @@ export function LabPicker() {
             <X size={16} />
           </button>
         </div>
-        <p className="px-5 pt-3 text-[13px] text-fg-muted">
-          Chaque lab part d’une topologie prête à l’emploi. Réalisez les tâches de l’énoncé, puis cliquez sur
-          <strong className="text-fg"> Vérifier</strong> dans l’onglet Lab : chaque objectif est validé, avec
-          un indice en cas d’échec.
-        </p>
-        <ul className="min-h-0 flex-1 overflow-y-auto p-5">
-          {LABS.map((lab, i) => (
-            <li
-              key={lab.id}
-              className="mb-3 flex items-start gap-3 rounded-md border border-line bg-surface p-3"
+        <div className="flex border-b border-line px-5" role="tablist">
+          {(
+            [
+              ['builtin', 'Labs fournis'],
+              ['library', 'Bibliothèque']
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={tab === id}
+              onClick={() => setTab(id)}
+              data-testid={`picker-tab-${id}`}
+              className={`border-b-2 px-3 py-2 text-[12px] font-semibold ${
+                tab === id ? 'border-accent text-fg' : 'border-transparent text-fg-subtle hover:text-fg-muted'
+              }`}
             >
-              <span className="mt-0.5 font-mono text-[12px] text-fg-subtle">
-                {String(i + 1).padStart(2, '0')}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[13px] font-semibold text-fg">{lab.title}</span>
-                  <DifficultyBadge difficulty={lab.difficulty} />
-                  <span className="text-[11px] text-fg-subtle">{lab.duration}</span>
-                </div>
-                <p className="mt-1 text-[12px] text-fg-muted">{lab.summary}</p>
-              </div>
-              <Button variant="primary" onClick={() => void openLab(lab)} data-testid={`lab-open-${lab.id}`}>
-                Ouvrir
-              </Button>
-            </li>
+              {label}
+            </button>
           ))}
-        </ul>
+        </div>
+        {tab === 'library' ? (
+          <LibraryList />
+        ) : (
+          <>
+            <p className="px-5 pt-3 text-[13px] text-fg-muted">
+              Chaque lab part d’une topologie prête à l’emploi. Réalisez les tâches de l’énoncé, puis cliquez
+              sur
+              <strong className="text-fg"> Vérifier</strong> dans l’onglet Lab : chaque objectif est validé,
+              avec un indice en cas d’échec.
+            </p>
+            <ul className="min-h-0 flex-1 overflow-y-auto p-5">
+              {LABS.map((lab, i) => (
+                <li
+                  key={lab.id}
+                  className="mb-3 flex items-start gap-3 rounded-md border border-line bg-surface p-3"
+                >
+                  <span className="mt-0.5 font-mono text-[12px] text-fg-subtle">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[13px] font-semibold text-fg">{lab.title}</span>
+                      <DifficultyBadge difficulty={lab.difficulty} />
+                      <span className="text-[11px] text-fg-subtle">{lab.duration}</span>
+                    </div>
+                    <p className="mt-1 text-[12px] text-fg-muted">{lab.summary}</p>
+                  </div>
+                  <Button
+                    variant="primary"
+                    onClick={() => void openLab(lab)}
+                    data-testid={`lab-open-${lab.id}`}
+                  >
+                    Ouvrir
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
         <div className="flex items-center gap-2 border-t border-line px-5 py-3">
           <Button onClick={() => void importAndOpenLab()} data-testid="lab-import">
             <Upload size={14} /> Importer un lab…
