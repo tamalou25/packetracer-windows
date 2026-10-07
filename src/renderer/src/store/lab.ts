@@ -59,6 +59,8 @@ interface LabStore {
   transactionBase: LabState | null
   /** Incrémenté à chaque chargement de document (permet au canvas de recadrer la vue). */
   revision: number
+  /** État au chargement du document (départ du lab) : référence du rapport d'audit. */
+  loadedLab: LabState
   /** Vue à restaurer après chargement (null → ajuster à la fenêtre). */
   viewport: Viewport | null
   /** Mode Temps réel : tâches de fond des rôles exécutées après chaque changement. */
@@ -114,8 +116,10 @@ export const useLabStore = create<LabStore>()((set, get) => {
     return { ok: true, label: step.entry.label }
   }
 
+  const initial = createLab()
   return {
-    lab: createLab(),
+    lab: initial,
+    loadedLab: initial,
     filePath: null,
     fileName: UNTITLED,
     dirty: false,
@@ -193,7 +197,8 @@ export const useLabStore = create<LabStore>()((set, get) => {
         history: emptyHistory(),
         transactionBase: null,
         viewport,
-        revision: s.revision + 1
+        revision: s.revision + 1,
+        loadedLab: settled
       }))
     },
 

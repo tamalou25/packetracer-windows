@@ -232,7 +232,7 @@ Milestone terminé : `CHANGELOG.md` [2.2.0], `package.json` 2.2.0 ; tag `v2.2.0`
 | #29   | Labs de durcissement            | `feat/29-hardening-labs` | #90 | fusionné |
 | #30   | Journaux de sécurité filtrables | `feat/30-security-logs`  | #91 | en cours |
 | #31   | Verrouillage et audit par GPO   |                          |     | à faire  |
-| #32   | Rapport d'audit PDF             |                          |     | à faire  |
+| #32   | Rapport d'audit PDF             | `feat/32-audit-pdf`      |     | en cours |
 
 ### #28 Mode Audit
 
@@ -269,3 +269,14 @@ Milestone terminé : `CHANGELOG.md` [2.2.0], `package.json` 2.2.0 ; tag `v2.2.0`
 - PowerShell : tables de hachage `@{ Clé = Valeur }` (lexer, analyseur, interpréteur) ; `Get-WinEvent`
   (-LogName, -FilterHashtable LogName / Id / Level / ProviderName / StartTime / EndTime, -MaxEvents, -Oldest,
   erreur « Aucun événement correspondant… ») ; `parseLabDate` (dates JJ/MM/AAAA ou AAAA-MM-JJ).
+
+### #32 Rapport d'audit PDF
+
+- Moteur : `audit/report.ts` (`buildAuditReport`) — lab, date, score, score de référence, recommandations
+  « corrigé » / « non corrigé » (non corrigées d'abord, nouvelles signalées), compteurs. Référence : état au
+  chargement du document (départ du lab), conservé par le store (`loadedLab`).
+- `shared/auditReport.ts` : schéma zod du contenu (bornes), nom de fichier proposé, page HTML A4 (texte
+  échappé, CSP `default-src 'none'`, aucun script). Main (`main/report.ts`) : contenu validé, dialogue
+  natif « Enregistrer sous », impression par une fenêtre cachée sans JavaScript (`printToPDF`), fichier
+  temporaire supprimé.
+- Onglet Audit : score au chargement, nombre de recommandations corrigées, bouton **PDF**.

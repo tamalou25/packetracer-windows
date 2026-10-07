@@ -2,6 +2,7 @@
  * Contrat IPC partagé entre le process principal, le preload et le renderer.
  * Toute nouvelle communication doit être déclarée ici (canaux + types).
  */
+import type { AuditReportData } from './auditReport'
 
 /** Commandes émises par la barre de menu native vers le renderer. */
 export type MenuCommand =
@@ -128,7 +129,8 @@ export const IPC = {
   docState: 'doc:state',
   askSaveChanges: 'doc:askSaveChanges',
   closeRequested: 'app:closeRequested',
-  closeConfirmed: 'app:closeConfirmed'
+  closeConfirmed: 'app:closeConfirmed',
+  auditExportPdf: 'audit:exportPdf'
 } as const
 
 /** Taille maximale acceptée pour un fichier .slab (protection contre les fichiers aberrants). */
@@ -182,4 +184,7 @@ export interface ServerLabApi {
   onCloseRequested(cb: () => void): () => void
   /** Confirme que la fermeture peut avoir lieu (après enregistrement). */
   confirmClose(): void
+
+  /** Rapport d'audit : dialogue natif « Enregistrer sous » puis PDF. Renvoie le chemin choisi. */
+  exportAuditPdf(report: AuditReportData): Promise<FileResult<string>>
 }

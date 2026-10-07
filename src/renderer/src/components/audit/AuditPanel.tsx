@@ -1,11 +1,14 @@
 /**
  * Onglet Audit : score de sécurité du lab (sur 100) et recommandations classées par gravité,
- * avec les objets concernés et la correction suggérée. L'analyse suit l'état du lab en direct.
+ * avec les objets concernés et la correction suggérée. L'analyse suit l'état du lab en direct ;
+ * comparaison avec l'état au chargement (départ du lab) et export du rapport en PDF.
  */
 import { useMemo } from 'react'
-import { ShieldAlert, ShieldCheck } from 'lucide-react'
-import { auditLab, type AuditSeverity } from '@engine/index'
+import { FileDown, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { auditLab, compareAudits, type AuditSeverity } from '@engine/index'
+import { exportAuditReport } from '../../lib/auditReport'
 import { useLabStore } from '../../store/lab'
+import { Button } from '../common/ui'
 
 const SEVERITY_CLASS: Record<AuditSeverity, string> = {
   critique: 'bg-danger text-on-accent',
@@ -18,7 +21,13 @@ const scoreClass = (score: number) => (score >= 80 ? 'text-ok' : score >= 50 ? '
 
 export function AuditPanel() {
   const lab = useLabStore((s) => s.lab)
+  const loadedLab = useLabStore((s) => s.loadedLab)
   const report = useMemo(() => auditLab(lab), [lab])
+  const baseline = useMemo(() => auditLab(loadedLab), [loadedLab])
+  const corrected = useMemo(
+    () => compareAudits(baseline, report).filter((c) => c.corrected).length,
+    [baseline, report]
+  )
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="audit-panel">
       <div className="flex items-center gap-3 border-b border-line px-4 py-3">
@@ -35,7 +44,18 @@ export function AuditPanel() {
             {report.score}
             <span className="text-sm text-fg-subtle"> / 100</span>
           </div>
+          <div className="text-[11px] text-fg-muted" data-testid="audit-baseline">
+            Au chargement : {baseline.score} / 100 · {corrected} recommandation(s) corrigée(s)
+          </div>
         </div>
+        <Button
+          onClick={() => void exportAuditReport()}
+          className="ml-auto"
+          title="Exporter le rapport d’audit en PDF"
+          data-testid="audit-export"
+        >
+          <FileDown size={14} /> PDF
+        </Button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
         {report.recommendations.length === 0 ? (

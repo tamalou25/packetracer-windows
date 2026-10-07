@@ -55,7 +55,9 @@ const api: ServerLabApi = {
   setDocumentState: (state) => ipcRenderer.send(IPC.docState, state),
   askSaveChanges: (docName) => ipcRenderer.invoke(IPC.askSaveChanges, docName),
   onCloseRequested: (cb) => subscribe<void>(IPC.closeRequested, () => cb()),
-  confirmClose: () => ipcRenderer.send(IPC.closeConfirmed)
+  confirmClose: () => ipcRenderer.send(IPC.closeConfirmed),
+
+  exportAuditPdf: (report) => ipcRenderer.invoke(IPC.auditExportPdf, report)
 }
 
 contextBridge.exposeInMainWorld('serverlab', api)
