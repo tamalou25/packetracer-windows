@@ -31,6 +31,7 @@ import { PduList } from './PduList'
 import { DeviceNode, type DeviceFlowNode } from './DeviceNode'
 import { PortPicker, type PortPickerState } from './PortPicker'
 import { ZoomControls } from './ZoomControls'
+import { useT } from '../../lib/i18n'
 
 const nodeTypes: NodeTypes = { device: DeviceNode }
 const edgeTypes: EdgeTypes = { cable: CableEdge }
@@ -52,6 +53,7 @@ export function TopologyCanvas() {
   const viewport = useLabStore((s) => s.viewport)
   const selection = useUiStore((s) => s.selection)
   const tool = useUiStore((s) => s.tool)
+  const { t } = useT()
   const armed = useUiStore((s) => s.armed)
   const cableStart = useUiStore((s) => s.cableStart)
   const pduSource = useUiStore((s) => s.pduSource)
@@ -347,7 +349,7 @@ export function TopologyCanvas() {
       {isEmpty && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <p className="rounded-md border border-line bg-panel/90 px-4 py-2 text-fg-muted shadow-sm">
-            Glissez un équipement depuis la palette (ou cliquez dessus puis sur le canvas) pour commencer.
+            {t('canvas.empty')}
           </p>
         </div>
       )}

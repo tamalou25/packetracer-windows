@@ -3,6 +3,8 @@
  * c'est-à-dire le départ du lab) puis export PDF par le process principal.
  */
 import { auditLab, buildAuditReport, type AuditReportDocument } from '@engine/index'
+import { documentName } from './document'
+import { t } from './i18n'
 import { useLabStore } from '../store/lab'
 import { useLabsStore } from '../store/labs'
 import { useUiStore } from '../store/ui'
@@ -10,7 +12,7 @@ import { useUiStore } from '../store/ui'
 /** Nom affiché dans le rapport : titre du lab en cours, sinon nom du document. */
 export function reportLabName(): string {
   const active = useLabsStore.getState().active
-  return active ? active.title : useLabStore.getState().fileName.replace(/\.slab$/i, '')
+  return active ? active.title : documentName().replace(/\.slab$/i, '')
 }
 
 export function currentAuditReport(date: Date = new Date()): AuditReportDocument {
@@ -27,7 +29,7 @@ export function currentAuditReport(date: Date = new Date()): AuditReportDocument
 export async function exportAuditReport(): Promise<void> {
   const res = await window.serverlab.exportAuditPdf(currentAuditReport())
   const ui = useUiStore.getState()
-  if (res.ok) ui.notify('success', `Rapport d’audit enregistré : ${res.value}`)
+  if (res.ok) ui.notify('success', t('audit.exported', { path: res.value }))
   else if (!res.canceled)
-    ui.showModal({ title: 'Export du rapport impossible', message: res.error ?? 'Erreur inconnue.' })
+    ui.showModal({ title: t('audit.exportFailed'), message: res.error ?? t('error.unknown') })
 }

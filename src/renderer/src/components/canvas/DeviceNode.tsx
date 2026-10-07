@@ -11,6 +11,7 @@ import { useUiStore } from '../../store/ui'
 import { PortTray } from './PortTray'
 import { deviceIcon, KIND_STRIPE } from '../../lib/devices'
 import { countRender } from '../../lib/perf'
+import { useT } from '../../lib/i18n'
 
 export type DeviceNodeData = { deviceId: string }
 export type DeviceFlowNode = Node<DeviceNodeData, 'device'>
@@ -38,6 +39,7 @@ function DeviceNodeComponent({ data, selected, dragging }: NodeProps<DeviceFlowN
   const device = useLabStore((s) => s.lab.devices[data.deviceId])
   const view = useLabStore((s) => canvasStatus(s.lab).devices[data.deviceId])
   const tool = useUiStore((s) => s.tool)
+  const { t } = useT()
   const [hover, setHover] = useState(false)
   const leaveTimer = useRef<number | null>(null)
   useEffect(
@@ -74,7 +76,7 @@ function DeviceNodeComponent({ data, selected, dragging }: NodeProps<DeviceFlowN
         className={`relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-md border bg-surface shadow-xs transition-colors ${
           selected ? 'border-accent ring-1 ring-accent' : 'border-line-strong hover:border-fg-subtle'
         } ${device.powered ? '' : 'opacity-50'} ${device.hostedBy ? 'border-dashed' : ''}`}
-        title={device.hostedBy ? 'Équipement virtuel (Hyper-V)' : undefined}
+        title={device.hostedBy ? t('node.virtual') : undefined}
       >
         <span className={`absolute inset-y-0 left-0 w-[3px] ${KIND_STRIPE[device.kind]}`} />
         <Icon size={26} strokeWidth={1.5} className="text-fg-muted" />

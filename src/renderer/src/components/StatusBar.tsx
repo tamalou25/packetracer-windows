@@ -4,20 +4,21 @@
  */
 import { useViewport } from '@xyflow/react'
 import { Clock, Footprints, Moon, Sun } from 'lucide-react'
+import { dateLocale, rich, useT } from '../lib/i18n'
 import { useLabStore } from '../store/lab'
 import { useSimStore } from '../store/sim'
 import { useUiStore, type Tool } from '../store/ui'
 
-const TOOL_LABELS: Record<Tool, string> = {
-  select: 'Sélection',
-  cable: 'Câble',
-  pdu: 'PDU simple',
-  delete: 'Supprimer'
-}
-
-const plural = (n: number, one: string, many: string) => `${n} ${n > 1 ? many : one}`
+/** Libellé de l'outil actif (clés `tool.<outil>`). */
+const TOOL_KEYS = {
+  select: 'tool.select',
+  cable: 'tool.cable',
+  pdu: 'tool.pdu',
+  delete: 'tool.delete'
+} as const satisfies Record<Tool, string>
 
 function SaveState() {
+  const { lang, t } = useT()
   const dirty = useLabStore((s) => s.dirty)
   const filePath = useLabStore((s) => s.filePath)
   const lastAutosave = useUiStore((s) => s.lastAutosave)
@@ -25,20 +26,16 @@ function SaveState() {
     return (
       <span className="flex items-center gap-1.5" data-testid="status-save">
         <span className="h-1.5 w-1.5 rounded-full bg-ok" />
-        {filePath ? 'Enregistré' : 'Nouveau document'}
+        {filePath ? t('status.saved') : t('status.newDocument')}
       </span>
     )
   const time = lastAutosave
-    ? new Date(lastAutosave).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    ? new Date(lastAutosave).toLocaleTimeString(dateLocale(lang), { hour: '2-digit', minute: '2-digit' })
     : null
   return (
-    <span
-      className="flex items-center gap-1.5"
-      title="Une copie de récupération est écrite toutes les 60 s tant que le document est modifié."
-      data-testid="status-save"
-    >
+    <span className="flex items-center gap-1.5" title={t('status.autosaveHint')} data-testid="status-save">
       <span className="h-1.5 w-1.5 rounded-full bg-warn" />
-      Modifié · {time ? `récupération auto ${time}` : 'récupération auto ≤ 60 s'}
+      {time ? t('status.modifiedAt', { time }) : t('status.modified')}
     </span>
   )
 }
@@ -52,6 +49,7 @@ export function StatusBar() {
   const setMode = useUiStore((s) => s.setMode)
   const pending = useSimStore((s) => s.queue.length)
   const { zoom } = useViewport()
+  const { t, tp } = useT()
 
   const segment = 'flex h-full items-center gap-1 px-2 transition-colors'
   return (
@@ -60,19 +58,19 @@ export function StatusBar() {
       data-testid="status-bar"
     >
       <span data-testid="status-counts">
-        {plural(devices, 'équipement', 'équipements')} · {plural(links, 'lien', 'liens')}
+        {tp('status.devices', devices)} · {tp('status.links', links)}
       </span>
       <span>
-        Outil : <span className="text-fg">{TOOL_LABELS[tool]}</span>
+        {rich(t('status.tool'), {
+          tool: <span className="text-fg">{t(TOOL_KEYS[tool])}</span>
+        })}
       </span>
       {mode === 'simulation' && (
         <span className="text-accent-text">
-          {pending > 0
-            ? plural(pending, 'opération en attente', 'opérations en attente')
-            : 'Aucun paquet en attente'}
+          {pending > 0 ? tp('status.pending', pending) : t('status.noPending')}
         </span>
       )}
-      <span className="ml-auto font-mono" title="Niveau de zoom" data-testid="status-zoom">
+      <span className="ml-auto font-mono" title={t('status.zoom')} data-testid="status-zoom">
         {Math.round(zoom * 100)} %
       </span>
       <SaveState />
@@ -80,33 +78,37 @@ export function StatusBar() {
         type="button"
         onClick={() => window.serverlab?.setTheme(theme === 'dark' ? 'light' : 'dark')}
         className="flex h-full items-center px-1 hover:text-fg"
-        title={theme === 'dark' ? 'Passer au thème clair' : 'Passer au thème sombre'}
+        title={theme === 'dark' ? t('status.themeLight') : t('status.themeDark')}
         data-testid="status-theme"
       >
         {theme === 'dark' ? <Sun size={12} /> : <Moon size={12} />}
       </button>
-      <div className="flex h-full items-stretch border-l border-line" role="radiogroup" aria-label="Mode">
+      <div
+        className="flex h-full items-stretch border-l border-line"
+        role="radiogroup"
+        aria-label={t('status.mode')}
+      >
         <button
           type="button"
           role="radio"
           aria-checked={mode === 'realtime'}
           data-testid="mode-realtime"
-          title="Mode Temps réel (Ctrl+1)"
+          title={t('status.realtimeHint')}
           onClick={() => setMode('realtime')}
           className={`${segment} ${mode === 'realtime' ? 'bg-ok-soft font-medium text-ok' : 'hover:bg-surface-2 hover:text-fg'}`}
         >
-          <Clock size={12} /> Temps réel
+          <Clock size={12} /> {t('status.realtime')}
         </button>
         <button
           type="button"
           role="radio"
           aria-checked={mode === 'simulation'}
           data-testid="mode-simulation"
-          title="Mode Simulation (Ctrl+2)"
+          title={t('status.simulationHint')}
           onClick={() => setMode('simulation')}
           className={`${segment} ${mode === 'simulation' ? 'bg-accent-soft font-medium text-accent-text' : 'hover:bg-surface-2 hover:text-fg'}`}
         >
-          <Footprints size={12} /> Simulation
+          <Footprints size={12} /> {t('status.simulation')}
         </button>
       </div>
     </footer>

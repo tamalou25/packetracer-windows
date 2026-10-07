@@ -9,6 +9,7 @@ import type { RecentEntry } from '@shared/ipc'
 import { formatOpenedAt, splitPath } from '@shared/recent'
 import { accelerator, formatShortcut, type ShortcutId } from '@shared/shortcuts'
 import { newDocument, openDocument, openRecentDocument } from '../../lib/document'
+import { useT } from '../../lib/i18n'
 import { LABS } from '../../lib/labCatalog'
 import { openLab } from '../../lib/labs'
 import { useLabStore } from '../../store/lab'
@@ -27,6 +28,7 @@ export function HomeScreen() {
 
 function HomePage() {
   const version = useUiStore((s) => s.appVersion)
+  const { t } = useT()
   const revision = useLabStore((s) => s.revision)
   // Révision du document à l'ouverture de l'accueil : toute nouvelle révision = document chargé
   const revisionAtOpen = useRef(revision)
@@ -78,7 +80,7 @@ function HomePage() {
     <div
       className="fixed inset-0 z-[250] overflow-y-auto bg-app"
       role="region"
-      aria-label="Accueil"
+      aria-label={t('home.label')}
       data-testid="home-screen"
     >
       <div className="mx-auto flex min-h-full max-w-[1040px] flex-col px-4 py-8 sm:px-8">
@@ -88,16 +90,14 @@ function HomePage() {
           </div>
           <div className="min-w-0">
             <h1 className="text-xl font-semibold text-fg">ServerLab</h1>
-            <p className="text-[12px] text-fg-muted">
-              Simulateur d’administration de serveurs · version {version}
-            </p>
+            <p className="text-[12px] text-fg-muted">{t('home.subtitle', { version })}</p>
           </div>
           <button
             type="button"
             onClick={closeHome}
             className="ml-auto rounded p-1.5 text-fg-subtle hover:bg-surface-2 hover:text-fg"
-            aria-label="Fermer l’accueil"
-            title="Fermer l’accueil (Échap)"
+            aria-label={t('home.close')}
+            title={t('home.closeHint')}
             data-testid="home-close"
           >
             <X size={18} />
@@ -107,20 +107,20 @@ function HomePage() {
         <div className="grid flex-1 content-start gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
           <div className="flex min-w-0 flex-col gap-8">
             <section>
-              <SectionTitle>Démarrer</SectionTitle>
+              <SectionTitle>{t('home.start')}</SectionTitle>
               <div className="flex flex-col gap-2">
                 <Action
                   icon={FilePlus2}
-                  label="Nouveau lab"
-                  detail="Topologie vide"
+                  label={t('home.new')}
+                  detail={t('home.new.detail')}
                   shortcut="newFile"
                   onClick={() => void newDocument()}
                   testId="home-new"
                 />
                 <Action
                   icon={FolderOpen}
-                  label="Ouvrir…"
-                  detail="Fichier .slab enregistré"
+                  label={t('home.open')}
+                  detail={t('home.open.detail')}
                   shortcut="open"
                   onClick={() => void openDocument()}
                   testId="home-open"
@@ -129,10 +129,10 @@ function HomePage() {
             </section>
 
             <section>
-              <SectionTitle>Récents</SectionTitle>
+              <SectionTitle>{t('home.recent')}</SectionTitle>
               {recent && recent.length === 0 && (
                 <p className="text-[12px] text-fg-muted" data-testid="home-recent-empty">
-                  Aucun lab récent.
+                  {t('home.recent.empty')}
                 </p>
               )}
               <ul className="flex flex-col gap-2">
@@ -149,7 +149,7 @@ function HomePage() {
           </div>
 
           <section className="min-w-0">
-            <SectionTitle>Labs fournis</SectionTitle>
+            <SectionTitle>{t('home.labs')}</SectionTitle>
             <ul className="flex flex-col gap-2">
               {LABS.map((lab) => (
                 <li key={lab.id}>
@@ -184,7 +184,7 @@ function HomePage() {
               onChange={(e) => toggleAtStartup(e.target.checked)}
               data-testid="home-at-startup"
             />
-            Afficher l’accueil au démarrage
+            {t('home.atStartup')}
           </label>
         </footer>
       </div>
@@ -213,6 +213,7 @@ function Action({
   onClick: () => void
   testId: string
 }) {
+  const { lang } = useT()
   return (
     <button
       type="button"
@@ -225,7 +226,9 @@ function Action({
         <span className="block text-[13px] font-medium text-fg">{label}</span>
         <span className="block text-[11px] text-fg-muted">{detail}</span>
       </span>
-      <kbd className="font-mono text-[11px] text-fg-subtle">{formatShortcut(accelerator(shortcut))}</kbd>
+      <kbd className="font-mono text-[11px] text-fg-subtle">
+        {formatShortcut(accelerator(shortcut), lang)}
+      </kbd>
     </button>
   )
 }
@@ -240,6 +243,7 @@ function RecentRow({
   onOpen: () => void
   onRemove: () => void
 }) {
+  const { lang, t } = useT()
   const { folder } = splitPath(entry.path)
   const missing = !entry.exists
   return (
@@ -252,7 +256,7 @@ function RecentRow({
         type="button"
         onClick={onOpen}
         disabled={missing}
-        title={missing ? `${entry.path}\nFichier introuvable : déplacé, renommé ou supprimé.` : entry.path}
+        title={missing ? `${entry.path}\n${t('home.recent.missingHint')}` : entry.path}
         className="flex min-w-0 flex-1 items-center gap-3 rounded-l-md px-3 py-2 text-left transition-colors enabled:hover:bg-surface-2 disabled:cursor-default"
       >
         <FileText
@@ -267,22 +271,22 @@ function RecentRow({
             </span>
             {missing && (
               <span className="shrink-0 rounded-sm bg-danger-soft px-1.5 py-0.5 text-[11px] font-semibold text-danger">
-                Introuvable
+                {t('home.recent.missing')}
               </span>
             )}
           </span>
           <span className="block truncate font-mono text-[11px] text-fg-subtle">{folder}</span>
         </span>
         <span className="shrink-0 text-[11px] text-fg-subtle">
-          {formatOpenedAt(entry.openedAt, new Date())}
+          {formatOpenedAt(entry.openedAt, new Date(), lang)}
         </span>
       </button>
       <button
         type="button"
         onClick={onRemove}
         className="shrink-0 rounded p-1.5 text-fg-subtle hover:bg-surface-2 hover:text-fg"
-        aria-label={`Retirer ${entry.name} de la liste`}
-        title="Retirer de la liste"
+        aria-label={t('home.recent.removeLabel', { name: entry.name })}
+        title={t('home.recent.remove')}
         data-testid="home-recent-remove"
       >
         <X size={14} />

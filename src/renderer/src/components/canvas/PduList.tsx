@@ -2,11 +2,13 @@
  * Résultats des PDU simples (coin supérieur gauche du canvas).
  */
 import { CircleCheck, CircleX, X } from 'lucide-react'
+import { useT } from '../../lib/i18n'
 import { useUiStore } from '../../store/ui'
 
 export function PduList() {
   const results = useUiStore((s) => s.pduResults)
   const clear = useUiStore((s) => s.clearPduResults)
+  const { t } = useT()
   if (results.length === 0) return null
   return (
     <div
@@ -14,8 +16,13 @@ export function PduList() {
       data-testid="pdu-list"
     >
       <div className="flex items-center justify-between border-b border-line px-3 py-1.5 font-semibold text-fg-muted">
-        PDU simples
-        <button type="button" onClick={clear} className="rounded p-0.5 hover:bg-surface-2" title="Effacer">
+        {t('pdu.title')}
+        <button
+          type="button"
+          onClick={clear}
+          className="rounded p-0.5 hover:bg-surface-2"
+          title={t('pdu.clear')}
+        >
           <X size={12} />
         </button>
       </div>
@@ -27,7 +34,9 @@ export function PduList() {
             ) : (
               <CircleX size={13} className="text-danger" />
             )}
-            <span className={r.success ? 'text-ok' : 'text-danger'}>{r.success ? 'Réussi' : 'Échec'}</span>
+            <span className={r.success ? 'text-ok' : 'text-danger'}>
+              {r.success ? t('pdu.success') : t('pdu.failure')}
+            </span>
             <span className="truncate text-fg-muted">
               {r.source} → {r.target}
             </span>

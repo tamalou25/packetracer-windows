@@ -2,10 +2,17 @@
  * Palette d'équipements (panneau de gauche, rétractable) : groupes repliables, recherche.
  * Glisser un équipement vers le canvas, ou cliquer dessus puis cliquer sur le canvas.
  */
-import { useMemo, useState, type DragEvent } from 'react'
+import { useState, type DragEvent } from 'react'
 import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, Search, X } from 'lucide-react'
-import { DEVICE_KIND_INFO } from '@engine/index'
-import { DEVICE_ICONS, KIND_STRIPE, LINUX_INFO, paletteLabel, type PaletteKind } from '../lib/devices'
+import {
+  DEVICE_ICONS,
+  KIND_STRIPE,
+  paletteDescription,
+  paletteLabel,
+  paletteModel,
+  type PaletteKind
+} from '../lib/devices'
+import { useT } from '../lib/i18n'
 import { readPref, writePref } from '../lib/prefs'
 import { useUiStore } from '../store/ui'
 
@@ -13,27 +20,17 @@ import { useUiStore } from '../store/ui'
 export const DND_DEVICE_MIME = 'application/x-serverlab-device'
 
 interface PaletteGroup {
-  id: string
-  label: string
+  /** Identifiant (préférence des groupes repliés) ; libellé : `palette.group.<id>`. */
+  id: 'servers' | 'clients' | 'network' | 'internet'
   kinds: PaletteKind[]
 }
 
 const GROUPS: PaletteGroup[] = [
-  { id: 'servers', label: 'Serveurs', kinds: ['server'] },
-  { id: 'clients', label: 'Postes', kinds: ['client', 'linux'] },
-  { id: 'network', label: 'Réseau', kinds: ['switch', 'router'] },
-  { id: 'internet', label: 'Internet', kinds: ['cloud'] }
+  { id: 'servers', kinds: ['server'] },
+  { id: 'clients', kinds: ['client', 'linux'] },
+  { id: 'network', kinds: ['switch', 'router'] },
+  { id: 'internet', kinds: ['cloud'] }
 ]
-
-/** Modèle affiché sous le nom de l'équipement. */
-const MODELS: Record<PaletteKind, string> = {
-  server: '1 à 4 cartes réseau',
-  client: 'Poste de travail · 1 carte',
-  linux: LINUX_INFO.model,
-  switch: 'Niveau 2 · 16 ports Fa0/x',
-  router: 'Statique · 4 ports Gi0/x',
-  cloud: 'FAI simulé · port WAN'
-}
 
 /** Comparaison insensible à la casse et aux accents. */
 function normalize(text: string): string {
@@ -47,10 +44,6 @@ interface PaletteState {
 
 const DEFAULT_STATE: PaletteState = { collapsed: false, closedGroups: [] }
 
-/** Description (infobulle, recherche). */
-const describe = (kind: PaletteKind) =>
-  kind === 'linux' ? LINUX_INFO.description : DEVICE_KIND_INFO[kind].description
-
 function startDrag(e: DragEvent, kind: PaletteKind) {
   e.dataTransfer.setData(DND_DEVICE_MIME, kind)
   e.dataTransfer.effectAllowed = 'copy'
@@ -61,21 +54,22 @@ export function Palette() {
   const setArmed = useUiStore((s) => s.setArmed)
   const [state, setState] = useState<PaletteState>(() => readPref('palette', DEFAULT_STATE))
   const [query, setQuery] = useState('')
+  const { t } = useT()
   const update = (patch: Partial<PaletteState>) => {
     const next = { ...state, ...patch }
     setState(next)
     writePref('palette', next)
   }
 
-  const matches = useMemo(() => {
-    const q = normalize(query.trim())
-    if (!q) return null
-    return new Set(
-      GROUPS.flatMap((g) => g.kinds).filter((k) =>
-        normalize(`${paletteLabel(k)} ${MODELS[k]} ${describe(k)}`).includes(q)
+  // Recherche sur les libellés de la langue affichée (six entrées : aucun calcul à mémoriser)
+  const q = normalize(query.trim())
+  const matches = q
+    ? new Set(
+        GROUPS.flatMap((g) => g.kinds).filter((k) =>
+          normalize(`${paletteLabel(k)} ${paletteModel(k)} ${paletteDescription(k)}`).includes(q)
+        )
       )
-    )
-  }, [query])
+    : null
 
   const arm = (kind: PaletteKind) => setArmed(armed === kind ? null : kind)
 
@@ -83,14 +77,14 @@ export function Palette() {
     return (
       <aside
         className="flex w-11 shrink-0 flex-col items-center gap-1 border-r border-line bg-panel py-2"
-        aria-label="Palette d’équipements"
+        aria-label={t('palette.label')}
         data-testid="palette"
       >
         <button
           type="button"
           onClick={() => update({ collapsed: false })}
           className="mb-1 rounded-md p-1.5 text-fg-muted hover:bg-surface-2 hover:text-fg"
-          title="Déplier la palette"
+          title={t('palette.expand')}
           data-testid="palette-toggle"
         >
           <PanelLeftOpen size={16} />
@@ -105,7 +99,7 @@ export function Palette() {
               onDragStart={(e) => startDrag(e, kind)}
               onClick={() => arm(kind)}
               aria-pressed={armed === kind}
-              title={`${paletteLabel(kind)} — ${MODELS[kind]}`}
+              title={`${paletteLabel(kind)} — ${paletteModel(kind)}`}
               data-testid={`palette-${kind}`}
               className={`relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-md border transition-colors ${
                 armed === kind
@@ -125,16 +119,18 @@ export function Palette() {
   return (
     <aside
       className="flex w-[220px] shrink-0 flex-col border-r border-line bg-panel"
-      aria-label="Palette d’équipements"
+      aria-label={t('palette.label')}
       data-testid="palette"
     >
       <div className="flex h-9 items-center justify-between border-b border-line pr-1.5 pl-3">
-        <span className="text-[11px] font-semibold tracking-wider text-fg-subtle uppercase">Équipements</span>
+        <span className="text-[11px] font-semibold tracking-wider text-fg-subtle uppercase">
+          {t('palette.title')}
+        </span>
         <button
           type="button"
           onClick={() => update({ collapsed: true })}
           className="rounded-md p-1.5 text-fg-muted hover:bg-surface-2 hover:text-fg"
-          title="Replier la palette"
+          title={t('palette.collapse')}
           data-testid="palette-toggle"
         >
           <PanelLeftClose size={16} />
@@ -146,12 +142,17 @@ export function Palette() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher…"
+            placeholder={t('palette.search')}
             className="min-w-0 flex-1 bg-transparent text-xs text-fg outline-none placeholder:text-fg-subtle"
             data-testid="palette-search"
           />
           {query && (
-            <button type="button" onClick={() => setQuery('')} title="Effacer" className="hover:text-fg">
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              title={t('palette.clear')}
+              className="hover:text-fg"
+            >
               <X size={12} />
             </button>
           )}
@@ -179,7 +180,7 @@ export function Palette() {
                 data-testid={`palette-group-${group.id}`}
               >
                 {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                {group.label}
+                {t(`palette.group.${group.id}`)}
                 <span className="ml-auto font-normal">{kinds.length}</span>
               </button>
               {open && (
@@ -195,7 +196,7 @@ export function Palette() {
                           onDragStart={(e) => startDrag(e, kind)}
                           onClick={() => arm(kind)}
                           aria-pressed={active}
-                          title={`${describe(kind)} — glisser vers le canvas`}
+                          title={t('palette.dragHint', { description: paletteDescription(kind) })}
                           data-testid={`palette-${kind}`}
                           className={`flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors ${
                             active ? 'bg-accent-soft ring-1 ring-accent' : 'hover:bg-surface-2'
@@ -207,7 +208,9 @@ export function Palette() {
                           </span>
                           <span className="min-w-0 leading-tight">
                             <span className="block truncate text-[13px] text-fg">{paletteLabel(kind)}</span>
-                            <span className="block truncate text-[11px] text-fg-muted">{MODELS[kind]}</span>
+                            <span className="block truncate text-[11px] text-fg-muted">
+                              {paletteModel(kind)}
+                            </span>
                           </span>
                         </button>
                       </li>
@@ -219,11 +222,11 @@ export function Palette() {
           )
         })}
         {matches && matches.size === 0 && (
-          <p className="px-2 py-4 text-center text-xs text-fg-subtle">Aucun équipement ne correspond.</p>
+          <p className="px-2 py-4 text-center text-xs text-fg-subtle">{t('palette.noMatch')}</p>
         )}
       </div>
       <p className="border-t border-line px-3 py-2 text-[11px] leading-snug text-fg-subtle">
-        Glissez un équipement sur le canvas, ou cliquez-le puis cliquez sur le canvas.
+        {t('palette.help')}
       </p>
     </aside>
   )

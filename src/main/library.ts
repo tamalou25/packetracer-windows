@@ -5,6 +5,7 @@
  */
 import { net } from 'electron'
 import type { FileResult } from '../shared/ipc'
+import { t } from './i18n'
 import {
   libraryBaseUrl,
   libraryFileUrl,
@@ -19,24 +20,22 @@ async function download(url: string, maxBytes: number): Promise<FileResult<strin
   try {
     res = await net.fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS), redirect: 'error' })
   } catch {
-    return { ok: false, error: 'Bibliothèque injoignable : vérifiez la connexion Internet, puis réessayez.' }
+    return { ok: false, error: t('library.error.unreachable') }
   }
   if (!res.ok)
     return {
       ok: false,
       error:
-        res.status === 404
-          ? 'Fichier introuvable dans la bibliothèque (HTTP 404).'
-          : `La bibliothèque a répondu par une erreur (HTTP ${res.status}).`
+        res.status === 404 ? t('library.error.notFound') : t('library.error.http', { status: res.status })
     }
   const length = Number(res.headers.get('content-length') ?? '0')
-  if (length > maxBytes) return { ok: false, error: 'Fichier de la bibliothèque trop volumineux.' }
+  if (length > maxBytes) return { ok: false, error: t('library.error.tooLarge') }
   const body = new Uint8Array(await res.arrayBuffer())
-  if (body.byteLength > maxBytes) return { ok: false, error: 'Fichier de la bibliothèque trop volumineux.' }
+  if (body.byteLength > maxBytes) return { ok: false, error: t('library.error.tooLarge') }
   try {
     return { ok: true, value: new TextDecoder('utf-8', { fatal: true }).decode(body) }
   } catch {
-    return { ok: false, error: 'Fichier de la bibliothèque illisible (encodage invalide).' }
+    return { ok: false, error: t('library.error.encoding') }
   }
 }
 
@@ -48,6 +47,6 @@ export function fetchLibraryIndex(): Promise<FileResult<string>> {
 
 export async function fetchLibraryLab(file: unknown): Promise<FileResult<string>> {
   const url = file === 'index.json' ? null : libraryFileUrl(base(), file)
-  if (!url) return { ok: false, error: 'Chemin de lab non autorisé.' }
+  if (!url) return { ok: false, error: t('library.error.path') }
   return download(url, MAX_LIBRARY_LAB_BYTES)
 }

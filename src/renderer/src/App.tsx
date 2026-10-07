@@ -26,6 +26,7 @@ import { useSimulationPlayback } from './hooks/useSimulationPlayback'
 import { newDocument, openDocument, openRecentDocument, saveDocument } from './lib/document'
 import { copySelection, deleteSelection, paste, redo, selectAll, undo } from './lib/editing'
 import { getFlowInstance } from './lib/flow'
+import { useLangStore } from './lib/i18n'
 import { offerTutorial } from './lib/tutorial'
 import { useSimStore } from './store/sim'
 import { useUiStore } from './store/ui'
@@ -95,6 +96,9 @@ function handleMenuCommand(msg: MenuCommandMessage): void {
       break
     case 'view:theme':
       if (msg.arg === 'dark' || msg.arg === 'light') ui.setTheme(msg.arg)
+      break
+    case 'view:language':
+      if (msg.arg === 'fr' || msg.arg === 'en') useLangStore.getState().setLang(msg.arg)
       break
     case 'sim:realtime':
       ui.setMode('realtime')

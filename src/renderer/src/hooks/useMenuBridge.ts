@@ -4,8 +4,9 @@
  * - renvoie l'état de l'UI au main pour cocher les bonnes cases.
  */
 import { useEffect } from 'react'
-import { historyLabels, menuLabel } from '@engine/index'
+import { historyLabels, truncateMenuLabel } from '@engine/index'
 import type { MenuCommandMessage } from '@shared/ipc'
+import { useT } from '../lib/i18n'
 import { useLabStore } from '../store/lab'
 import { useUiStore } from '../store/ui'
 
@@ -17,9 +18,17 @@ export function useMenuBridge(handler: MenuHandler): void {
   const showProperties = useUiStore((s) => s.showProperties)
   const showMinimap = useUiStore((s) => s.showMinimap)
   const history = useLabStore((s) => s.history)
+  const { t } = useT()
   const labels = historyLabels(history)
-  const undoLabel = labels.undo === null ? null : menuLabel('Annuler', labels.undo)
-  const redoLabel = labels.redo === null ? null : menuLabel('Rétablir', labels.redo)
+  // Libellés du menu Édition dans la langue de l'interface (« Annuler : … », « Undo: … »)
+  const undoLabel =
+    labels.undo === null
+      ? null
+      : t('edit.menuLabel', { action: t('menu.edit.undo'), label: truncateMenuLabel(labels.undo) })
+  const redoLabel =
+    labels.redo === null
+      ? null
+      : t('edit.menuLabel', { action: t('menu.edit.redo'), label: truncateMenuLabel(labels.redo) })
 
   // Synchronise les cases à cocher, boutons radio et libellés Annuler / Rétablir du menu natif
   useEffect(() => {

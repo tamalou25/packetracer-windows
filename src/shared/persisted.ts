@@ -5,7 +5,7 @@
  * (Fichier séparé de ipc.ts : le preload n'embarque pas zod.)
  */
 import { z } from 'zod'
-import type { MenuState, RecentFile, ThemePreference } from './ipc'
+import type { LanguagePreference, MenuState, RecentFile, ThemePreference } from './ipc'
 
 /** Nombre maximal de fichiers récents mémorisés. */
 export const MAX_RECENT = 10
@@ -26,14 +26,16 @@ export function readJson(text: string, maxLength: number): unknown {
 // --- Préférences ------------------------------------------------------------------------------
 
 const ThemePreferenceSchema = z.enum(['system', 'dark', 'light'] satisfies ThemePreference[])
+const LanguagePreferenceSchema = z.enum(['system', 'fr', 'en'] satisfies LanguagePreference[])
 
 /**
  * Valeur invalide → valeur par défaut (les autres préférences sont conservées). Thème : « Système »
- * par défaut ; un choix explicite déjà enregistré (sombre ou clair) est conservé. Écran d'accueil
- * et tutoriel proposés au démarrage par défaut.
+ * par défaut ; un choix explicite déjà enregistré (sombre ou clair) est conservé. Langue : celle du
+ * système par défaut. Écran d'accueil et tutoriel proposés au démarrage par défaut.
  */
 export const SettingsSchema = z.object({
   theme: ThemePreferenceSchema.catch('system'),
+  language: LanguagePreferenceSchema.catch('system'),
   showHomeOnStartup: z.boolean().catch(true),
   showTutorialOnStartup: z.boolean().catch(true)
 })
@@ -42,6 +44,7 @@ export type Settings = z.infer<typeof SettingsSchema>
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
+  language: 'system',
   showHomeOnStartup: true,
   showTutorialOnStartup: true
 }

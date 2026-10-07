@@ -8,6 +8,7 @@
  */
 import { app, dialog, type BrowserWindow, type MessageBoxOptions } from 'electron'
 import { autoUpdater, type UpdateInfo } from 'electron-updater'
+import { t } from './i18n'
 
 /** Délai avant la vérification du démarrage (la fenêtre s'affiche d'abord). */
 const STARTUP_CHECK_DELAY_MS = 5_000
@@ -53,25 +54,21 @@ function describeError(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code
   const text = `${typeof code === 'string' ? code : ''} ${error instanceof Error ? error.message : String(error)}`
   const network = /ERR_INTERNET_DISCONNECTED|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION|TIMED_OUT|ENOTFOUND|ECONN/i
-  if (network.test(text))
-    return 'Le serveur de mises à jour est injoignable. Vérifiez la connexion Internet puis réessayez.'
+  if (network.test(text)) return t('update.error.network')
   // Réseau d'établissement : un proxy filtrant présente souvent son propre certificat
-  if (/ERR_CERT_/i.test(text))
-    return 'La connexion sécurisée à GitHub a été refusée (certificat non reconnu : proxy ou pare-feu filtrant ?).'
+  if (/ERR_CERT_/i.test(text)) return t('update.error.cert')
   if (/\b404\b|LATEST_VERSION_NOT_FOUND|CHANNEL_FILE_NOT_FOUND|NO_PUBLISHED_VERSIONS/i.test(text))
-    return 'Aucune version publiée n’est accessible sur GitHub (release absente ou dépôt privé).'
-  return 'La vérification des mises à jour a échoué. Réessayez plus tard.'
+    return t('update.error.notFound')
+  return t('update.error.generic')
 }
 
 /** Mise à jour téléchargée : redémarrer maintenant ou l'installer à la prochaine fermeture. */
 async function promptInstall(info: UpdateInfo): Promise<void> {
   const choice = await show({
     type: 'info',
-    message: `ServerLab ${info.version} est prêt à être installé.`,
-    detail:
-      'Redémarrez pour utiliser la nouvelle version (vos modifications non enregistrées vous seront ' +
-      'proposées à l’enregistrement). Sinon, elle s’installera à la fermeture de l’application.',
-    buttons: ['Redémarrer maintenant', 'Plus tard'],
+    message: t('update.ready.message', { version: info.version }),
+    detail: t('update.ready.detail'),
+    buttons: [t('update.ready.restart'), t('update.ready.later')],
     defaultId: 0,
     cancelId: 1
   })
@@ -111,8 +108,8 @@ function listen(): void {
     manual = false
     void show({
       type: 'info',
-      message: 'ServerLab est à jour.',
-      detail: `Version installée : ${app.getVersion()}.`
+      message: t('update.upToDate.message'),
+      detail: t('update.upToDate.detail', { version: app.getVersion() })
     })
   })
   autoUpdater.on('update-available', (info) => {
@@ -124,8 +121,8 @@ function listen(): void {
     announced = true
     void show({
       type: 'info',
-      message: `La version ${info.version} est disponible.`,
-      detail: 'Elle se télécharge en arrière-plan ; vous serez prévenu dès qu’elle pourra être installée.'
+      message: t('update.available.message', { version: info.version }),
+      detail: t('update.available.detail')
     })
   })
   autoUpdater.on('download-progress', (progress) => {
@@ -148,9 +145,7 @@ function listen(): void {
     announced = false
     void show({
       type: 'error',
-      message: downloading
-        ? 'Le téléchargement de la mise à jour a échoué.'
-        : 'Impossible de rechercher les mises à jour.',
+      message: downloading ? t('update.failed.download') : t('update.failed.check'),
       detail: describeError(error)
     })
   })
@@ -169,10 +164,8 @@ export function checkForUpdatesFromMenu(): void {
   if (!updatesSupported()) {
     void show({
       type: 'info',
-      message: 'Mises à jour automatiques indisponibles pour cette copie.',
-      detail:
-        'Seule la version installée (installeur Windows ou AppImage Linux) se met à jour depuis les ' +
-        'releases GitHub. Une copie de développement se met à jour avec le dépôt (git pull).'
+      message: t('update.unsupported.message'),
+      detail: t('update.unsupported.detail')
     })
     return
   }
@@ -184,8 +177,8 @@ export function checkForUpdatesFromMenu(): void {
       announced = true
       void show({
         type: 'info',
-        message: `Téléchargement de la version ${available?.version ?? ''} en cours (${percent} %).`,
-        detail: 'Vous serez prévenu dès qu’elle pourra être installée.'
+        message: t('update.downloading.message', { version: available?.version ?? '', percent }),
+        detail: t('update.downloading.detail')
       })
       return
     case 'checking':

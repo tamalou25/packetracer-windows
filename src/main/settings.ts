@@ -1,5 +1,6 @@
 /**
- * Préférences de l'application (userData/settings.json) : thème de l'interface (Système par défaut).
+ * Préférences de l'application (userData/settings.json) : thème (Système par défaut), langue (celle
+ * du système par défaut), écran d'accueil et tutoriel au démarrage.
  * Lues de façon synchrone au démarrage pour créer la fenêtre avec les bonnes couleurs.
  */
 import { app } from 'electron'

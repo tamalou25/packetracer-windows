@@ -28,17 +28,19 @@ export interface LaunchOptions {
   tutorial?: boolean
   /** Variables d'environnement supplémentaires (ex. SERVERLAB_LIBRARY_URL : bibliothèque locale). */
   env?: Record<string, string>
+  /** Langue enregistrée dans le nouveau profil (français par défaut ; « system » : langue du système). */
+  language?: 'fr' | 'en' | 'system'
 }
 
 export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedApp> {
   let userData = options.userData
   if (!userData) {
     userData = mkdtempSync(join(tmpdir(), 'serverlab-e2e-'))
-    const disabled: Record<string, boolean> = {}
-    if (!options.home) disabled['showHomeOnStartup'] = false
-    if (!options.tutorial) disabled['showTutorialOnStartup'] = false
-    if (Object.keys(disabled).length > 0)
-      writeFileSync(join(userData, 'settings.json'), JSON.stringify(disabled))
+    // Interface en français par défaut : les scénarios ne dépendent pas de la langue du système
+    const settings: Record<string, boolean | string> = { language: options.language ?? 'fr' }
+    if (!options.home) settings['showHomeOnStartup'] = false
+    if (!options.tutorial) settings['showTutorialOnStartup'] = false
+    writeFileSync(join(userData, 'settings.json'), JSON.stringify(settings))
   }
   // SERVERLAB_E2E_EXECUTABLE : application empaquetée (ex. dist/linux-unpacked/serverlab) au lieu de out/
   const packaged = process.env['SERVERLAB_E2E_EXECUTABLE']

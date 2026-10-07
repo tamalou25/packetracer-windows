@@ -6,6 +6,7 @@ import { ExamResultPanel } from './labs/Exam'
 import { LabPanel } from './labs/LabPanel'
 import { SimulationPanel } from './simulation/SimulationPanel'
 import { PropertiesPanel } from './properties/PropertiesPanel'
+import { useT } from '../lib/i18n'
 import { useExamStore } from '../store/exam'
 import { useLabsStore } from '../store/labs'
 import { useUiStore, type RightTab } from '../store/ui'
@@ -15,32 +16,38 @@ export function RightPanel() {
   const setTab = useUiStore((s) => s.setRightTab)
   const active = useLabsStore((s) => s.active)
   const examResult = useExamStore((s) => s.result)
+  const { t } = useT()
   // Le résultat d'un examen reste consultable même si le lab a été fermé
   const lab = active ?? examResult
   const TABS: { id: RightTab; label: string }[] = [
-    ...(lab ? [{ id: 'lab' as const, label: 'Lab' }] : []),
-    { id: 'properties', label: 'Propriétés' },
-    { id: 'simulation', label: 'Simulation' },
-    { id: 'audit', label: 'Audit' }
+    ...(lab ? [{ id: 'lab' as const, label: t('panel.lab') }] : []),
+    { id: 'properties', label: t('panel.properties') },
+    { id: 'simulation', label: t('panel.simulation') },
+    { id: 'audit', label: t('panel.audit') }
   ]
   // Onglet Lab demandé sans lab ouvert : retour aux propriétés
   const tab = selected === 'lab' && !lab ? 'properties' : selected
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l border-line bg-panel" aria-label="Panneau latéral">
+    <aside
+      className="flex w-80 shrink-0 flex-col border-l border-line bg-panel"
+      aria-label={t('panel.label')}
+    >
       <div className="flex border-b border-line" role="tablist">
-        {TABS.map((t) => (
+        {TABS.map((item) => (
           <button
-            key={t.id}
+            key={item.id}
             type="button"
             role="tab"
-            aria-selected={tab === t.id}
-            data-testid={`right-tab-${t.id}`}
-            onClick={() => setTab(t.id)}
+            aria-selected={tab === item.id}
+            data-testid={`right-tab-${item.id}`}
+            onClick={() => setTab(item.id)}
             className={`flex-1 border-b-2 px-3 py-2 text-[11px] font-semibold tracking-wider uppercase ${
-              tab === t.id ? 'border-accent text-fg' : 'border-transparent text-fg-subtle hover:text-fg-muted'
+              tab === item.id
+                ? 'border-accent text-fg'
+                : 'border-transparent text-fg-subtle hover:text-fg-muted'
             }`}
           >
-            {t.label}
+            {item.label}
           </button>
         ))}
       </div>

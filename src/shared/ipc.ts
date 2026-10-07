@@ -26,6 +26,7 @@ export type MenuCommand =
   | 'view:toggleMinimap'
   | 'view:toggleProperties'
   | 'view:theme'
+  | 'view:language'
   | 'sim:realtime'
   | 'sim:simulation'
   | 'sim:step'
@@ -53,6 +54,19 @@ export const THEME_PREFERENCES: readonly ThemePreference[] = ['system', 'dark', 
 
 /** Argument de ligne de commande transmis au preload pour appliquer le thème dès le chargement. */
 export const THEME_ARG_PREFIX = '--serverlab-theme='
+
+/** Langue de l'interface (le système simulé, lui, reste installé en français). */
+export type Lang = 'fr' | 'en'
+
+export const LANGS: readonly Lang[] = ['fr', 'en']
+
+/** Préférence enregistrée : langue du système (par défaut) ou langue imposée. */
+export type LanguagePreference = 'system' | Lang
+
+export const LANGUAGE_PREFERENCES: readonly LanguagePreference[] = ['system', 'fr', 'en']
+
+/** Argument de ligne de commande transmis au preload : langue connue dès le chargement. */
+export const LANG_ARG_PREFIX = '--serverlab-lang='
 
 /** Mode de simulation, comme dans les simulateurs réseau classiques. */
 export type SimMode = 'realtime' | 'simulation'
@@ -151,6 +165,8 @@ export interface ServerLabApi {
   readonly initialTheme: Theme
   /** Choisit le thème (Système, Sombre, Clair) : le main l'enregistre puis renvoie `view:theme`. */
   setTheme(preference: ThemePreference): void
+  /** Langue de l'interface, connue dès le chargement (Affichage > Langue ; `view:language` ensuite). */
+  readonly initialLanguage: Lang
   setMenuState(state: MenuState): void
   onMenuCommand(cb: (msg: MenuCommandMessage) => void): () => void
 

@@ -20,6 +20,7 @@ import { useLabStore } from '../store/lab'
 import { useLabsStore } from '../store/labs'
 import { useUiStore } from '../store/ui'
 import { openLab } from './labs'
+import { t } from './i18n'
 
 let nextKey = 1
 
@@ -34,7 +35,7 @@ export function openLabEditor(): void {
 /** Remplace la topologie de départ par l'état actuel du lab. */
 export function captureStart(): void {
   useLabEditorStore.getState().setStart(useLabStore.getState().lab)
-  useUiStore.getState().notify('success', 'Topologie de départ : le lab courant a été capturé.')
+  useUiStore.getState().notify('success', t('editor.captured'))
 }
 
 export function addCriterion(type: string): void {
@@ -90,11 +91,17 @@ export function testCriteria(key?: number): void {
 /** Définition complète du brouillon (départ capturé) ou message d'erreur. */
 export function currentDefinition(): LabDefinitionResult {
   const { draft, start } = useLabEditorStore.getState()
-  if (!start) return { ok: false, message: 'Capturez d’abord la topologie de départ.' }
+  if (!start) return { ok: false, message: t('editor.captureFirst') }
   const incomplete = draft.criteria.findIndex((c) => !c.check)
   if (incomplete >= 0) {
     const c = draft.criteria[incomplete]!
-    return { ok: false, message: `Critère ${incomplete + 1} : ${criterionError(c) ?? 'incomplet'}` }
+    return {
+      ok: false,
+      message: t('editor.criterionError', {
+        index: incomplete + 1,
+        error: criterionError(c) ?? t('editor.incomplete')
+      })
+    }
   }
   return createLabDefinition(
     { ...draft, criteria: draft.criteria.map((c) => ({ label: c.label, hints: c.hints, check: c.check! })) },
@@ -110,16 +117,16 @@ function showError(title: string, message: string): void {
 /** Exporte le lab en JSON (dialogue « Enregistrer sous »). */
 export async function exportDraft(): Promise<void> {
   const def = currentDefinition()
-  if (!def.ok) return showError('Export impossible', def.message)
+  if (!def.ok) return showError(t('editor.exportFailed'), def.message)
   const res = await window.serverlab.exportLab(serializeLab(def.lab), def.lab.id)
-  if (res.ok) useUiStore.getState().notify('success', `Lab exporté : ${res.value}`)
-  else if (!res.canceled) showError('Export impossible', res.error ?? 'Erreur inconnue.')
+  if (res.ok) useUiStore.getState().notify('success', t('editor.exported', { path: res.value }))
+  else if (!res.canceled) showError(t('editor.exportFailed'), res.error ?? t('error.unknown'))
 }
 
 /** Ouvre le brouillon comme un lab (départ reconstruit, onglet Lab). */
 export async function tryDraft(): Promise<void> {
   const def = currentDefinition()
-  if (!def.ok) return showError('Essai impossible', def.message)
+  if (!def.ok) return showError(t('editor.tryFailed'), def.message)
   if (await openLab(def.lab)) useLabEditorStore.getState().setOpen(false)
 }
 
@@ -127,12 +134,12 @@ export async function tryDraft(): Promise<void> {
 async function pickLabFile(): Promise<LabDefinition | null> {
   const res = await window.serverlab.importLab()
   if (!res.ok) {
-    if (!res.canceled) showError('Import impossible', res.error ?? 'Erreur inconnue.')
+    if (!res.canceled) showError(t('editor.importFailed'), res.error ?? t('error.unknown'))
     return null
   }
   const parsed = parseLabText(res.value)
   if (!parsed.ok) {
-    showError('Import impossible', parsed.message)
+    showError(t('editor.importFailed'), parsed.message)
     return null
   }
   return parsed.lab
@@ -152,7 +159,7 @@ export async function importIntoEditor(): Promise<void> {
   try {
     start = buildLabStart(lab.start)
   } catch (e) {
-    return showError('Import impossible', e instanceof Error ? e.message : String(e))
+    return showError(t('editor.importFailed'), e instanceof Error ? e.message : String(e))
   }
   const draft = draftFromLab(lab)
   const editorDraft: EditorDraft = {

@@ -1,11 +1,21 @@
 /**
- * Barre de menu native en français.
+ * Barre de menu native, dans la langue de l'interface (Affichage > Langue).
  * Les actions métier sont déléguées au renderer via le canal IPC `menu:command`.
  */
 import { app, dialog, Menu, type BrowserWindow, type MenuItemConstructorOptions } from 'electron'
-import { IPC, type MenuCommand, type MenuState, type RecentFile, type ThemePreference } from '../shared/ipc'
+import { LANGUAGE_NAMES } from '../shared/i18n'
+import {
+  IPC,
+  LANGS,
+  type LanguagePreference,
+  type MenuCommand,
+  type MenuState,
+  type RecentFile,
+  type ThemePreference
+} from '../shared/ipc'
 import { accelerator } from '../shared/shortcuts'
 import { openBugReport } from './external'
+import { t } from './i18n'
 
 export interface MenuContext {
   window: BrowserWindow
@@ -14,6 +24,9 @@ export interface MenuContext {
   /** Préférence de thème (bouton radio coché dans Affichage > Thème). */
   theme: ThemePreference
   onTheme: (preference: ThemePreference) => void
+  /** Préférence de langue (bouton radio coché dans Affichage > Langue). */
+  language: LanguagePreference
+  onLanguage: (preference: LanguagePreference) => void
   onCheckUpdates?: () => void
 }
 
@@ -39,7 +52,7 @@ export function buildMenu(ctx: MenuContext): Menu {
 
   const recentItems: MenuItemConstructorOptions[] =
     recent.length === 0
-      ? [{ label: 'Aucun fichier récent', enabled: false }]
+      ? [{ label: t('menu.file.noRecent'), enabled: false }]
       : recent.map((r, i) => ({
           label: `${i + 1}. ${r.name}`,
           toolTip: r.path,
@@ -48,109 +61,121 @@ export function buildMenu(ctx: MenuContext): Menu {
 
   const template: MenuItemConstructorOptions[] = [
     {
-      label: '&Fichier',
+      label: t('menu.file'),
       submenu: [
-        { label: 'Accueil', click: cmd('file:home') },
+        { label: t('menu.file.home'), click: cmd('file:home') },
         { type: 'separator' },
-        { label: 'Nouveau', accelerator: accelerator('newFile'), click: cmd('file:new') },
-        { label: 'Ouvrir…', accelerator: accelerator('open'), click: cmd('file:open') },
-        { label: 'Fichiers récents', submenu: recentItems },
+        { label: t('menu.file.new'), accelerator: accelerator('newFile'), click: cmd('file:new') },
+        { label: t('menu.file.open'), accelerator: accelerator('open'), click: cmd('file:open') },
+        { label: t('menu.file.recent'), submenu: recentItems },
         { type: 'separator' },
-        { label: 'Enregistrer', accelerator: accelerator('save'), click: cmd('file:save') },
-        { label: 'Enregistrer sous…', accelerator: accelerator('saveAs'), click: cmd('file:saveAs') },
+        { label: t('menu.file.save'), accelerator: accelerator('save'), click: cmd('file:save') },
+        { label: t('menu.file.saveAs'), accelerator: accelerator('saveAs'), click: cmd('file:saveAs') },
         { type: 'separator' },
-        { label: 'Ouvrir un lab…', accelerator: accelerator('openLab'), click: cmd('file:openLab') },
+        { label: t('menu.file.openLab'), accelerator: accelerator('openLab'), click: cmd('file:openLab') },
         { type: 'separator' },
-        { label: 'Quitter', accelerator: accelerator('quit'), click: () => win.close() }
+        { label: t('menu.file.quit'), accelerator: accelerator('quit'), click: () => win.close() }
       ]
     },
     {
-      label: '&Édition',
+      label: t('menu.edit'),
       submenu: [
         {
-          label: state.undoLabel ?? 'Annuler',
+          label: state.undoLabel ?? t('menu.edit.undo'),
           enabled: state.undoLabel !== null,
           ...displayOnly(accelerator('undo')),
           click: cmd('edit:undo')
         },
         {
-          label: state.redoLabel ?? 'Rétablir',
+          label: state.redoLabel ?? t('menu.edit.redo'),
           enabled: state.redoLabel !== null,
           ...displayOnly(accelerator('redo')),
           click: cmd('edit:redo')
         },
         { type: 'separator' },
-        { label: 'Copier', ...displayOnly(accelerator('copy')), click: cmd('edit:copy') },
-        { label: 'Coller', ...displayOnly(accelerator('paste')), click: cmd('edit:paste') },
-        { label: 'Supprimer', ...displayOnly(accelerator('delete')), click: cmd('edit:delete') },
+        { label: t('menu.edit.copy'), ...displayOnly(accelerator('copy')), click: cmd('edit:copy') },
+        { label: t('menu.edit.paste'), ...displayOnly(accelerator('paste')), click: cmd('edit:paste') },
+        { label: t('menu.edit.delete'), ...displayOnly(accelerator('delete')), click: cmd('edit:delete') },
         { type: 'separator' },
-        { label: 'Tout sélectionner', ...displayOnly(accelerator('selectAll')), click: cmd('edit:selectAll') }
+        {
+          label: t('menu.edit.selectAll'),
+          ...displayOnly(accelerator('selectAll')),
+          click: cmd('edit:selectAll')
+        }
       ]
     },
     {
-      label: '&Affichage',
+      label: t('menu.view'),
       submenu: [
-        { label: 'Zoom avant', accelerator: accelerator('zoomIn'), click: cmd('view:zoomIn') },
-        { label: 'Zoom arrière', accelerator: accelerator('zoomOut'), click: cmd('view:zoomOut') },
-        { label: 'Ajuster à la fenêtre', accelerator: accelerator('fit'), click: cmd('view:fit') },
+        { label: t('menu.view.zoomIn'), accelerator: accelerator('zoomIn'), click: cmd('view:zoomIn') },
+        { label: t('menu.view.zoomOut'), accelerator: accelerator('zoomOut'), click: cmd('view:zoomOut') },
+        { label: t('menu.view.fit'), accelerator: accelerator('fit'), click: cmd('view:fit') },
         { type: 'separator' },
         {
-          label: 'Afficher les noms de ports',
+          label: t('menu.view.portLabels'),
           type: 'checkbox',
           checked: state.showPortLabels,
           click: cmd('view:togglePortLabels')
         },
         {
-          label: 'Afficher le panneau des propriétés',
+          label: t('menu.view.properties'),
           type: 'checkbox',
           checked: state.showProperties,
           click: cmd('view:toggleProperties')
         },
         {
-          label: 'Afficher la minimap',
+          label: t('menu.view.minimap'),
           type: 'checkbox',
           checked: state.showMinimap,
           click: cmd('view:toggleMinimap')
         },
         { type: 'separator' },
         {
-          label: 'Thème',
-          submenu: (
-            [
-              ['system', 'Système'],
-              ['dark', 'Sombre'],
-              ['light', 'Clair']
-            ] as const
-          ).map(([preference, label]) => ({
-            label,
+          label: t('menu.view.theme'),
+          submenu: (['system', 'dark', 'light'] as const).map((preference) => ({
+            label: t(`menu.view.theme.${preference}`),
             type: 'radio' as const,
             checked: ctx.theme === preference,
             click: () => ctx.onTheme(preference)
           }))
         },
+        {
+          label: t('menu.view.language'),
+          submenu: (['system', ...LANGS] as const).map((preference) => ({
+            // Chaque langue est nommée dans sa propre langue (repérable quelle que soit l'interface)
+            label: preference === 'system' ? t('menu.view.language.system') : LANGUAGE_NAMES[preference],
+            type: 'radio' as const,
+            checked: ctx.language === preference,
+            click: () => ctx.onLanguage(preference)
+          }))
+        },
         { type: 'separator' },
-        { label: 'Plein écran', role: 'togglefullscreen', accelerator: accelerator('fullScreen') },
+        {
+          label: t('menu.view.fullScreen'),
+          role: 'togglefullscreen',
+          accelerator: accelerator('fullScreen')
+        },
         ...(app.isPackaged
           ? []
           : ([
               { type: 'separator' },
-              { label: 'Recharger', role: 'reload' },
-              { label: 'Outils de développement', role: 'toggleDevTools' }
+              { label: t('menu.view.reload'), role: 'reload' },
+              { label: t('menu.view.devTools'), role: 'toggleDevTools' }
             ] satisfies MenuItemConstructorOptions[]))
       ]
     },
     {
-      label: '&Simulation',
+      label: t('menu.sim'),
       submenu: [
         {
-          label: 'Mode Temps réel',
+          label: t('menu.sim.realtime'),
           type: 'radio',
           checked: state.mode === 'realtime',
           accelerator: accelerator('realtime'),
           click: cmd('sim:realtime')
         },
         {
-          label: 'Mode Simulation',
+          label: t('menu.sim.simulation'),
           type: 'radio',
           checked: state.mode === 'simulation',
           accelerator: accelerator('simulation'),
@@ -158,19 +183,19 @@ export function buildMenu(ctx: MenuContext): Menu {
         },
         { type: 'separator' },
         {
-          label: 'Avancer d’un pas',
+          label: t('menu.sim.step'),
           accelerator: accelerator('step'),
           enabled: state.mode === 'simulation',
           click: cmd('sim:step')
         },
         {
-          label: 'Lecture automatique',
+          label: t('menu.sim.play'),
           accelerator: accelerator('play'),
           enabled: state.mode === 'simulation',
           click: cmd('sim:play')
         },
         {
-          label: 'Réinitialiser la simulation',
+          label: t('menu.sim.reset'),
           accelerator: accelerator('reset'),
           enabled: state.mode === 'simulation',
           click: cmd('sim:reset')
@@ -178,31 +203,30 @@ export function buildMenu(ctx: MenuContext): Menu {
       ]
     },
     {
-      label: 'Aid&e',
+      label: t('menu.help'),
       submenu: [
-        { label: 'Guide de démarrage', accelerator: accelerator('guide'), click: cmd('help:guide') },
-        { label: 'Tutoriel interactif', click: cmd('help:tutorial') },
-        { label: 'Raccourcis clavier', click: cmd('help:shortcuts') },
+        { label: t('menu.help.guide'), accelerator: accelerator('guide'), click: cmd('help:guide') },
+        { label: t('menu.help.tutorial'), click: cmd('help:tutorial') },
+        { label: t('menu.help.shortcuts'), click: cmd('help:shortcuts') },
         { type: 'separator' },
-        { label: 'Signaler un bug…', click: () => void openBugReport() },
+        { label: t('menu.help.bug'), click: () => void openBugReport() },
         ...(ctx.onCheckUpdates
           ? ([
-              { label: 'Rechercher des mises à jour…', click: ctx.onCheckUpdates }
+              { label: t('menu.help.updates'), click: ctx.onCheckUpdates }
             ] satisfies MenuItemConstructorOptions[])
           : []),
         { type: 'separator' },
         {
-          label: 'À propos de ServerLab',
+          label: t('menu.help.about'),
           click: () => {
             void dialog.showMessageBox(win, {
               type: 'info',
-              title: 'À propos de ServerLab',
+              title: t('menu.help.about'),
               message: `ServerLab ${app.getVersion()}`,
-              detail:
-                'Simulateur pédagogique d’administration de serveurs (AD DS, DNS, DHCP, GPO, partages).\n' +
-                'Tout est simulé : aucune machine virtuelle, aucune commande système exécutée.\n\n' +
-                `Electron ${process.versions.electron} · Chromium ${process.versions.chrome}\n` +
-                'Projet indépendant, sans affiliation avec un éditeur de logiciels.'
+              detail: t('about.detail', {
+                electron: process.versions.electron,
+                chrome: process.versions.chrome
+              })
             })
           }
         }

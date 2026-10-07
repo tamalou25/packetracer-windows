@@ -8,6 +8,7 @@ import { useLabStore } from '../store/lab'
 import { useLabsStore } from '../store/labs'
 import { useUiStore } from '../store/ui'
 import { confirmDiscard, resetDocumentUi } from './document'
+import { t, tp } from './i18n'
 
 /** Ouvre un lab : nouvel état de départ (document sans fichier) et onglet Lab affiché. */
 export async function openLab(lab: LabDefinition): Promise<boolean> {
@@ -17,7 +18,7 @@ export async function openLab(lab: LabDefinition): Promise<boolean> {
     start = buildLabStart(lab.start)
   } catch (e) {
     useUiStore.getState().showModal({
-      title: 'Ouverture du lab impossible',
+      title: t('labs.openFailed'),
       message: e instanceof Error ? e.message : String(e)
     })
     return false
@@ -40,9 +41,7 @@ export function verifyLab(): void {
   const progress = checkLab(useLabStore.getState().lab, lab)
   useLabsStore.getState().setProgress(progress)
   if (progress.passed === progress.total)
-    useUiStore
-      .getState()
-      .notify('success', `Lab réussi : ${progress.total} critère(s) sur ${progress.total} validé(s).`)
+    useUiStore.getState().notify('success', tp('labs.passed', progress.total))
 }
 
 /** Recommence le lab : l'état de départ est reconstruit (les modifications sont perdues). */
@@ -50,9 +49,9 @@ export function restartLab(): void {
   const lab = useLabsStore.getState().active
   if (!lab) return
   useUiStore.getState().showModal({
-    title: 'Recommencer le lab',
-    message: `Toutes les modifications faites dans « ${lab.title} » seront perdues. Continuer ?`,
-    confirmLabel: 'Recommencer',
+    title: t('labs.restart.title'),
+    message: t('labs.restart.message', { title: lab.title }),
+    confirmLabel: t('labs.restart.confirm'),
     onConfirm: () => {
       resetDocumentUi()
       useLabStore.getState().load(buildLabStart(lab.start), { path: null, name: `${lab.id}.slab` })

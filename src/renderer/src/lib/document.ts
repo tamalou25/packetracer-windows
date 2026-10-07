@@ -12,14 +12,27 @@ import { useTutorialStore } from '../store/tutorial'
 import { useUiStore } from '../store/ui'
 import { getFlowInstance } from './flow'
 import { labById } from './labCatalog'
+import { t } from './i18n'
 
 function api() {
   return window.serverlab
 }
 
+/** Nom du document affiché (« Sans titre » / « Untitled » selon la langue tant qu'il n'a pas de nom). */
+export function documentName(): string {
+  const { filePath, fileName } = useLabStore.getState()
+  return displayName(fileName, filePath)
+}
+
+/** Nom affiché pour un nom de fichier : le nom par défaut est traduit. */
+export function displayName(fileName: string, filePath: string | null): string {
+  return filePath === null && fileName === UNTITLED ? t('main.untitled') : fileName
+}
+
 /** Sérialise le document courant au format .slab. */
 export function serializeCurrent(): string {
-  const { lab, fileName } = useLabStore.getState()
+  const { lab } = useLabStore.getState()
+  const fileName = documentName()
   const viewport = getFlowInstance()?.getViewport() ?? null
   return serializeSlab(lab, {
     savedAt: new Date().toISOString(),
@@ -51,7 +64,7 @@ export function loadContent(
 ): boolean {
   const parsed = parseSlab(content)
   if (!parsed.ok) {
-    useUiStore.getState().showModal({ title: 'Ouverture impossible', message: parsed.message })
+    useUiStore.getState().showModal({ title: t('document.openFailed'), message: parsed.message })
     return false
   }
   resetDocumentUi()
@@ -68,9 +81,9 @@ export function loadContent(
  * Renvoie vrai si l'on peut continuer (enregistré ou abandonné).
  */
 export async function confirmDiscard(): Promise<boolean> {
-  const { dirty, fileName } = useLabStore.getState()
+  const { dirty } = useLabStore.getState()
   if (!dirty) return true
-  const choice = await api().askSaveChanges(fileName)
+  const choice = await api().askSaveChanges(documentName())
   if (choice === 'cancel') return false
   if (choice === 'save') return saveDocument()
   return true
@@ -91,7 +104,7 @@ export async function openDocument(): Promise<void> {
   const res = await api().openFile()
   if (!res.ok) {
     if (!res.canceled)
-      useUiStore.getState().showModal({ title: 'Ouverture impossible', message: res.error ?? '' })
+      useUiStore.getState().showModal({ title: t('document.openFailed'), message: res.error ?? '' })
     return
   }
   if (loadContent(res.value.content, { path: res.value.path, name: res.value.name })) {
@@ -103,7 +116,7 @@ export async function openRecentDocument(path: string): Promise<void> {
   if (!(await confirmDiscard())) return
   const res = await api().openRecent(path)
   if (!res.ok) {
-    useUiStore.getState().showModal({ title: 'Ouverture impossible', message: res.error ?? '' })
+    useUiStore.getState().showModal({ title: t('document.openFailed'), message: res.error ?? '' })
     return
   }
   if (loadContent(res.value.content, { path: res.value.path, name: res.value.name })) {
@@ -123,7 +136,8 @@ export async function openExternalDocument(file: {
 
 /** Enregistre le document. Renvoie vrai en cas de succès. */
 export async function saveDocument(saveAs = false): Promise<boolean> {
-  const { filePath, fileName } = useLabStore.getState()
+  const { filePath } = useLabStore.getState()
+  const fileName = documentName()
   const content = serializeCurrent()
   const res =
     filePath && !saveAs
@@ -131,14 +145,14 @@ export async function saveDocument(saveAs = false): Promise<boolean> {
       : await api().saveFileAs(content, fileName.replace(/\.slab$/i, ''))
   if (!res.ok) {
     if (!res.canceled)
-      useUiStore.getState().showModal({ title: 'Enregistrement impossible', message: res.error ?? '' })
+      useUiStore.getState().showModal({ title: t('document.saveFailed'), message: res.error ?? '' })
     return false
   }
   const path = res.value
   const name = path.split(/[\\/]/).pop() ?? path
   useLabStore.getState().markSaved(path, name)
   await api().clearAutosave()
-  useUiStore.getState().notify('success', `Lab enregistré : ${name}`)
+  useUiStore.getState().notify('success', t('document.saved', { name }))
   return true
 }
 
@@ -170,14 +184,13 @@ export async function startupDocument(): Promise<void> {
     return showHomeAtStartup()
   }
   useUiStore.getState().showModal({
-    title: 'Récupération',
-    message:
-      'ServerLab ne s’est pas fermé correctement lors de la dernière session. Voulez-vous restaurer le lab récupéré automatiquement ?',
-    confirmLabel: 'Restaurer',
-    cancelLabel: 'Ignorer',
+    title: t('document.recovery.title'),
+    message: t('document.recovery.message'),
+    confirmLabel: t('document.recovery.restore'),
+    cancelLabel: t('document.recovery.ignore'),
     onConfirm: () => {
-      const title = parsed.doc.meta.title || UNTITLED
-      loadContent(recovered, { path: null, name: `${title} (récupéré)` }, true)
+      const title = parsed.doc.meta.title || t('main.untitled')
+      loadContent(recovered, { path: null, name: t('document.recovered', { title }) }, true)
     },
     onCancel: () => {
       void api().clearAutosave()

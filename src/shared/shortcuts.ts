@@ -2,69 +2,69 @@
  * Catalogue unique des raccourcis clavier : le menu natif (process principal) y prend ses
  * accélérateurs et l'aide « Raccourcis clavier » l'affiche en entier ; les deux ne peuvent pas
  * diverger. Les touches sont au format des accélérateurs Electron (CmdOrCtrl+Shift+S, F6, Delete).
+ * Libellés traduits : `shortcut.<id>` et `shortcutGroup.<groupe>` (shared/i18n).
  */
+import type { Lang } from './ipc'
+import { translate, type MessageKey } from './i18n'
 
-export type ShortcutGroup = 'Fichier' | 'Édition' | 'Outils du canvas' | 'Affichage' | 'Simulation' | 'Aide'
+export type ShortcutGroup = 'file' | 'edit' | 'tools' | 'view' | 'simulation' | 'help'
 
 export interface Shortcut {
   /** Touches équivalentes ; la première est celle affichée dans le menu. */
   keys: readonly string[]
-  label: string
   group: ShortcutGroup
 }
 
 export const SHORTCUTS = {
-  newFile: { keys: ['CmdOrCtrl+N'], label: 'Nouveau', group: 'Fichier' },
-  open: { keys: ['CmdOrCtrl+O'], label: 'Ouvrir…', group: 'Fichier' },
-  save: { keys: ['CmdOrCtrl+S'], label: 'Enregistrer', group: 'Fichier' },
-  saveAs: { keys: ['CmdOrCtrl+Shift+S'], label: 'Enregistrer sous…', group: 'Fichier' },
-  openLab: { keys: ['CmdOrCtrl+L'], label: 'Ouvrir un lab…', group: 'Fichier' },
-  quit: { keys: ['CmdOrCtrl+Q'], label: 'Quitter', group: 'Fichier' },
+  newFile: { keys: ['CmdOrCtrl+N'], group: 'file' },
+  open: { keys: ['CmdOrCtrl+O'], group: 'file' },
+  save: { keys: ['CmdOrCtrl+S'], group: 'file' },
+  saveAs: { keys: ['CmdOrCtrl+Shift+S'], group: 'file' },
+  openLab: { keys: ['CmdOrCtrl+L'], group: 'file' },
+  quit: { keys: ['CmdOrCtrl+Q'], group: 'file' },
 
-  undo: { keys: ['CmdOrCtrl+Z'], label: 'Annuler (aussi dans une console, ligne vide)', group: 'Édition' },
-  redo: { keys: ['CmdOrCtrl+Y', 'CmdOrCtrl+Shift+Z'], label: 'Rétablir', group: 'Édition' },
-  copy: { keys: ['CmdOrCtrl+C'], label: 'Copier les équipements sélectionnés', group: 'Édition' },
-  paste: { keys: ['CmdOrCtrl+V'], label: 'Coller', group: 'Édition' },
+  undo: { keys: ['CmdOrCtrl+Z'], group: 'edit' },
+  redo: { keys: ['CmdOrCtrl+Y', 'CmdOrCtrl+Shift+Z'], group: 'edit' },
+  copy: { keys: ['CmdOrCtrl+C'], group: 'edit' },
+  paste: { keys: ['CmdOrCtrl+V'], group: 'edit' },
   delete: {
     keys: ['Delete'],
-    label: 'Supprimer la sélection (sans sélection : outil Supprimer)',
-    group: 'Édition'
+    group: 'edit'
   },
-  selectAll: { keys: ['CmdOrCtrl+A'], label: 'Tout sélectionner', group: 'Édition' },
+  selectAll: { keys: ['CmdOrCtrl+A'], group: 'edit' },
 
-  toolSelect: { keys: ['V'], label: 'Outil Sélection', group: 'Outils du canvas' },
-  toolCable: { keys: ['C'], label: 'Outil Câble', group: 'Outils du canvas' },
-  toolPdu: { keys: ['P'], label: 'Outil PDU simple', group: 'Outils du canvas' },
+  toolSelect: { keys: ['V'], group: 'tools' },
+  toolCable: { keys: ['C'], group: 'tools' },
+  toolPdu: { keys: ['P'], group: 'tools' },
   cancel: {
     keys: ['Escape'],
-    label: 'Annuler le câblage, revenir à l’outil Sélection',
-    group: 'Outils du canvas'
+    group: 'tools'
   },
 
-  zoomIn: { keys: ['CmdOrCtrl+='], label: 'Zoom avant (aussi : molette)', group: 'Affichage' },
-  zoomOut: { keys: ['CmdOrCtrl+-'], label: 'Zoom arrière (aussi : molette)', group: 'Affichage' },
-  fit: { keys: ['CmdOrCtrl+0'], label: 'Ajuster à la fenêtre', group: 'Affichage' },
-  fullScreen: { keys: ['F11'], label: 'Plein écran', group: 'Affichage' },
+  zoomIn: { keys: ['CmdOrCtrl+='], group: 'view' },
+  zoomOut: { keys: ['CmdOrCtrl+-'], group: 'view' },
+  fit: { keys: ['CmdOrCtrl+0'], group: 'view' },
+  fullScreen: { keys: ['F11'], group: 'view' },
 
-  realtime: { keys: ['CmdOrCtrl+1'], label: 'Mode Temps réel', group: 'Simulation' },
-  simulation: { keys: ['CmdOrCtrl+2'], label: 'Mode Simulation', group: 'Simulation' },
-  step: { keys: ['F6'], label: 'Simulation : avancer d’un pas', group: 'Simulation' },
-  play: { keys: ['F7'], label: 'Simulation : lecture automatique', group: 'Simulation' },
-  reset: { keys: ['F8'], label: 'Simulation : réinitialiser', group: 'Simulation' },
+  realtime: { keys: ['CmdOrCtrl+1'], group: 'simulation' },
+  simulation: { keys: ['CmdOrCtrl+2'], group: 'simulation' },
+  step: { keys: ['F6'], group: 'simulation' },
+  play: { keys: ['F7'], group: 'simulation' },
+  reset: { keys: ['F8'], group: 'simulation' },
 
-  guide: { keys: ['F1'], label: 'Guide de démarrage', group: 'Aide' }
+  guide: { keys: ['F1'], group: 'help' }
 } as const satisfies Record<string, Shortcut>
 
 export type ShortcutId = keyof typeof SHORTCUTS
 
 /** Ordre d'affichage des groupes dans l'aide. */
 export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
-  'Fichier',
-  'Édition',
-  'Outils du canvas',
-  'Affichage',
-  'Simulation',
-  'Aide'
+  'file',
+  'edit',
+  'tools',
+  'view',
+  'simulation',
+  'help'
 ]
 
 /** Accélérateur du menu natif pour un raccourci (première touche). */
@@ -72,18 +72,31 @@ export function accelerator(id: ShortcutId): string {
   return SHORTCUTS[id].keys[0]
 }
 
-const KEY_NAMES: Record<string, string> = {
-  CmdOrCtrl: 'Ctrl',
-  Shift: 'Maj',
-  Alt: 'Alt',
-  Delete: 'Suppr',
-  Escape: 'Échap'
+/** Touches dont le nom dépend de la langue (clavier français : Maj, Suppr, Échap). */
+const KEY_NAMES: Record<string, MessageKey> = {
+  Shift: 'key.Shift',
+  Delete: 'key.Delete',
+  Escape: 'key.Escape'
 }
 
-/** Touche lisible en français : « CmdOrCtrl+Shift+S » → « Ctrl+Maj+S ». */
-export function formatShortcut(key: string): string {
+/** Touche lisible : « CmdOrCtrl+Shift+S » → « Ctrl+Maj+S » (fr) ou « Ctrl+Shift+S » (en). */
+export function formatShortcut(key: string, lang: Lang): string {
   return key
     .split('+')
-    .map((part) => KEY_NAMES[part] ?? part)
+    .map((part) => {
+      if (part === 'CmdOrCtrl') return 'Ctrl'
+      const name = KEY_NAMES[part]
+      return name ? translate(lang, name) : part
+    })
     .join('+')
+}
+
+/** Libellé d'un raccourci dans l'aide. */
+export function shortcutLabel(id: ShortcutId, lang: Lang): string {
+  return translate(lang, `shortcut.${id}`)
+}
+
+/** Nom d'un groupe de raccourcis dans l'aide. */
+export function shortcutGroupLabel(group: ShortcutGroup, lang: Lang): string {
+  return translate(lang, `shortcutGroup.${group}`)
 }

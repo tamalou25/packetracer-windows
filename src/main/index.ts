@@ -6,8 +6,10 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme } from 'electron
 import { join } from 'node:path'
 import {
   IPC,
+  LANG_ARG_PREFIX,
   THEME_ARG_PREFIX,
   type AppInfo,
+  type LanguagePreference,
   type MenuState,
   type SaveChangesChoice,
   type Theme,
@@ -16,6 +18,7 @@ import {
 import { DEFAULT_SETTINGS } from '../shared/persisted'
 import { resolveTheme } from '../shared/theme'
 import { FileService, findSlabArg } from './files'
+import { applyLanguage, currentLanguage, t } from './i18n'
 import { buildMenu } from './menu'
 import { exportExamResult, exportLabFile, importLabFile } from './labfiles'
 import { fetchLibraryIndex, fetchLibraryLab } from './library'
@@ -44,7 +47,8 @@ let menuState: MenuState = {
   undoLabel: null,
   redoLabel: null
 }
-let docState = { name: 'Sans titre', dirty: false }
+/** Document courant ; nom vide : document sans titre (libellé traduit à l'affichage). */
+let docState = { name: '', dirty: false }
 /** Préférences chargées au démarrage (après le choix éventuel du dossier userData). */
 let settings: Settings = { ...DEFAULT_SETTINGS }
 /** Vrai quand la fermeture a été confirmée (évite de redemander). */
@@ -71,6 +75,8 @@ function refreshMenu(): void {
       recent: files.recentFiles(),
       theme: settings.theme,
       onTheme: applyThemePreference,
+      language: settings.language,
+      onLanguage: applyLanguagePreference,
       onCheckUpdates: checkForUpdatesFromMenu
     })
   )
@@ -112,13 +118,26 @@ function applyThemePreference(preference: ThemePreference): void {
   pushTheme()
 }
 
+/**
+ * Enregistre la préférence de langue (langue du système, Français, English) et l'applique : menu,
+ * dialogues natifs, puis renderer (commande `view:language`).
+ */
+function applyLanguagePreference(preference: LanguagePreference): void {
+  settings = { ...settings, language: preference }
+  saveSettings(settings)
+  const lang = applyLanguage(preference)
+  if (mainWindow && !mainWindow.isDestroyed())
+    mainWindow.webContents.send(IPC.menuCommand, { command: 'view:language', arg: lang })
+  refreshMenu()
+}
+
 async function askSaveChanges(win: BrowserWindow, name: string): Promise<SaveChangesChoice> {
   const res = await dialog.showMessageBox(win, {
     type: 'warning',
     title: 'ServerLab',
-    message: `Voulez-vous enregistrer les modifications apportées à « ${name} » ?`,
-    detail: 'Vos modifications seront perdues si vous ne les enregistrez pas.',
-    buttons: ['Enregistrer', 'Ne pas enregistrer', 'Annuler'],
+    message: t('main.saveChanges.message', { name: name || t('main.untitled') }),
+    detail: t('main.saveChanges.detail'),
+    buttons: [t('main.saveChanges.save'), t('main.saveChanges.discard'), t('main.saveChanges.cancel')],
     defaultId: 0,
     cancelId: 2,
     noLink: true
@@ -137,8 +156,8 @@ function createWindow(): BrowserWindow {
     backgroundColor: THEME_BACKGROUND[appliedTheme()],
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      // Thème connu dès le chargement du preload (pas de flash de couleurs)
-      additionalArguments: [`${THEME_ARG_PREFIX}${appliedTheme()}`],
+      // Thème et langue connus dès le chargement du preload (pas de flash de couleurs ni de textes)
+      additionalArguments: [`${THEME_ARG_PREFIX}${appliedTheme()}`, `${LANG_ARG_PREFIX}${currentLanguage()}`],
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -236,7 +255,7 @@ function registerIpc(): void {
   ipcMain.handle(IPC.autosaveRecover, () => files.recoverAutosave())
 
   ipcMain.handle(IPC.askSaveChanges, (_e, name: unknown) =>
-    askSaveChanges(win(), typeof name === 'string' ? name.slice(0, 200) : 'Sans titre')
+    askSaveChanges(win(), typeof name === 'string' ? name.slice(0, 200) : '')
   )
   ipcMain.handle(IPC.auditExportPdf, (_e, report: unknown) => exportAuditPdf(win(), report))
   ipcMain.handle(IPC.labImport, () => importLabFile(win()))
@@ -259,7 +278,7 @@ async function openFromSystem(path: string): Promise<void> {
   const res = await files.openExternal(path)
   if (!mainWindow) return
   if (res.ok) mainWindow.webContents.send(IPC.fileOpened, res.value)
-  else dialog.showErrorBox('Ouverture impossible', res.error ?? 'Erreur inconnue.')
+  else dialog.showErrorBox(t('main.openFailed'), res.error ?? t('main.error.unknown'))
 }
 
 app.on('second-instance', (_event, argv) => {
@@ -276,6 +295,7 @@ app.setName('ServerLab')
 app.whenReady().then(async () => {
   applyGlobalSecurity()
   settings = loadSettings()
+  applyLanguage(settings.language)
   nativeTheme.themeSource = settings.theme
   // Mode Système : l'application suit le thème de l'OS sans redémarrer
   nativeTheme.on('updated', () => {

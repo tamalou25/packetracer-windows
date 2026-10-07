@@ -9,8 +9,10 @@ import { tmpdir } from 'node:os'
 import { extname, join } from 'node:path'
 import { auditReportFileName, parseAuditReport, renderAuditReportHtml } from '../shared/auditReport'
 import type { FileResult } from '../shared/ipc'
+import { t } from './i18n'
 
-const PDF_FILTERS = [{ name: 'Document PDF', extensions: ['pdf'] }]
+/** Filtre du dialogue (libellé dans la langue de l'interface). */
+const pdfFilters = () => [{ name: t('main.filter.pdf'), extensions: ['pdf'] }]
 
 /** Imprime la page HTML en PDF dans une fenêtre cachée, isolée et sans JavaScript. */
 async function printHtml(html: string): Promise<Buffer> {
@@ -33,11 +35,11 @@ async function printHtml(html: string): Promise<Buffer> {
 
 export async function exportAuditPdf(win: BrowserWindow, report: unknown): Promise<FileResult<string>> {
   const data = parseAuditReport(report)
-  if (!data) return { ok: false, error: 'Paramètres invalides.' }
+  if (!data) return { ok: false, error: t('main.error.params') }
   const res = await dialog.showSaveDialog(win, {
-    title: 'Exporter le rapport d’audit',
+    title: t('main.dialog.exportAudit'),
     defaultPath: join(app.getPath('documents'), auditReportFileName(data.lab)),
-    filters: PDF_FILTERS
+    filters: pdfFilters()
   })
   if (res.canceled || !res.filePath) return { ok: false, canceled: true }
   const path = extname(res.filePath).toLowerCase() === '.pdf' ? res.filePath : `${res.filePath}.pdf`

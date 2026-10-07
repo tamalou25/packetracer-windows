@@ -7,6 +7,7 @@ import { useLabStore } from '../../store/lab'
 import { useSimStore, visibleSteps } from '../../store/sim'
 import { useUiStore } from '../../store/ui'
 import { OUTCOME_LABELS, PROTOCOL_COLORS } from '../../lib/protocols'
+import { rich, useT } from '../../lib/i18n'
 import { Button } from '../common/ui'
 
 export function SimulationPanel() {
@@ -18,11 +19,12 @@ export function SimulationPanel() {
   const totalSteps = op ? visibleSteps(op.trace, filters).length : 0
   const selected = played.find((e) => e.key === selectedKey) ?? null
   const name = (id: string) => devices[id]?.name ?? '?'
+  const { t } = useT()
 
   if (mode !== 'simulation') {
     return (
       <div className="p-6 text-center text-sm text-fg-muted">
-        Passez en <b>mode Simulation</b> (Ctrl+2) pour suivre les paquets pas à pas.
+        {rich(t('sim.switchMode'), { mode: <b>{t('sim.switchMode.mode')}</b> })}
       </div>
     )
   }
@@ -33,12 +35,12 @@ export function SimulationPanel() {
         <div className="mb-2 text-xs text-fg-muted">
           {op ? (
             <>
-              <span className="font-semibold text-fg">{op.trace.title}</span> — pas{' '}
-              {Math.min(stepCursor, totalSteps)} / {totalSteps}
-              {queue.length > 1 && <span> (+{queue.length - 1} en attente)</span>}
+              <span className="font-semibold text-fg">{op.trace.title}</span> —{' '}
+              {t('sim.step', { current: Math.min(stepCursor, totalSteps), total: totalSteps })}
+              {queue.length > 1 && <span> {t('sim.queued', { count: queue.length - 1 })}</span>}
             </>
           ) : (
-            'Aucune opération en attente. Envoyez un PDU simple ou lancez une commande réseau.'
+            t('sim.empty')
           )}
         </div>
         <div className="flex flex-wrap gap-2">
@@ -47,23 +49,19 @@ export function SimulationPanel() {
             onClick={() => sim().step()}
             disabled={!op}
             data-testid="sim-step"
-            title="Avancer d’un pas (F6)"
+            title={t('sim.next.hint')}
           >
-            <StepForward size={14} /> Avancer
+            <StepForward size={14} /> {t('sim.next')}
           </Button>
           <Button
             onClick={() => sim().setPlaying(!playing)}
             disabled={!op && !playing}
-            title="Lecture automatique (F7)"
+            title={t('sim.play.hint')}
           >
-            {playing ? <Pause size={14} /> : <Play size={14} />} {playing ? 'Pause' : 'Lecture'}
+            {playing ? <Pause size={14} /> : <Play size={14} />} {playing ? t('sim.pause') : t('sim.play')}
           </Button>
-          <Button
-            variant="ghost"
-            onClick={() => sim().reset()}
-            title="Vide la liste (les opérations en attente sont terminées instantanément) — F8"
-          >
-            <RotateCcw size={14} /> Réinitialiser
+          <Button variant="ghost" onClick={() => sim().reset()} title={t('sim.reset.hint')}>
+            <RotateCcw size={14} /> {t('sim.reset')}
           </Button>
         </div>
       </div>
@@ -79,7 +77,7 @@ export function SimulationPanel() {
                 ? 'border-line-strong bg-surface text-fg'
                 : 'border-transparent bg-surface-2 text-fg-subtle line-through'
             }`}
-            title={filters[p] ? `Masquer ${p}` : `Afficher ${p}`}
+            title={filters[p] ? t('sim.filter.hide', { protocol: p }) : t('sim.filter.show', { protocol: p })}
           >
             <span className={`h-2 w-2 rounded-sm ${PROTOCOL_COLORS[p].chip}`} /> {p}
           </button>
@@ -91,10 +89,10 @@ export function SimulationPanel() {
           <thead className="sticky top-0 bg-surface-2 text-left text-fg-muted">
             <tr>
               <th className="px-2 py-1 font-medium">#</th>
-              <th className="px-1 py-1 font-medium">De</th>
-              <th className="px-1 py-1 font-medium">Vers</th>
-              <th className="px-1 py-1 font-medium">Type</th>
-              <th className="px-1 py-1 font-medium">Résultat</th>
+              <th className="px-1 py-1 font-medium">{t('sim.col.from')}</th>
+              <th className="px-1 py-1 font-medium">{t('sim.col.to')}</th>
+              <th className="px-1 py-1 font-medium">{t('sim.col.type')}</th>
+              <th className="px-1 py-1 font-medium">{t('sim.col.result')}</th>
             </tr>
           </thead>
           <tbody>
@@ -113,7 +111,7 @@ export function SimulationPanel() {
                     {e.protocol}
                   </span>
                 </td>
-                <td className="px-1 py-1 text-fg-muted">{OUTCOME_LABELS[e.outcome]}</td>
+                <td className="px-1 py-1 text-fg-muted">{t(OUTCOME_LABELS[e.outcome])}</td>
               </tr>
             ))}
           </tbody>
@@ -130,7 +128,7 @@ export function SimulationPanel() {
           {selected.layers.map((layer) => (
             <div key={layer.name} className="mb-2 rounded-md border border-line bg-surface">
               <div className="border-b border-line px-2 py-1 font-semibold text-fg-muted">
-                Couche {layer.layer} — {layer.name}
+                {t('sim.layer', { layer: layer.layer, name: layer.name })}
               </div>
               <dl className="selectable grid grid-cols-[auto_1fr] gap-x-3 px-2 py-1 font-mono text-[11px]">
                 {layer.fields.map(([k, v]) => (

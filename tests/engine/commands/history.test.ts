@@ -11,6 +11,7 @@ import {
   HISTORY_LIMIT,
   historyLabels,
   menuLabel,
+  truncateMenuLabel,
   recordEntry,
   redoStep,
   runBackgroundTasks,
@@ -190,5 +191,8 @@ describe('historique annuler / rétablir', () => {
     expect(long.startsWith('Rétablir : New-NetIPAddress')).toBe(true)
     expect(long.endsWith('…')).toBe(true)
     expect(long.length).toBe('Rétablir : '.length + 30)
+    // Troncature seule (libellé composé par l'interface dans sa langue)
+    expect(truncateMenuLabel('Ajouter SRV1')).toBe('Ajouter SRV1')
+    expect(truncateMenuLabel('x'.repeat(100), 10)).toBe(`${'x'.repeat(9)}…`)
   })
 })

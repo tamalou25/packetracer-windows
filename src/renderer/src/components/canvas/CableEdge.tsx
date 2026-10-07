@@ -8,6 +8,7 @@ import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
 import { ICON_CENTER } from '../../lib/flow'
 import { countRender } from '../../lib/perf'
+import { useT } from '../../lib/i18n'
 
 export type CableEdgeData = { linkId: string; offset: number }
 export type CableFlowEdge = Edge<CableEdgeData, 'cable'>
@@ -20,14 +21,16 @@ const LED_CLASS: Record<LedStatus, string> = {
   down: 'fill-danger'
 }
 
-const LED_LABEL: Record<LedStatus, string> = {
-  up: 'Lien actif',
-  degraded: 'Lien actif, adressage incomplet',
-  down: 'Lien inactif'
-}
+/** Infobulle du voyant (clés `link.<état>`). */
+const LED_KEY = {
+  up: 'link.up',
+  degraded: 'link.degraded',
+  down: 'link.down'
+} as const satisfies Record<LedStatus, string>
 
 function CableEdgeComponent({ id, source, target, data, selected }: EdgeProps<CableFlowEdge>) {
   countRender(`edge:${id}`)
+  const { t } = useT()
   const sourceNode = useInternalNode(source)
   const targetNode = useInternalNode(target)
   // Abonné à son seul câble et à son résumé (voyants, noms de ports)
@@ -72,10 +75,10 @@ function CableEdgeComponent({ id, source, target, data, selected }: EdgeProps<Ca
       {visible && (
         <g data-testid={`cable-${portA}-${portB}`}>
           <circle cx={ledA.x} cy={ledA.y} r={5} className={`${LED_CLASS[statusA]} stroke-canvas stroke-2`}>
-            <title>{`${portA} : ${LED_LABEL[statusA]}`}</title>
+            <title>{`${portA} : ${t(LED_KEY[statusA])}`}</title>
           </circle>
           <circle cx={ledB.x} cy={ledB.y} r={5} className={`${LED_CLASS[statusB]} stroke-canvas stroke-2`}>
-            <title>{`${portB} : ${LED_LABEL[statusB]}`}</title>
+            <title>{`${portB} : ${t(LED_KEY[statusB])}`}</title>
           </circle>
         </g>
       )}

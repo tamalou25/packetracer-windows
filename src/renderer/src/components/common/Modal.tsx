@@ -2,11 +2,13 @@
  * Boîte de dialogue modale applicative (alerte ou confirmation).
  */
 import { useEffect } from 'react'
+import { useT } from '../../lib/i18n'
 import { useUiStore } from '../../store/ui'
 import { Button } from './ui'
 
 export function Modal() {
   const modal = useUiStore((s) => s.modal)
+  const { t } = useT()
   const close = () => useUiStore.getState().showModal(null)
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export function Modal() {
                 close()
               }}
             >
-              {modal.cancelLabel ?? 'Annuler'}
+              {modal.cancelLabel ?? t('common.cancel')}
             </Button>
           )}
           <Button
@@ -51,7 +53,7 @@ export function Modal() {
               close()
             }}
           >
-            {modal.confirmLabel ?? 'OK'}
+            {modal.confirmLabel ?? t('common.ok')}
           </Button>
         </div>
       </div>

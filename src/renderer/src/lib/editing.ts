@@ -4,6 +4,7 @@
 import { command } from '@engine/index'
 import { useLabStore } from '../store/lab'
 import { useUiStore } from '../store/ui'
+import { t, tp } from './i18n'
 import { runCommand } from './run'
 
 /** Vrai si le focus est dans un champ de saisie (le clavier doit alors garder son comportement natif). */
@@ -25,7 +26,9 @@ export function undo(target: HistoryTarget = 'auto'): void {
     return
   }
   const outcome = useLabStore.getState().undo()
-  useUiStore.getState().notify('info', outcome.ok ? `Annulé : ${outcome.label}` : outcome.message)
+  useUiStore
+    .getState()
+    .notify('info', outcome.ok ? t('edit.undone', { label: outcome.label }) : outcome.message)
 }
 
 /** Rétablit la dernière commande annulée et affiche son libellé. */
@@ -35,7 +38,9 @@ export function redo(target: HistoryTarget = 'auto'): void {
     return
   }
   const outcome = useLabStore.getState().redo()
-  useUiStore.getState().notify('info', outcome.ok ? `Rétabli : ${outcome.label}` : outcome.message)
+  useUiStore
+    .getState()
+    .notify('info', outcome.ok ? t('edit.redone', { label: outcome.label }) : outcome.message)
 }
 
 export function deleteSelection(): void {
@@ -58,7 +63,7 @@ export function copySelection(): void {
   const devices = [...ids].map((id) => lab.devices[id]).filter((d) => d !== undefined)
   const links = Object.values(lab.links).filter((l) => ids.has(l.a.deviceId) && ids.has(l.b.deviceId))
   ui.setClipboard({ devices, links })
-  ui.notify('info', `${devices.length} équipement(s) copié(s).`)
+  ui.notify('info', tp('edit.copied', devices.length))
 }
 
 export function paste(): void {

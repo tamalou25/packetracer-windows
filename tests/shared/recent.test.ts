@@ -29,25 +29,31 @@ describe('date de dernière ouverture', () => {
   const at = (...args: [number, number, number, number, number]) => new Date(...args).toISOString()
 
   it('aujourd’hui et hier : heure seule', () => {
-    expect(formatOpenedAt(at(2026, 9, 6, 14, 5), now)).toBe('Aujourd’hui, 14:05')
-    expect(formatOpenedAt(at(2026, 9, 6, 0, 0), now)).toBe('Aujourd’hui, 00:00')
-    expect(formatOpenedAt(at(2026, 9, 5, 9, 12), now)).toBe('Hier, 09:12')
-    expect(formatOpenedAt(at(2026, 9, 5, 23, 59), now)).toBe('Hier, 23:59')
+    expect(formatOpenedAt(at(2026, 9, 6, 14, 5), now, 'fr')).toBe('Aujourd’hui, 14:05')
+    expect(formatOpenedAt(at(2026, 9, 6, 0, 0), now, 'fr')).toBe('Aujourd’hui, 00:00')
+    expect(formatOpenedAt(at(2026, 9, 5, 9, 12), now, 'fr')).toBe('Hier, 09:12')
+    expect(formatOpenedAt(at(2026, 9, 5, 23, 59), now, 'fr')).toBe('Hier, 23:59')
+  })
+
+  it('en anglais : Today / Yesterday, date courte', () => {
+    expect(formatOpenedAt(at(2026, 9, 6, 14, 5), now, 'en')).toBe('Today, 14:05')
+    expect(formatOpenedAt(at(2026, 9, 5, 9, 12), now, 'en')).toBe('Yesterday, 09:12')
+    expect(formatOpenedAt(at(2026, 9, 3, 10, 0), now, 'en')).toBe('3 Oct 2026')
   })
 
   it('plus ancien : date courte', () => {
-    expect(formatOpenedAt(at(2026, 9, 3, 10, 0), now)).toBe('3 oct. 2026')
-    expect(formatOpenedAt(at(2025, 11, 31, 10, 0), now)).toBe('31 déc. 2025')
+    expect(formatOpenedAt(at(2026, 9, 3, 10, 0), now, 'fr')).toBe('3 oct. 2026')
+    expect(formatOpenedAt(at(2025, 11, 31, 10, 0), now, 'fr')).toBe('31 déc. 2025')
   })
 
   it('hier en début de mois et d’année', () => {
-    expect(formatOpenedAt(at(2026, 8, 30, 8, 0), new Date(2026, 9, 1, 9, 0))).toBe('Hier, 08:00')
-    expect(formatOpenedAt(at(2025, 11, 31, 8, 0), new Date(2026, 0, 1, 9, 0))).toBe('Hier, 08:00')
+    expect(formatOpenedAt(at(2026, 8, 30, 8, 0), new Date(2026, 9, 1, 9, 0), 'fr')).toBe('Hier, 08:00')
+    expect(formatOpenedAt(at(2025, 11, 31, 8, 0), new Date(2026, 0, 1, 9, 0), 'fr')).toBe('Hier, 08:00')
   })
 
   it('date illisible : rien d’affiché', () => {
-    expect(formatOpenedAt('', now)).toBe('')
-    expect(formatOpenedAt('pas une date', now)).toBe('')
+    expect(formatOpenedAt('', now, 'fr')).toBe('')
+    expect(formatOpenedAt('pas une date', now, 'fr')).toBe('')
   })
 })
 
