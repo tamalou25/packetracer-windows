@@ -5,6 +5,7 @@
  * sont associés dans renderApp.tsx.
  */
 import {
+  ShieldCheck,
   EthernetPort,
   FolderOpen,
   Monitor,
@@ -181,6 +182,17 @@ const CORE_APPS: DesktopApp[] = [
     color: 'text-amber-500',
     size: { w: 920, h: 580 },
     run: ['eventvwr', 'eventvwr.msc', 'eventvwr.exe'],
+    start: 'admin',
+    tool: true,
+    available: always
+  },
+  {
+    id: 'wf',
+    label: 'Pare-feu Windows Defender avec fonctions avancées de sécurité',
+    icon: ShieldCheck,
+    color: 'text-emerald-700',
+    size: { w: 980, h: 600 },
+    run: ['wf.msc', 'wf'],
     start: 'admin',
     tool: true,
     available: always

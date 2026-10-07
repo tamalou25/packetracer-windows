@@ -8,6 +8,7 @@ import { Computer, Folder, FolderCog, HardDrive, ScrollText, UserRound, type Luc
 import {
   DRIVE_ACTION_LABELS,
   EDITOR_TREE,
+  firewallRuleSummary,
   POLICY_SETTINGS,
   POLICY_STATE_LABELS,
   settingValue,
@@ -16,6 +17,7 @@ import {
   WALLPAPER_STYLES,
   type Domain,
   type DriveMap,
+  type FirewallRule,
   type Gpo,
   type GpoSettingsPatch,
   type HostDevice,
@@ -28,6 +30,7 @@ import {
 import { requireAdmin } from '../../lib/directory'
 import { runCommandOk } from '../../lib/run'
 import { WALLPAPER_DIR } from '../../lib/wallpapers'
+import { FormDialog } from '../common/FormDialog'
 import { useLabStore } from '../../store/lab'
 import {
   DialogBody,
@@ -73,7 +76,11 @@ function stateLabel(info: PolicySettingInfo, gpo: Gpo): string {
   return settingValue(info.key, gpo.computer, gpo.user) ?? 'Non défini'
 }
 
-type Editing = { kind: 'setting'; info: PolicySettingInfo } | { kind: 'drive'; index: number | null } | null
+type Editing =
+  | { kind: 'setting'; info: PolicySettingInfo }
+  | { kind: 'drive'; index: number | null }
+  | { kind: 'fwrule' }
+  | null
 
 export function GpoEditor({ device, gpoId }: { device: HostDevice; gpoId: string | undefined }) {
   const lab = useLabStore((s) => s.lab)
@@ -181,6 +188,48 @@ export function GpoEditor({ device, gpoId }: { device: HostDevice; gpoId: string
         ])}
       />
     )
+  } else if (node === 'c-fw-inbound') {
+    const index = row === null ? -1 : Number(row)
+    actions = (
+      <>
+        <MmcAction onClick={() => setEditing({ kind: 'fwrule' })} testId="gpme-new-fwrule">
+          Nouvelle règle…
+        </MmcAction>
+        {index >= 0 && (
+          <MmcAction
+            danger
+            onClick={() => {
+              if (
+                save({
+                  computer: { firewallRules: gpo.computer.firewallRules.filter((_, i) => i !== index) }
+                })
+              )
+                setRow(null)
+            }}
+          >
+            Supprimer
+          </MmcAction>
+        )}
+      </>
+    )
+    content = (
+      <MmcTable
+        testId="gpme-fwrules"
+        columns={['Nom', 'Règle']}
+        empty="Il n’y a aucun élément à afficher dans cet affichage. Action › Nouvelle règle."
+        rows={gpo.computer.firewallRules.map((r, i) => [
+          <button
+            key="n"
+            type="button"
+            className={`text-left ${row === String(i) ? 'font-semibold text-sky-700' : ''}`}
+            onClick={() => setRow(String(i))}
+          >
+            {r.displayName}
+          </button>,
+          firewallRuleSummary(r)
+        ])}
+      />
+    )
   } else {
     // Dossier : liste de ses éléments enfants
     const children = node === 'root' ? EDITOR_TREE : (current?.children ?? [])
@@ -229,6 +278,59 @@ export function GpoEditor({ device, gpoId }: { device: HostDevice; gpoId: string
       </Mmc>
       {editing?.kind === 'setting' && (
         <SettingDialog info={editing.info} gpo={gpo} onSave={save} onClose={() => setEditing(null)} />
+      )}
+      {editing?.kind === 'fwrule' && (
+        <FormDialog
+          title="Assistant Nouvelle règle de trafic entrant"
+          fields={[
+            { key: 'name', label: 'Nom', placeholder: 'Bloquer le ping' },
+            {
+              key: 'action',
+              label: 'Action',
+              type: 'select',
+              options: [
+                { value: 'Allow', label: 'Autoriser la connexion' },
+                { value: 'Block', label: 'Bloquer la connexion' }
+              ]
+            },
+            {
+              key: 'protocol',
+              label: 'Protocole',
+              type: 'select',
+              options: [
+                { value: 'TCP', label: 'TCP' },
+                { value: 'UDP', label: 'UDP' },
+                { value: 'ICMPv4', label: 'ICMPv4' },
+                { value: 'Any', label: 'Tout' }
+              ]
+            },
+            { key: 'ports', label: 'Ports locaux (vide : tous)', placeholder: '3389' }
+          ]}
+          onSubmit={(v) => {
+            const displayName = String(v['name']).trim()
+            const protocol = String(v['protocol']) as FirewallRule['protocol']
+            const ports = String(v['ports'])
+              .split(/[,;\s]+/)
+              .filter(Boolean)
+              .map(Number)
+            if (!displayName || ports.some((p) => !Number.isInteger(p) || p < 1 || p > 65535)) return false
+            const rule: FirewallRule = {
+              id: `GPO-${gpo.computer.firewallRules.length + 1}-${displayName}`,
+              displayName,
+              group: '',
+              direction: 'Inbound',
+              action: v['action'] === 'Block' ? 'Block' : 'Allow',
+              enabled: true,
+              protocol,
+              localPorts: protocol === 'TCP' || protocol === 'UDP' ? ports : [],
+              remoteAddresses: [],
+              profiles: []
+            }
+            return save({ computer: { firewallRules: [...gpo.computer.firewallRules, rule] } })
+          }}
+          onClose={() => setEditing(null)}
+          testId="gpme-fwrule-dialog"
+        />
       )}
       {editing?.kind === 'drive' && (
         <DriveDialog
@@ -297,6 +399,9 @@ function SettingDialog({
         return { user: { [info.key]: state } }
       case 'autoEnrollment':
         return { computer: { autoEnrollment: state } }
+      case 'firewallDomain':
+      case 'firewallStandard':
+        return { computer: { [info.key]: state } }
       case 'wuServer':
         return { computer: { wuServer: { state, url: state === 'Enabled' ? wuUrl.trim() : c.wuServer.url } } }
       case 'wuTargetGroup':
