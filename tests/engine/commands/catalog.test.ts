@@ -345,6 +345,11 @@ describe('catalogue des commandes', () => {
     // Mot de passe à changer : la session aboutit après le changement imposé
     r.run(command('adds.resetPassword', DOMAIN, 'pdurand', 'Bienvenue123!', true))
     r.run(command('adds.setUserProperties', DOMAIN, 'pdurand', { passwordNeverExpires: true }))
+    // Cybersécurité : compte de service, ancienneté du mot de passe, accès administrateur, paramètres du lab
+    r.run(command('adds.setServicePrincipalNames', DOMAIN, 'pdurand', ['MSSQLSvc/srv1.lab.local:1433']))
+    r.run(command('adds.setAccountActivity', DOMAIN, 'pdurand', { passwordAgeDays: 400 }))
+    r.run(command('cyber.setAdminAccess', r.id('PC1'), [r.id('SRV1')]))
+    r.run(command('cyber.configure', { targetAccount: 'pdurand', scenarios: ['auth-repetee'] }))
     r.run(
       command('adds.setAccountActivity', DOMAIN, 'pdurand', { createdDaysAgo: 200, lastLogonDaysAgo: null })
     )

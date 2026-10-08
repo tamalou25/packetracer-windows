@@ -565,7 +565,7 @@ export function setAccountActivity(
   state: LabState,
   domainName: string,
   identity: string,
-  activity: { createdDaysAgo?: number; lastLogonDaysAgo?: number | null }
+  activity: { createdDaysAgo?: number; lastLogonDaysAgo?: number | null; passwordAgeDays?: number }
 ): EngineResult {
   return transact(state, (draft) => {
     const domain = requireDomain(draft, domainName)
@@ -575,9 +575,32 @@ export function setAccountActivity(
     if (!user) return undefined
     const day = 86_400_000
     if (activity.createdDaysAgo !== undefined) user.whenCreated = draft.clock - activity.createdDaysAgo * day
+    // Mot de passe inchangé depuis N jours (pwdLastSet)
+    if (activity.passwordAgeDays !== undefined)
+      user.passwordLastSet = draft.clock - activity.passwordAgeDays * day
     if (activity.lastLogonDaysAgo !== undefined)
       user.lastLogon =
         activity.lastLogonDaysAgo === null ? null : draft.clock - activity.lastLogonDaysAgo * day
+    return undefined
+  })
+}
+
+/** Définit les noms de principal de service d'un compte (Set-ADUser -ServicePrincipalNames). */
+export function setServicePrincipalNames(
+  state: LabState,
+  domainName: string,
+  identity: string,
+  spns: string[]
+): EngineResult {
+  return transact(state, (draft) => {
+    const domain = requireDomain(draft, domainName)
+    const found = findPrincipal(domain as Domain, identity)
+    if (!found || found.kind !== 'user') notFound(domain as Domain, identity)
+    const clean = spns.map((s) => s.trim()).filter((s) => s !== '')
+    if (clean.some((s) => !s.includes('/')))
+      raise('InvalidSpn', 'Un SPN s’écrit « classe/hôte » (exemple : MSSQLSvc/srv1.lab.local:1433).')
+    const user = domain.users.find((u) => u.id === found.obj.id)
+    if (user) user.spns = [...new Set(clean)]
     return undefined
   })
 }

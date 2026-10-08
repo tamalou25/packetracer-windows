@@ -18,7 +18,7 @@ import { command, type Command } from '../commands/catalog'
 import { dispatch } from '../commands/dispatch'
 import type { LabState } from '../model/schema'
 import { availableCountermeasures, getCountermeasure } from './countermeasures'
-import { getScenario, listScenarios } from './registry'
+import { getScenario, scenariosOf } from './registry'
 import type { StepRecord } from './scenario'
 
 export type Side = 'red' | 'blue'
@@ -106,13 +106,17 @@ function shuffle<T>(items: readonly T[], rand: () => number): T[] {
 
 /** Nouvelle partie sur le lab `lab` : le joueur choisit son camp, l'IA joue l'autre. */
 export function createGame(lab: LabState, options: { side: Side; seed: number }): GameState {
+  // Le lab peut imposer le camp de l'IA : le joueur prend l'autre
+  const aiSide = lab.cyber.game.aiSide
+  const side: Side = aiSide === options.side ? (aiSide === 'red' ? 'blue' : 'red') : options.side
+  options = { ...options, side }
   const rand = prng(options.seed)
   const { maxTurns, blueBudget } = lab.cyber.game
   const ai: Pick<GameState, 'redPlan' | 'blueQueue'> = { redPlan: [], blueQueue: [] }
   if (options.side === 'blue') {
     // IA Red : tous les scénarios, dans un ordre tiré selon la graine
     ai.redPlan = shuffle(
-      listScenarios().map((s) => s.id),
+      scenariosOf(lab).map((s) => s.id),
       rand
     )
   } else {
@@ -142,9 +146,12 @@ export function createGame(lab: LabState, options: { side: Side; seed: number })
 }
 
 /** Joueur Red : choisit les scénarios à lancer et leur ordre (préparation seulement). */
-export function setRedPlan(game: GameState, ids: string[]): GameState {
+export function setRedPlan(game: GameState, ids: string[], lab?: LabState): GameState {
   if (game.side !== 'red' || game.phase !== 'prep') return game
-  return { ...game, redPlan: ids.filter((id, i) => !!getScenario(id) && ids.indexOf(id) === i) }
+  const enabled = lab ? new Set(scenariosOf(lab).map((s) => s.id)) : null
+  const valid = (id: string, i: number) =>
+    !!getScenario(id) && ids.indexOf(id) === i && (enabled === null || enabled.has(id))
+  return { ...game, redPlan: ids.filter(valid) }
 }
 
 /** Coups de préparation de l'IA Blue (durcissements tirés selon la graine). */

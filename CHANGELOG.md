@@ -6,6 +6,28 @@ La planification des versions suivantes est dans [ROADMAP.md](ROADMAP.md).
 
 ## [Non publié]
 
+## [2.6.1] — 2026-10-08
+
+Milestone « v2.6.1 — Cybersécurité, volet attaque » de la roadmap. Format `.slab` 14 (les labs 2.6 s'ouvrent ;
+une version 2.6 refuse les labs 2.6.1). Les attaques sont simulées de façon **abstraite** : seul l'effet d'une
+faiblesse de configuration sur l'état simulé est modélisé, jamais l'exploit (`docs/fidelite.md`).
+
+### Ajouté
+
+- Moteur de scénarios : format déclaratif (précondition, effet en cas de succès ou d'échec, événements), registre,
+  commande `cyber.playStep`, chronologie dans le panneau Simulation (#139).
+- Scénarios « annuaire » : authentification répétée, compte de service mal configuré, réutilisation d'un accès
+  déjà obtenu ; format `.slab` 11 (#140).
+- Scénarios « réseau » : usurpation d'adresse (inspection ARP), changement de VLAN (négociation de trunk, VLAN
+  natif), `show logging` IOS, protocole de trace `DTP` ; format `.slab` 12 (#141).
+- Mode Red / Blue : contre-mesures, partie solo contre l'IA seedée, minuteur, score par camp, temps de détection,
+  écran de fin ; format `.slab` 13 (#142).
+- Labs 31 (compromission de l'annuaire), 32 (durcissement de l'annuaire), 33 (attaque réseau L2), 34 (durcissement
+  réseau) et 35 (sujet Red / Blue, mode examen et éditeur) ; critères `accountCompromised`, `machineControlled`,
+  `trafficIntercepted`, `vlanHopped`, `scenarioOutcome` ; scénarios activés, paramètres de durcissement et camp
+  de l'IA par lab ; format `.slab` 14.
+- Documentation : récapitulatif du garde-fou et écarts avec les vraies techniques d'attaque (`docs/fidelite.md`).
+
 ## [2.6.0] — 2026-10-08
 
 Milestone « v2.6 — Cybersécurité défensive » de la roadmap. Format `.slab` 10 (les labs 2.5 s'ouvrent ;

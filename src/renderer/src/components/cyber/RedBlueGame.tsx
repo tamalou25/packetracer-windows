@@ -7,7 +7,7 @@ import { ArrowDown, ArrowUp, Swords, X } from 'lucide-react'
 import {
   COUNTERMEASURES,
   availableCountermeasures,
-  listScenarios,
+  scenariosOf,
   scoreOf,
   type GameState,
   type LabState,
@@ -112,7 +112,8 @@ function Setup({ lab }: { lab: LabState }) {
             key={side}
             type="button"
             onClick={() => create(side, seed)}
-            className="rounded-md border border-line bg-surface p-3 text-left hover:border-accent"
+            className="rounded-md border border-line bg-surface p-3 text-left hover:border-accent disabled:opacity-40"
+            disabled={lab.cyber.game.aiSide === side}
             data-testid={`game-play-${side}`}
           >
             <div className="text-sm font-semibold text-fg">{t(`game.setup.${side}`)}</div>
@@ -157,7 +158,8 @@ function Prep({ game, lab }: { game: GameState; lab: LabState }) {
 /** Choix et ordre des scénarios de Red. */
 function RedPlan({ plan, onChange }: { plan: string[]; onChange: (ids: string[]) => void }) {
   const { t } = useT()
-  const all = listScenarios().map((s) => s.id)
+  const lab = useLabStore((s) => s.lab)
+  const all = scenariosOf(lab).map((s) => s.id)
   const move = (id: string, dir: -1 | 1) => {
     const i = plan.indexOf(id)
     const j = i + dir

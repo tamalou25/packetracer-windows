@@ -5,6 +5,8 @@
 import { existsSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
+  listScenarios,
+  scenariosOf,
   CURRENT_SCHEMA_VERSION,
   DEFAULT_DC_POLICY_ID,
   DEFAULT_DOMAIN_POLICY_ID,
@@ -358,11 +360,30 @@ describe('migration 9 → 10 (cybersécurité défensive de la v2.6)', () => {
   })
 })
 
+describe('migration 13 → 14 (labs de cybersécurité de la v2.6.1)', () => {
+  it('change seulement la version ; scénarios, durcissement et camp de l’IA prennent leurs valeurs par défaut', () => {
+    const doc = JSON.parse(readFixture(13)) as Record<string, unknown>
+    expect(migrations[13]!(doc)).toEqual({ ...doc, schemaVersion: 14 })
+    const { cyber } = open(13).lab
+    expect(cyber.scenarios).toBeNull()
+    expect(cyber.hardening).toEqual({ lockoutThreshold: 3, lockoutMinutes: 30 })
+    expect(cyber.game.aiSide).toBeNull()
+  })
+
+  it('v14.slab : s’ouvre sans migration', () => {
+    expect(open(14).lab.cyber.hardening.lockoutThreshold).toBe(3)
+  })
+
+  it('un lab de la v13 reste jouable : tous les scénarios sont activés', () => {
+    expect(scenariosOf(open(13).lab).map((sc) => sc.id)).toEqual(listScenarios().map((sc) => sc.id))
+  })
+})
+
 describe('migration 12 → 13 (mode Red/Blue de la v2.6.1)', () => {
   it('change seulement la version ; réglages de partie par défaut', () => {
     const doc = JSON.parse(readFixture(12)) as Record<string, unknown>
     expect(migrations[12]!(doc)).toEqual({ ...doc, schemaVersion: 13 })
-    expect(open(12).lab.cyber.game).toEqual({ maxTurns: 8, timerSeconds: null, blueBudget: 3 })
+    expect(open(12).lab.cyber.game).toMatchObject({ maxTurns: 8, timerSeconds: null, blueBudget: 3 })
   })
 
   it('v13.slab : s’ouvre sans migration', () => {

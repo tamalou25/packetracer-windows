@@ -77,7 +77,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
 
   setPlan: (ids) => {
     const game = get().game
-    if (game) set({ game: setRedPlan(game, ids) })
+    if (game) set({ game: setRedPlan(game, ids, useLabStore.getState().lab) })
   },
 
   hardenInPrep: (id) => {

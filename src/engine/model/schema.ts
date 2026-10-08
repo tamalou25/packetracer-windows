@@ -1106,6 +1106,26 @@ export const DomainSchema = z.object({
 })
 
 /** État complet d'un lab : source de vérité unique de l'application. */
+/** Paramètres de durcissement des contre-mesures du mode Red/Blue. */
+export const CyberHardeningSchema = z.object({
+  /** Seuil de verrouillage de compte appliqué par la contre-mesure. */
+  lockoutThreshold: z.number().int().min(1).max(999).default(3),
+  /** Durée du verrouillage et délai de réinitialisation du compteur (minutes). */
+  lockoutMinutes: z.number().int().min(1).max(99999).default(30)
+})
+
+/** Réglages d'une partie Red/Blue. */
+export const CyberGameSchema = z.object({
+  /** Nombre maximal de tours (un tour = un coup de chaque camp). */
+  maxTurns: z.number().int().min(1).max(50).default(8),
+  /** Minuteur de la partie en secondes ; null : sans minuteur. */
+  timerSeconds: z.number().int().min(10).nullable().default(null),
+  /** Nombre de contre-mesures que le camp Blue peut appliquer pendant la partie. */
+  blueBudget: z.number().int().min(0).max(20).default(3),
+  /** Camp imposé à l'IA (le joueur prend l'autre) ; null : le joueur choisit. */
+  aiSide: z.enum(['red', 'blue']).nullable().default(null)
+})
+
 /** Paramètres des scénarios de cybersécurité, fournis par le lab (v2.6.1). */
 export const CyberConfigSchema = z.object({
   /** sAMAccountName du compte visé par l'authentification répétée ; null : aucun. */
@@ -1121,17 +1141,12 @@ export const CyberConfigSchema = z.object({
     .default(null),
   /** Saut de VLAN : nom de l'hôte et VLAN visé. */
   vlanHop: z.object({ attacker: z.string(), toVlan: VlanIdSchema }).nullable().default(null),
+  /** Scénarios activés dans ce lab (identifiants) ; null : tous les scénarios enregistrés. */
+  scenarios: z.array(z.string()).nullable().default(null),
+  /** Paramètres des contre-mesures de durcissement (stratégie de verrouillage appliquée par Blue). */
+  hardening: CyberHardeningSchema.default(() => CyberHardeningSchema.parse({})),
   /** Mode Red/Blue : réglages de la partie, fournis par le lab. */
-  game: z
-    .object({
-      /** Nombre maximal de tours (un tour = un coup de chaque camp). */
-      maxTurns: z.number().int().min(1).max(50).default(8),
-      /** Minuteur de la partie en secondes ; null : sans minuteur. */
-      timerSeconds: z.number().int().min(10).nullable().default(null),
-      /** Nombre de contre-mesures que le camp Blue peut appliquer pendant la partie. */
-      blueBudget: z.number().int().min(0).max(20).default(3)
-    })
-    .default(() => ({ maxTurns: 8, timerSeconds: null, blueBudget: 3 })),
+  game: CyberGameSchema.default(() => CyberGameSchema.parse({})),
   /** Trafic marqué comme intercepté (identifiants d'équipements) : A ↔ B passe par `by`. */
   intercepts: z.array(z.object({ a: z.string(), b: z.string(), by: z.string() })).default([])
 })

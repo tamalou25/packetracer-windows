@@ -3,8 +3,9 @@
  * chronologie des étapes jouées avec leur résultat.
  */
 import { CheckCircle2, StepForward, XCircle } from 'lucide-react'
-import { getScenario, listScenarios } from '@engine/index'
+import { getScenario, scenariosOf } from '@engine/index'
 import { useT } from '../../lib/i18n'
+import { useLabStore } from '../../store/lab'
 import { useGameStore } from '../../store/game'
 import { useScenarioStore } from '../../store/scenario'
 import { Button } from '../common/ui'
@@ -12,7 +13,7 @@ import { Button } from '../common/ui'
 export function ScenarioTimeline() {
   const { scenarioId, cursor, timeline, error, select, step, reset } = useScenarioStore()
   const { t } = useT()
-  const scenarios = listScenarios()
+  const scenarios = scenariosOf(useLabStore((s) => s.lab))
   const scenario = scenarioId ? getScenario(scenarioId) : undefined
   const total = scenario?.steps.length ?? 0
 

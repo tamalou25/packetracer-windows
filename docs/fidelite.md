@@ -214,6 +214,32 @@ offensif. Les scénarios concrets sont ajoutés un par fichier sous `scenarios/`
 
 Écarts avec la réalité : relevés au fil des issues de la v2.6 et de la v2.6.1 (série C).
 
+### Récapitulatif du garde-fou (v2.6.1)
+
+| Ce que ServerLab modélise                                                                 | Ce que ServerLab ne contient pas                                                            |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Une étape de scénario : condition sur l'état simulé, effet sur cet état, événements émis  | Algorithme de craquage, calcul ou comparaison d'empreintes, liste de mots de passe          |
+| Une faiblesse de configuration (mot de passe hors stratégie, SPN ancien, port non durci)  | Ticket Kerberos, trame, paquet ou charge utile réels, aucun code exécuté hors du simulateur |
+| Le résultat : compte ou machine marqués compromis, flux marqué intercepté, hôte hors VLAN | Outil, script ou commande système réels ; accès disque ou réseau                            |
+| Le mode Red / Blue : ordre des scénarios, contre-mesures, score, minuteur, IA seedée      | Génération aléatoire non reproductible (graine et PRNG local, pas de `Math.random`)         |
+
+Les critères de lab « le scénario échoue » rejouent les scénarios **à blanc** sur une copie de l'état,
+sans trace d'attaque préalable : l'état du lab de l'étudiant n'est jamais modifié.
+
+### Écarts avec de vraies techniques d'attaque
+
+| Scénario simulé                 | Technique réelle approchée                      | Ce que le simulateur ne fait pas                                                                                                |
+| ------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Authentification répétée        | Force brute, _password spraying_                | Aucun essai de mot de passe : réussit si le mot de passe est hors stratégie et qu'aucun seuil de verrouillage n'existe (C7, C8) |
+| Compte de service mal configuré | _Kerberoasting_                                 | Aucun ticket demandé ni déchiffré : réussit si un SPN existe et que le mot de passe est plus ancien que le seuil du lab (C9)    |
+| Réutilisation d'un accès        | Mouvement latéral (_pass-the-hash_, jeton volé) | Aucun identifiant extrait ni rejoué : un compte compromis en session sur un poste administrateur marque la cible (C10)          |
+| Usurpation d'adresse            | _ARP spoofing_ (empoisonnement du cache ARP)    | Aucune trame forgée : l'annonce est évaluée par l'inspection ARP du moteur ; le flux est seulement marqué intercepté (C11)      |
+| Changement de VLAN              | _Switch spoofing_ (DTP), _double tagging_       | Pas de négociation DTP ni d'étiquette 802.1Q forgée : le port garde sa configuration, l'état `hoppedVlan` porte le saut (C12)   |
+
+Conséquences pédagogiques : la durée d'une attaque, sa discrétion, la qualité du dictionnaire ou
+l'outillage de l'attaquant n'interviennent jamais. Le score Red / Blue mesure la **qualité du
+durcissement**, pas l'habileté d'un attaquant (C14 à C16).
+
 ### Écarts (série C)
 
 | #   | Comportement simulé                                                                                                                                                                                                                                                                                                                                                         | Réalité                                                                                              | Source                                                                   |
