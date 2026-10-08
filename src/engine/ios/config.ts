@@ -16,8 +16,13 @@ export function defaultIosState(): IosState {
     domainLookup: true,
     ipRouting: false,
     ospf: [],
+    dhcpServer: null,
+    dhcpExcluded: [],
+    acls: [],
+    natRules: [],
     interfaces: {},
-    startup: null
+    startup: null,
+    natTranslations: []
   }
 }
 
@@ -34,7 +39,10 @@ export function draftIosState(device: Draft<IosDevice>): Draft<IosState> {
 
 /** Instantané de la running-config (copy running-config startup-config). */
 export function snapshotOf(device: IosDevice): IosSnapshot {
-  const { startup: _startup, ...config } = iosState(device)
+  // État de fonctionnement exclu : traductions NAT, baux DHCP
+  const { startup: _startup, natTranslations: _nat, ...running } = iosState(device)
+  const config = clone(running)
+  for (const scope of config.dhcpServer?.scopes ?? []) scope.leases = []
   const byId = new Map(device.interfaces.map((i) => [i.id, i.name]))
   return clone({
     hostname: device.name,
@@ -89,7 +97,7 @@ export function applyStartup(device: Draft<IosDevice>, nextId: () => number): vo
   for (const iface of device.interfaces) factoryInterface(iface, router)
   if (device.kind === 'router') device.routes = []
   else delete device.routes
-  device.ios = { ...clone(startup?.config ?? defaultIosState()), startup }
+  device.ios = { ...clone(startup?.config ?? defaultIosState()), startup, natTranslations: [] }
   if (!startup) return
   device.name = startup.hostname
   for (const saved of startup.interfaces) {

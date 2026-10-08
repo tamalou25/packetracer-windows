@@ -20,7 +20,8 @@ const EXIT_HELP: Partial<Record<IosMode, string>> = {
   'config-subif': 'Exit from subinterface configuration mode',
   'config-line': 'Exit from line configuration mode',
   'config-router': 'Exit from routing protocol configuration mode',
-  'config-vlan': 'Apply changes, bump revision number, and exit mode'
+  'config-vlan': 'Apply changes, bump revision number, and exit mode',
+  'dhcp-config': 'Exit from DHCP pool configuration mode'
 }
 
 /** exit : remonte d'un niveau (sous-mode → configuration → privilégié → déconnexion). */

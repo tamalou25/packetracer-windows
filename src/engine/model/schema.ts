@@ -9,6 +9,7 @@
 import { z } from 'zod'
 import { DEVICE_KINDS } from './kinds'
 import { IOS_ROUTER_MODELS, IOS_SWITCH_MODELS } from '../ios/models'
+import { DhcpExclusionSchema, DhcpServerSchema } from './dhcp'
 
 // Messages de validation en français (fichiers .slab et labs importés) : locale fournie par zod
 z.config(z.locales.fr())
@@ -594,7 +595,46 @@ export const RoleStatesSchema = z.record(z.string(), z.unknown())
 
 /** Données IOS d'une interface (description). */
 export const IosInterfaceSchema = z.object({
-  description: z.string().nullable().default(null)
+  description: z.string().nullable().default(null),
+  /** Rôle NAT de l'interface (ip nat inside / outside). */
+  nat: z.enum(['inside', 'outside']).nullable().default(null)
+})
+
+/** Entrée d'une liste d'accès IOS (standard : source seule ; étendue : protocole, destination, port). */
+export const AclEntrySchema = z.object({
+  action: z.enum(['permit', 'deny']),
+  protocol: z.enum(['ip', 'icmp', 'tcp', 'udp']).default('ip'),
+  /** Source : adresse et masque générique (any : 0.0.0.0 255.255.255.255). */
+  src: z.string(),
+  srcWildcard: z.string(),
+  dst: z.string().default('0.0.0.0'),
+  dstWildcard: z.string().default('255.255.255.255'),
+  /** Port de destination (eq) d'une entrée TCP/UDP. */
+  dstPort: z.number().int().min(0).max(65535).nullable().default(null),
+  /** Numéro de séquence (10, 20…). */
+  seq: z.number().int().positive()
+})
+
+/** Liste d'accès numérotée ou nommée. */
+export const AclSchema = z.object({
+  name: z.string(),
+  type: z.enum(['standard', 'extended']),
+  entries: z.array(AclEntrySchema).default([])
+})
+
+/** Règle NAT : dynamique (liste d'accès + interface, overload) ou statique (local ↔ global). */
+export const NatRuleSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('dynamic'), acl: z.string(), iface: z.string(), overload: z.boolean() }),
+  z.object({ kind: z.literal('static'), local: z.string(), global: z.string() })
+])
+
+/** Traduction NAT établie par le trafic (show ip nat translations). */
+export const NatTranslationSchema = z.object({
+  protocol: z.enum(['icmp', 'tcp', 'udp', '---']),
+  insideGlobal: z.string(),
+  insideLocal: z.string(),
+  outsideLocal: z.string(),
+  outsideGlobal: z.string()
 })
 
 /** Instruction network d'un processus OSPF (network 10.0.0.0 0.0.0.255 area 0). */
@@ -628,6 +668,14 @@ export const IosConfigSchema = z.object({
   ipRouting: z.boolean().default(false),
   /** Processus OSPF (router ospf N). */
   ospf: z.array(OspfProcessSchema).default([]),
+  /** Serveur DHCP IOS : pools (ip dhcp pool), une étendue par pool. */
+  dhcpServer: DhcpServerSchema.nullable().default(null),
+  /** Adresses exclues de tous les pools (ip dhcp excluded-address). */
+  dhcpExcluded: z.array(DhcpExclusionSchema).default([]),
+  /** Listes d'accès (access-list, ip access-list). */
+  acls: z.array(AclSchema).default([]),
+  /** Règles NAT (ip nat inside source …). */
+  natRules: z.array(NatRuleSchema).default([]),
   /** Données IOS par interface (clé : nom court Gi0/0). */
   interfaces: z.record(z.string(), IosInterfaceSchema).default({})
 })
@@ -659,7 +707,9 @@ export const IosSnapshotSchema = z.object({
 /** État IOS d'un équipement : running-config (hors interfaces) et startup-config. */
 export const IosStateSchema = IosConfigSchema.extend({
   /** startup-config (null : absente, « startup-config is not present »). */
-  startup: IosSnapshotSchema.nullable().default(null)
+  startup: IosSnapshotSchema.nullable().default(null),
+  /** Traductions NAT dynamiques établies par le trafic (perdues au redémarrage). */
+  natTranslations: z.array(NatTranslationSchema).default([])
 })
 
 const deviceBase = {
@@ -989,6 +1039,10 @@ export type ClientDevice = z.infer<typeof ClientDeviceSchema>
 export type SwitchDevice = z.infer<typeof SwitchDeviceSchema>
 export type IosConfig = z.infer<typeof IosConfigSchema>
 export type OspfProcess = z.infer<typeof OspfProcessSchema>
+export type IosAcl = z.infer<typeof AclSchema>
+export type IosAclEntry = z.infer<typeof AclEntrySchema>
+export type NatRule = z.infer<typeof NatRuleSchema>
+export type NatTranslation = z.infer<typeof NatTranslationSchema>
 export type IosSnapshot = z.infer<typeof IosSnapshotSchema>
 export type IosState = z.infer<typeof IosStateSchema>
 export type RouterDevice = z.infer<typeof RouterDeviceSchema>

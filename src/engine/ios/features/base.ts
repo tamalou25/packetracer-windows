@@ -148,8 +148,8 @@ function setDescription(ctx: IosRunContext, text: string | null): void {
   update(ctx, (d) => {
     const ios = draftIosState(d)
     for (const name of names) {
-      if (text === null) delete ios.interfaces[name]
-      else ios.interfaces[name] = { description: text }
+      const entry = (ios.interfaces[name] ??= { description: null, nat: null })
+      entry.description = text
     }
   })
 }

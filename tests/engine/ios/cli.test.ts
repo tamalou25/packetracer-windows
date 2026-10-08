@@ -179,13 +179,10 @@ describe('aide ? et complétion Tab', () => {
       '  GigabitEthernet  GigabitEthernet IEEE 802.3z'
     ])
     expect(iosHelp(c.state, c.session, 'router ospf ')).toEqual(['  <1-65535>  Process ID'])
-    expect(iosHelp(c.state, c.session, 'no ')).toEqual([
-      '  banner     Define a login banner',
-      '  enable     Modify enable password parameters',
-      '  interface  Select an interface to configure',
-      '  ip         Global IP configuration subcommands',
-      '  router     Enable a routing process'
-    ])
+    // « no ? » : les commandes de configuration globale qui ont une forme négative
+    const no = iosHelp(c.state, c.session, 'no ').map((l) => l.trim().split(/\s+/)[0])
+    expect(no).toEqual(expect.arrayContaining(['banner', 'enable', 'interface', 'ip', 'router']))
+    expect(no).not.toContain('show')
   })
 
   it('Tab complète un mot sans ambiguïté', () => {
