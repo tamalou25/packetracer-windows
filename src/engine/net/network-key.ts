@@ -68,6 +68,8 @@ export function networkDeps(device: Device): unknown[] {
     device.id,
     device.powered,
     device.interfaces,
-    device.kind === 'router' ? device.routes : device.kind === 'switch' ? device.vlans : null
+    device.kind === 'router' ? device.routes : device.kind === 'switch' ? device.vlans : null,
+    // Équipement IOS : routage dynamique, ip routing…
+    device.kind === 'router' || device.kind === 'switch' ? device.ios : null
   ]
 }

@@ -3,6 +3,7 @@
  * fonctionnalité déclare ses commandes CLI ; le registre (registry.ts) les rassemble.
  */
 import type { LabState, NetInterface } from '../model/schema'
+import type { Route } from '../net/routing'
 import type { TransitHooks } from '../sim/transit'
 import type { CliCommand } from './cli/types'
 import type { IosDevice } from './device'
@@ -19,6 +20,8 @@ export interface IosFeature {
   interfaceConfig?(device: IosDevice, iface: NetInterface, state: LabState): ConfigBlock[]
   /** Acheminement des paquets (routage d'un switch de niveau 3, NAT, ACL…). */
   transit?: TransitHooks
+  /** Routes apprises dynamiquement (OSPF), ajoutées à la table de routage du moteur. */
+  routes?(state: LabState, device: IosDevice): Route[]
 }
 
 /** Déclare une fonctionnalité IOS. */

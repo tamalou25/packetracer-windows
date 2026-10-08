@@ -597,6 +597,25 @@ export const IosInterfaceSchema = z.object({
   description: z.string().nullable().default(null)
 })
 
+/** Instruction network d'un processus OSPF (network 10.0.0.0 0.0.0.255 area 0). */
+export const OspfNetworkSchema = z.object({
+  network: z.string(),
+  wildcard: z.string(),
+  area: z.number().int().min(0)
+})
+
+/** Processus OSPF d'un équipement IOS. */
+export const OspfProcessSchema = z.object({
+  process: z.number().int().min(1).max(65535),
+  routerId: z.string().nullable().default(null),
+  networks: z.array(OspfNetworkSchema).default([]),
+  /** Interfaces passives (noms courts) ; `passive-interface default` les rend toutes passives. */
+  passive: z.array(z.string()).default([]),
+  passiveDefault: z.boolean().default(false),
+  /** Exceptions à passive-interface default (no passive-interface Gi0/0). */
+  active: z.array(z.string()).default([])
+})
+
 /** Configuration IOS globale (running-config, hors interfaces du moteur). */
 export const IosConfigSchema = z.object({
   /** Secret du mode privilégié (enable secret), en clair dans l'état ; affiché haché. */
@@ -607,6 +626,8 @@ export const IosConfigSchema = z.object({
   domainLookup: z.boolean().default(true),
   /** Routage IP d'un switch de niveau 3 (ip routing ; toujours actif sur un routeur). */
   ipRouting: z.boolean().default(false),
+  /** Processus OSPF (router ospf N). */
+  ospf: z.array(OspfProcessSchema).default([]),
   /** Données IOS par interface (clé : nom court Gi0/0). */
   interfaces: z.record(z.string(), IosInterfaceSchema).default({})
 })
@@ -665,6 +686,8 @@ export const SwitchDeviceSchema = z.object({
   kind: z.literal('switch'),
   /** Base des VLAN (VLAN 1 « default » toujours présent). */
   vlans: z.array(VlanSchema).default(() => [{ id: 1, name: 'default' }]),
+  /** Routes statiques d'un switch IOS de niveau 3 (ip route). */
+  routes: z.array(StaticRouteSchema).optional(),
   /** Switch Cisco IOS (CLI IOS) ; absent : switch générique configuré par l'interface. */
   model: z.enum(IOS_SWITCH_MODELS).optional(),
   /** Configuration IOS (équipement Cisco ; absente : valeurs d'usine). */
@@ -965,6 +988,7 @@ export type ServerDevice = z.infer<typeof ServerDeviceSchema>
 export type ClientDevice = z.infer<typeof ClientDeviceSchema>
 export type SwitchDevice = z.infer<typeof SwitchDeviceSchema>
 export type IosConfig = z.infer<typeof IosConfigSchema>
+export type OspfProcess = z.infer<typeof OspfProcessSchema>
 export type IosSnapshot = z.infer<typeof IosSnapshotSchema>
 export type IosState = z.infer<typeof IosStateSchema>
 export type RouterDevice = z.infer<typeof RouterDeviceSchema>

@@ -15,6 +15,7 @@ export function defaultIosState(): IosState {
     bannerMotd: null,
     domainLookup: true,
     ipRouting: false,
+    ospf: [],
     interfaces: {},
     startup: null
   }
@@ -50,7 +51,7 @@ export function snapshotOf(device: IosDevice): IosSnapshot {
       ...(i.helperAddresses ? { helperAddresses: i.helperAddresses } : {}),
       ...(i.svi ? { svi: i.svi } : {})
     })),
-    ...(device.kind === 'router' ? { routes: device.routes } : {})
+    ...(device.routes ? { routes: device.routes } : {})
   })
 }
 
@@ -87,6 +88,7 @@ export function applyStartup(device: Draft<IosDevice>, nextId: () => number): vo
   device.interfaces = device.interfaces.filter((i) => !i.subinterface && !i.svi)
   for (const iface of device.interfaces) factoryInterface(iface, router)
   if (device.kind === 'router') device.routes = []
+  else delete device.routes
   device.ios = { ...clone(startup?.config ?? defaultIosState()), startup }
   if (!startup) return
   device.name = startup.hostname
@@ -114,7 +116,8 @@ export function applyStartup(device: Draft<IosDevice>, nextId: () => number): vo
     if (saved.helperAddresses) iface.helperAddresses = [...saved.helperAddresses]
     if (saved.subinterface && iface.subinterface) iface.subinterface.vlan = saved.subinterface.vlan
   }
-  if (device.kind === 'router' && startup.routes) device.routes = clone(startup.routes)
+  if (startup.routes && (device.kind === 'router' || startup.routes.length > 0))
+    device.routes = clone(startup.routes)
 }
 
 /** Sous-interface IOS sans encapsulation (partage la MAC de sa carte parente). */

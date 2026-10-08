@@ -183,7 +183,8 @@ describe('aide ? et complétion Tab', () => {
       '  banner     Define a login banner',
       '  enable     Modify enable password parameters',
       '  interface  Select an interface to configure',
-      '  ip         Global IP configuration subcommands'
+      '  ip         Global IP configuration subcommands',
+      '  router     Enable a routing process'
     ])
   })
 
