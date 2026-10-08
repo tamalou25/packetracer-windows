@@ -22,7 +22,14 @@ export const ROUTER_INTERFACE_COUNT = 4
 export const SERVER_MAX_INTERFACES = 4
 
 export function createLab(): LabState {
-  return { devices: {}, links: {}, seq: 0, clock: 0, domains: {} }
+  return {
+    devices: {},
+    links: {},
+    seq: 0,
+    clock: 0,
+    domains: {},
+    cyber: { targetAccount: null, attempts: 5, serviceMaxAgeDays: 90 }
+  }
 }
 
 /** Incrémente le compteur et renvoie la nouvelle valeur. */
@@ -58,6 +65,8 @@ export function createHost(kind: 'server' | 'client', os: HostOs = 'windows'): H
     domain: null,
     features: kind === 'server' ? [...DEFAULT_SERVER_FEATURES] : os === 'linux' ? [] : ['PowerShell'],
     pendingReboot: false,
+    adminTargets: [],
+    controlled: false,
     pendingName: null,
     pendingDomain: null,
     localAdminPassword: 'P@ssw0rd',

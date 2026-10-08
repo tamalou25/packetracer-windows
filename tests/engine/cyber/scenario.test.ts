@@ -66,8 +66,8 @@ describe('moteur de scénarios', () => {
 
   afterEach(() => unregisterScenario(scenario.id))
 
-  it('le registre est vide par défaut', () => {
-    expect(listScenarios()).toEqual([])
+  it('le registre ne contient que les scénarios fournis (pas le scénario factice)', () => {
+    expect(listScenarios().map((s) => s.id)).not.toContain(scenario.id)
   })
 
   it('une étape qui réussit applique onSuccess et journalise dans le journal Sécurité', () => {

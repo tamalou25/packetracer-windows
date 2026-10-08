@@ -460,6 +460,7 @@ export function changePasswordAndLogon(
     const u = draft.domains[domain.name]?.users.find((x) => x.id === user.id)
     if (u) {
       u.password = input.newPassword
+      u.passwordLastSet = draft.clock
       u.mustChangePassword = false
     }
     return undefined

@@ -5,7 +5,7 @@
  */
 import { DEFAULT_DC_POLICY_ID, DEFAULT_DOMAIN_POLICY_ID, defaultDomainGpos } from '../roles/gpo/defaults'
 
-export const CURRENT_SCHEMA_VERSION = 10
+export const CURRENT_SCHEMA_VERSION = 11
 
 type RawDocument = Record<string, unknown>
 
@@ -124,6 +124,15 @@ function addV26Cyber(doc: RawDocument): RawDocument {
   return { ...doc, schemaVersion: 10 }
 }
 
+/**
+ * Version 11 : scénarios de cybersécurité. Les valeurs par défaut des schémas (SPN, date de dernier
+ * changement de mot de passe, compromission, accès administrateur, paramètres `cyber`) suffisent :
+ * seul le numéro de version change.
+ */
+function addV261Scenarios(doc: RawDocument): RawDocument {
+  return { ...doc, schemaVersion: 11 }
+}
+
 /** migrations[n] migre un document de la version n vers n + 1. */
 export const migrations: Record<number, (doc: RawDocument) => RawDocument> = {
   1: addDefaultGpos,
@@ -134,7 +143,8 @@ export const migrations: Record<number, (doc: RawDocument) => RawDocument> = {
   6: addV23Security,
   7: addV24Linux,
   8: addV25Ios,
-  9: addV26Cyber
+  9: addV26Cyber,
+  10: addV261Scenarios
 }
 
 export type MigrationResult = { ok: true; doc: RawDocument } | { ok: false; message: string }

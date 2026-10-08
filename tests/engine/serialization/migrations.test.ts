@@ -357,3 +357,18 @@ describe('migration 9 → 10 (cybersécurité défensive de la v2.6)', () => {
     )
   })
 })
+
+describe('migration 10 → 11 (scénarios de cybersécurité de la v2.6.1)', () => {
+  it('change seulement la version ; les défauts du schéma décrivent un lab sans faiblesse déclarée', () => {
+    const doc = JSON.parse(readFixture(10)) as Record<string, unknown>
+    expect(migrations[10]!(doc)).toEqual({ ...doc, schemaVersion: 11 })
+    const lab = open(10).lab
+    expect(lab.cyber).toEqual({ targetAccount: null, attempts: 5, serviceMaxAgeDays: 90 })
+    const user = Object.values(lab.domains)[0]!.users[0]!
+    expect(user).toMatchObject({ spns: [], passwordLastSet: 0, compromised: false })
+  })
+
+  it('v11.slab : s’ouvre sans migration', () => {
+    expect(open(11).lab.cyber.serviceMaxAgeDays).toBe(90)
+  })
+})

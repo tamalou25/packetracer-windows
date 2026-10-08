@@ -150,7 +150,10 @@ export function addUser(
       lastLogon: null,
       badPwdCount: 0,
       lastBadPassword: null,
-      lockoutTime: null
+      lockoutTime: null,
+      spns: [],
+      passwordLastSet: draft.clock,
+      compromised: false
     })
     // Groupe principal : Utilisateurs du domaine
     domain.groups.find((g) => g.name === 'Utilisateurs du domaine')?.members.push(id)
@@ -334,6 +337,7 @@ export function resetPassword(
     const user = domain.users.find((u) => u.id === found.obj.id)
     if (user) {
       user.password = password
+      user.passwordLastSet = draft.clock
       user.mustChangePassword = mustChange
     }
     return undefined
