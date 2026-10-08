@@ -9,6 +9,7 @@ import { HelpPanel } from './components/common/HelpPanel'
 import { Modal } from './components/common/Modal'
 import { Toasts } from './components/common/Toasts'
 import { DeviceWindows } from './components/device-window/DeviceWindow'
+import { RedBlueGame } from './components/cyber/RedBlueGame'
 import { HomeScreen } from './components/home/HomeScreen'
 import { TutorialCoach } from './components/tutorial/TutorialCoach'
 import { Palette } from './components/Palette'
@@ -160,6 +161,7 @@ export function App() {
         <DeviceWindows />
         <LabPicker />
         <LabEditor />
+        <RedBlueGame />
         <Toasts />
         <HelpPanel />
         <Modal />

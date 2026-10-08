@@ -52,6 +52,8 @@ export interface TimelineEntry {
   side: Side | 'system'
   kind: 'scenario' | 'harden' | 'analyse' | 'detection' | 'end'
   label: string
+  /** Identifiant du scénario ou de la contre-mesure concernés (traduction côté interface). */
+  ref?: string
   success?: boolean
   events?: LoggedEvent[]
 }
@@ -230,7 +232,10 @@ export function settle(
       ...game,
       redCursor: game.redCursor + 1,
       launches: [...game.launches, launch],
-      timeline: [...game.timeline, { turn, side, kind: 'scenario', label: launch.name, success, events }]
+      timeline: [
+        ...game.timeline,
+        { turn, side, kind: 'scenario', label: launch.name, ref: move.id, success, events }
+      ]
     }
   }
   if (move.kind === 'harden') {
@@ -239,7 +244,14 @@ export function settle(
       hardened: [...game.hardened, move.id],
       timeline: [
         ...game.timeline,
-        { turn, side, kind: 'harden', label: getCountermeasure(move.id)?.label ?? move.id, success: true }
+        {
+          turn,
+          side,
+          kind: 'harden',
+          label: getCountermeasure(move.id)?.label ?? move.id,
+          ref: move.id,
+          success: true
+        }
       ]
     }
   }
@@ -253,6 +265,7 @@ export function settle(
         side: 'blue',
         kind: 'detection',
         label: l.name,
+        ref: l.scenarioId,
         events: l.events
       })
       return { ...l, detectedTurn: turn }
