@@ -73,8 +73,10 @@ npm run dist         # installeur local via electron-builder → dist/
 
 - Code et commentaires **en français** (identifiants en anglais), README en français.
 - Sorties des consoles simulées en français (comme un serveur installé en FR).
-- Aucune image/logo/nom Microsoft ou Cisco. Icônes : `lucide-react` uniquement. Ne jamais utiliser
-  « Packet Tracer » ni « Windows » dans le nom ou le logo de l'application.
+- Aucune image ni logo Microsoft ou Cisco. Icônes : `lucide-react` uniquement. Ne jamais utiliser
+  « Packet Tracer » ni « Windows » dans le nom ou le logo de l'application. Exception (accord de Gary,
+  v2.5) : les noms de modèles (Cisco 1921, 2811, Catalyst 2960, 9200) et la syntaxe IOS peuvent
+  apparaître dans les textes, comme sur l'équipement réel.
 - Interface : couleurs via les **design tokens** de `src/renderer/src/styles.css` (`bg-panel`, `bg-surface`,
   `text-fg-muted`, `border-line`, `bg-accent`, `text-ok`…), jamais de couleur Tailwind brute dans l'application.
   Thèmes sombre et clair ; Affichage > Thème : Système (par défaut, suit l'OS), Sombre, Clair
@@ -86,7 +88,7 @@ npm run dist         # installeur local via electron-builder → dist/
 - Commits : Conventional Commits (`feat(engine): …`, `fix(renderer): …`, `test: …`, `ci: …`, `docs: …`).
 - Un commit par étape, tests verts avant d'enchaîner.
 
-## Règles de travail (roadmap v1.1 → v2.4)
+## Règles de travail (roadmap v1.1 → v2.5)
 
 La roadmap est dans `ROADMAP.md` ; ses milestones, labels et issues sont décrits dans
 `.github/roadmap/roadmap.json` et créés par le workflow « Roadmap sync » (ne crée que ce qui manque).
@@ -99,6 +101,7 @@ La roadmap est dans `ROADMAP.md` ; ses milestones, labels et issues sont décrit
 - À la fin de chaque milestone : mise à jour de `CHANGELOG.md`, bump de version, tag `vX.Y.0`.
 - Conventional Commits, code commenté en français.
 - Aucune image/icône/logo Microsoft ou Cisco, aucune vraie commande système exécutée.
+- Équipements IOS (v2.5) : commits avec le scope `ios` (`feat(ios): …`).
 
 ### Cibles d'architecture (prérequis v1.1)
 
