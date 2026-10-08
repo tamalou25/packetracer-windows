@@ -163,7 +163,11 @@ export function buildDevice(
   const deviceName = name ?? nextDeviceName(draft, kind, linux ? 'linux' : 'windows')
   const ios = model && IOS_MODEL_INFO[model].kind === kind ? model : undefined
   const names = linux ? [LINUX_INTERFACE] : ios ? IOS_MODEL_INFO[ios].ports : defaultInterfaceNames(kind)
-  const interfaces = names.map((n) => createInterface(draft, n, kind))
+  // Routeur IOS : interfaces administrativement coupées en sortie d'usine (no shutdown requis)
+  const interfaces = names.map((n) => ({
+    ...createInterface(draft, n, kind),
+    ...(ios && kind === 'router' ? { enabled: false } : {})
+  }))
   const base = { id, name: deviceName, position: { ...position }, powered: true, interfaces, hostedBy: null }
   switch (kind) {
     case 'server':

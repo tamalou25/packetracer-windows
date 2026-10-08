@@ -2,6 +2,7 @@
  * Types de la CLI IOS : modes, session, arbre de commandes déclaratif.
  */
 import type { LabState } from '../../model/schema'
+import type { PacketTrace } from '../../sim/trace'
 
 /** Modes de la CLI (invite affichée : voir MODE_PROMPT). */
 export const IOS_MODES = [
@@ -60,7 +61,12 @@ export interface ArgMatch {
 export interface ArgContext {
   state: LabState
   deviceId: string
+  /** Session (mode et interfaces en cours de configuration). */
+  session: IosSession
 }
+
+/** Disponibilité d'une commande selon l'équipement ou l'interface configurée. */
+export type Guard = (ctx: ArgContext) => boolean
 
 /** Type d'argument : reconnaissance, aide (`?`) et complétion. */
 export interface ArgType {
@@ -102,6 +108,8 @@ export interface IosRunContext {
   ask(message: string, secure?: boolean): string
   /** Fermeture de la session console (exit en mode utilisateur ou privilégié). */
   logout(): void
+  /** Paquets échangés par la commande (rejoués en mode Simulation). */
+  addTrace(trace: PacketTrace): void
 }
 
 export type CommandHandler = (ctx: IosRunContext, args: CommandArgs) => void
@@ -119,6 +127,8 @@ export interface CliCommand {
   no?: { run: CommandHandler; min?: number }
   /** false : commande de navigation, absente de `do` (enable, configure, exit…). */
   doAllowed?: boolean
+  /** Commande disponible seulement si (switch, routeur, interface de niveau 3…). */
+  available?: Guard
 }
 
 /** Nœud de l'arbre de commandes d'un mode (dérivé des syntaxes déclarées). */
@@ -126,6 +136,10 @@ export interface CliNode {
   keywords: Map<string, KeywordNode>
   args: ArgNode[]
   run?: CommandHandler
+  /** Conditions des commandes qui passent par ce nœud (null : toujours disponible). */
+  guards?: (Guard | null)[]
+  /** Condition de la commande qui s'arrête à ce nœud. */
+  runGuard?: Guard | null
 }
 
 export interface KeywordNode extends CliNode {

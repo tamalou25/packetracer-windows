@@ -248,6 +248,8 @@ export interface TracertResult {
   lines: string[]
   trace: PacketTrace
   reached: boolean
+  /** Résultat de chaque saut (consoles qui formatent elles-mêmes, ex. traceroute IOS). */
+  hops: EchoOutcome[]
 }
 
 /** Tracert : envoie des requêtes d'écho avec un TTL croissant. */
@@ -274,13 +276,15 @@ export function tracert(
     lines.push('Échec de la transmission. Défaillance générale.')
     return {
       ok: true,
-      value: { lines, trace: { title: `Tracert ${src.name} → ${dst}`, events: [] }, reached }
+      value: { lines, trace: { title: `Tracert ${src.name} → ${dst}`, events: [] }, reached, hops: [] }
     }
   }
 
   let consecutiveTimeouts = 0
+  const hops: EchoOutcome[] = []
   for (let hop = 1; hop <= maxHops; hop++) {
     const outcome = echo(ctx, src, srcIp, dst, hop, hop, 32)
+    hops.push(outcome)
     const n = String(hop).padStart(3)
     if (outcome.kind === 'reply' || outcome.kind === 'ttl-expired') {
       consecutiveTimeouts = 0
@@ -311,7 +315,7 @@ export function tracert(
   lines.push('Itinéraire déterminé.')
   return {
     ok: true,
-    value: { lines, trace: { title: `Tracert ${src.name} → ${dst}`, events: rec.events }, reached }
+    value: { lines, trace: { title: `Tracert ${src.name} → ${dst}`, events: rec.events }, reached, hops }
   }
 }
 

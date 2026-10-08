@@ -584,6 +584,58 @@ export const StorageSchema = z.object({
  */
 export const RoleStatesSchema = z.record(z.string(), z.unknown())
 
+// ---------------------------------------------------------------------------
+// Équipements Cisco IOS : configuration hors adressage (déjà porté par les interfaces du moteur) et
+// configuration de démarrage. La running-config n'est jamais stockée en texte : `show running-config`
+// la génère depuis l'état (src/engine/ios).
+// ---------------------------------------------------------------------------
+
+/** Données IOS d'une interface (description). */
+export const IosInterfaceSchema = z.object({
+  description: z.string().nullable().default(null)
+})
+
+/** Configuration IOS globale (running-config, hors interfaces du moteur). */
+export const IosConfigSchema = z.object({
+  /** Secret du mode privilégié (enable secret), en clair dans l'état ; affiché haché. */
+  enableSecret: z.string().nullable().default(null),
+  /** Bannière du jour (banner motd). */
+  bannerMotd: z.string().nullable().default(null),
+  /** Résolution DNS des mots inconnus (ip domain-lookup, actif par défaut). */
+  domainLookup: z.boolean().default(true),
+  /** Données IOS par interface (clé : nom court Gi0/0). */
+  interfaces: z.record(z.string(), IosInterfaceSchema).default({})
+})
+
+/** Interface dans une configuration enregistrée (repérée par son nom). */
+export const SnapshotInterfaceSchema = z.object({
+  name: z.string(),
+  enabled: z.boolean(),
+  address: z.string().nullable(),
+  prefixLength: z.number().int().min(0).max(32).nullable(),
+  switchport: SwitchportSchema.optional(),
+  /** Sous-interface : nom de la carte parente et VLAN de l'encapsulation. */
+  subinterface: z
+    .object({ parent: z.string(), vlan: z.number().int().min(1).max(4094).nullable() })
+    .optional(),
+  helperAddresses: z.array(z.string()).optional()
+})
+
+/** Configuration enregistrée (startup-config) : de quoi reconstruire la running-config. */
+export const IosSnapshotSchema = z.object({
+  hostname: z.string(),
+  config: IosConfigSchema,
+  interfaces: z.array(SnapshotInterfaceSchema),
+  routes: z.array(StaticRouteSchema).optional(),
+  vlans: z.array(VlanSchema).optional()
+})
+
+/** État IOS d'un équipement : running-config (hors interfaces) et startup-config. */
+export const IosStateSchema = IosConfigSchema.extend({
+  /** startup-config (null : absente, « startup-config is not present »). */
+  startup: IosSnapshotSchema.nullable().default(null)
+})
+
 const deviceBase = {
   id: z.string(),
   name: z.string(),
@@ -609,14 +661,18 @@ export const SwitchDeviceSchema = z.object({
   /** Base des VLAN (VLAN 1 « default » toujours présent). */
   vlans: z.array(VlanSchema).default(() => [{ id: 1, name: 'default' }]),
   /** Switch Cisco IOS (CLI IOS) ; absent : switch générique configuré par l'interface. */
-  model: z.enum(IOS_SWITCH_MODELS).optional()
+  model: z.enum(IOS_SWITCH_MODELS).optional(),
+  /** Configuration IOS (équipement Cisco ; absente : valeurs d'usine). */
+  ios: IosStateSchema.optional()
 })
 export const RouterDeviceSchema = z.object({
   ...deviceBase,
   kind: z.literal('router'),
   routes: z.array(StaticRouteSchema).default([]),
   /** Routeur Cisco IOS (CLI IOS) ; absent : routeur générique configuré par l'interface. */
-  model: z.enum(IOS_ROUTER_MODELS).optional()
+  model: z.enum(IOS_ROUTER_MODELS).optional(),
+  /** Configuration IOS (équipement Cisco ; absente : valeurs d'usine). */
+  ios: IosStateSchema.optional()
 })
 export const CloudDeviceSchema = z.object({ ...deviceBase, kind: z.literal('cloud') })
 
@@ -903,6 +959,9 @@ export type HostSession = z.infer<typeof HostSessionSchema>
 export type ServerDevice = z.infer<typeof ServerDeviceSchema>
 export type ClientDevice = z.infer<typeof ClientDeviceSchema>
 export type SwitchDevice = z.infer<typeof SwitchDeviceSchema>
+export type IosConfig = z.infer<typeof IosConfigSchema>
+export type IosSnapshot = z.infer<typeof IosSnapshotSchema>
+export type IosState = z.infer<typeof IosStateSchema>
 export type RouterDevice = z.infer<typeof RouterDeviceSchema>
 export type CloudDevice = z.infer<typeof CloudDeviceSchema>
 export type Device = z.infer<typeof DeviceSchema>

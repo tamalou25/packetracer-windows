@@ -1,10 +1,12 @@
 /**
  * Actions du moteur propres aux équipements IOS (fonctions pures, immer).
  */
+import type { Draft } from 'immer'
 import { raise, transact, type EngineResult } from '../core/result'
 import { nextSeq } from '../model/factory'
-import type { LabState, NetInterface } from '../model/schema'
-import { isIos } from './device'
+import type { LabState } from '../model/schema'
+import { createSubinterfaceDraft, insertSubinterface } from './config'
+import { isIos, type IosDevice } from './device'
 
 /**
  * Crée la sous-interface `name` (Gi0/0.10) d'un routeur IOS, sans encapsulation : comme sur IOS,
@@ -23,29 +25,9 @@ export function createSubinterface(
     if (!parent) raise('InterfaceNotFound', 'Interface physique introuvable.')
     if (router.interfaces.some((i) => i.name === name))
       raise('Duplicate', `La sous-interface ${name} existe déjà.`)
-    const id = `if${nextSeq(draft)}`
-    const sub: NetInterface = {
-      id,
-      name,
-      mac: parent.mac,
-      enabled: true,
-      l3: true,
-      addressing: 'static',
-      address: null,
-      prefixLength: null,
-      gateway: null,
-      dnsMode: 'static',
-      dnsServers: [],
-      dhcpLease: null,
-      dhcpReleased: false,
-      bridge: null,
-      subinterface: { parent: parentId, vlan: null }
-    }
-    // Après la carte parente et ses sous-interfaces existantes
-    let at = router.interfaces.findIndex((i) => i.id === parentId) + 1
-    while (router.interfaces[at]?.subinterface?.parent === parentId) at++
-    router.interfaces.splice(at, 0, sub)
-    return id
+    const sub = createSubinterfaceDraft(parent, name, nextSeq(draft))
+    insertSubinterface(router.interfaces, sub)
+    return sub.id
   })
 }
 
@@ -56,6 +38,23 @@ export function removeSubinterfaceByName(state: LabState, deviceId: string, name
     const index = device?.interfaces.findIndex((i) => i.name === name && i.subinterface) ?? -1
     if (!device || index < 0) raise('InterfaceNotFound', 'Sous-interface introuvable.')
     device.interfaces.splice(index, 1)
+    return undefined
+  })
+}
+
+/**
+ * Modifie un équipement IOS dans une transaction (configuration IOS, interfaces) : utilisé par les
+ * commandes de la CLI. La recette peut lever une erreur métier (raise).
+ */
+export function updateIos(
+  state: LabState,
+  deviceId: string,
+  recipe: (device: Draft<IosDevice>, draft: Draft<LabState>) => void
+): EngineResult {
+  return transact(state, (draft) => {
+    const device = draft.devices[deviceId]
+    if (!isIos(device as IosDevice | undefined)) raise('NotIos', 'Équipement IOS introuvable.')
+    recipe(device as Draft<IosDevice>, draft)
     return undefined
   })
 }

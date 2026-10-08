@@ -21,12 +21,27 @@ export type ParseOutcome =
   /** Jeton non reconnu (index du jeton). */
   | { kind: 'invalid'; index: number }
 
+/** Nœud disponible pour cet équipement (au moins une commande qui y passe l'est). */
+function available(node: CliNode, ctx: ArgContext): boolean {
+  return !node.guards || node.guards.some((g) => g === null || g(ctx))
+}
+
+/** Commande exécutable à ce nœud pour cet équipement. */
+function runnable(node: CliNode, ctx: ArgContext): CommandHandler | undefined {
+  return node.run && (!node.runGuard || node.runGuard(ctx)) ? node.run : undefined
+}
+
+/** Mots-clés disponibles du nœud. */
+function keywordsOf(node: CliNode, ctx: ArgContext): KeywordNode[] {
+  return [...node.keywords.values()].filter((k) => available(k, ctx))
+}
+
 /** Mots-clés du nœud commençant par `prefix` (le mot exact l'emporte). */
-function keywordMatches(node: CliNode, prefix: string): KeywordNode[] {
+function keywordMatches(node: CliNode, prefix: string, ctx: ArgContext): KeywordNode[] {
   const lower = prefix.toLowerCase()
   const exact = node.keywords.get(lower)
-  if (exact) return [exact]
-  return [...node.keywords.values()].filter((k) => k.word.toLowerCase().startsWith(lower))
+  if (exact && available(exact, ctx)) return [exact]
+  return keywordsOf(node, ctx).filter((k) => k.word.toLowerCase().startsWith(lower))
 }
 
 /** Parcourt l'arbre à partir du jeton `index`. */
@@ -37,15 +52,19 @@ function walk(
   args: Record<string, string>,
   ctx: ArgContext
 ): ParseOutcome {
-  if (index >= tokens.length) return node.run ? { kind: 'run', run: node.run, args } : { kind: 'incomplete' }
+  if (index >= tokens.length) {
+    const run = runnable(node, ctx)
+    return run ? { kind: 'run', run, args } : { kind: 'incomplete' }
+  }
   const token = tokens[index] as string
-  const keywords = keywordMatches(node, token)
+  const keywords = keywordMatches(node, token, ctx)
   if (keywords.length > 1) return { kind: 'ambiguous' }
   const keyword = keywords[0]
   if (keyword) return walk(keyword, tokens, index + 1, args, ctx)
   // Arguments : le premier qui mène à une commande ; sinon l'erreur la plus lointaine
   let best: ParseOutcome = { kind: 'invalid', index }
   for (const arg of node.args) {
+    if (!available(arg, ctx)) continue
     const m = arg.type.match(tokens, index, ctx)
     if (!m) continue
     const outcome = walk(arg, tokens, index + m.consumed, { ...args, [arg.name]: m.value }, ctx)
@@ -70,14 +89,17 @@ function reach(
   let i = 0
   while (i < tokens.length) {
     const token = tokens[i] as string
-    const keywords = keywordMatches(node, token)
+    const keywords = keywordMatches(node, token, ctx)
     if (keywords.length > 1) return { error: 'ambiguous' }
     if (keywords[0]) {
       node = keywords[0]
       i++
       continue
     }
-    const arg = node.args.map((a) => ({ a, m: a.type.match(tokens, i, ctx) })).find((x) => x.m !== null)
+    const arg = node.args
+      .filter((a) => available(a, ctx))
+      .map((a) => ({ a, m: a.type.match(tokens, i, ctx) }))
+      .find((x) => x.m !== null)
     if (!arg?.m) return { error: 'unrecognized' }
     node = arg.a
     i += arg.m.consumed
@@ -87,13 +109,13 @@ function reach(
 
 /** Entrées d'aide d'un nœud : mots-clés, arguments, <cr> si la commande peut s'arrêter là. */
 function nodeHelp(node: CliNode, ctx: ArgContext): HelpEntry[] {
-  const entries: HelpEntry[] = [...node.keywords.values()]
+  const entries: HelpEntry[] = keywordsOf(node, ctx)
     .map((k) => ({ word: k.word, help: k.help }))
     .sort((a, b) => a.word.localeCompare(b.word))
-  for (const arg of node.args) {
+  for (const arg of node.args.filter((a) => available(a, ctx))) {
     entries.push(...(arg.type.helpEntries?.(ctx) ?? [{ word: arg.type.label, help: arg.help }]))
   }
-  if (node.run) entries.push({ word: '<cr>', help: '' })
+  if (runnable(node, ctx)) entries.push({ word: '<cr>', help: '' })
   return entries
 }
 
@@ -122,10 +144,11 @@ export function helpLines(root: CliNode, input: string, ctx: ArgContext): string
 
 function completions(node: CliNode, partial: string, ctx: ArgContext): string[] {
   const lower = partial.toLowerCase()
-  const words = [...node.keywords.values()]
+  const words = keywordsOf(node, ctx)
     .map((k) => k.word)
     .filter((w) => w.toLowerCase().startsWith(lower))
-  for (const arg of node.args) words.push(...(arg.type.complete?.(partial, ctx) ?? []))
+  for (const arg of node.args.filter((a) => available(a, ctx)))
+    words.push(...(arg.type.complete?.(partial, ctx) ?? []))
   return words.sort((a, b) => a.localeCompare(b))
 }
 

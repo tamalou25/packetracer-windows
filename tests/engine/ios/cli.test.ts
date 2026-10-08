@@ -151,8 +151,11 @@ describe('aide ? et complétion Tab', () => {
   it('« ? » liste les commandes du mode, avec leur aide', () => {
     const c = router()
     expect(iosHelp(c.state, c.session, '')).toEqual([
-      '  enable  Turn on privileged commands',
-      '  exit    Exit from the EXEC'
+      '  enable      Turn on privileged commands',
+      '  exit        Exit from the EXEC',
+      '  ping        Send echo messages',
+      '  show        Show running system information',
+      '  traceroute  Trace route to destination'
     ])
     c.run('en')
     expect(iosHelp(c.state, c.session, 'configure ')).toEqual([
@@ -165,7 +168,7 @@ describe('aide ? et complétion Tab', () => {
   it('« mot? » liste les mots-clés qui commencent ainsi', () => {
     const c = router()
     c.run('en')
-    expect(iosHelp(c.state, c.session, 'e')).toEqual(['enable  exit  '])
+    expect(iosHelp(c.state, c.session, 'e')).toEqual(['enable  erase  exit  '])
     expect(iosHelp(c.state, c.session, 'zz')).toEqual(['% Unrecognized command'])
   })
 
@@ -176,7 +179,12 @@ describe('aide ? et complétion Tab', () => {
       '  GigabitEthernet  GigabitEthernet IEEE 802.3z'
     ])
     expect(iosHelp(c.state, c.session, 'router ospf ')).toEqual(['  <1-65535>  Process ID'])
-    expect(iosHelp(c.state, c.session, 'no ')).toEqual(['  interface  Select an interface to configure'])
+    expect(iosHelp(c.state, c.session, 'no ')).toEqual([
+      '  banner     Define a login banner',
+      '  enable     Modify enable password parameters',
+      '  interface  Select an interface to configure',
+      '  ip         Global IP configuration subcommands'
+    ])
   })
 
   it('Tab complète un mot sans ambiguïté', () => {

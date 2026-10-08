@@ -10,6 +10,7 @@ import {
   type CliCommand,
   type CliNode,
   type CommandHandler,
+  type Guard,
   type IosMode,
   type KeywordNode,
   type SyntaxToken
@@ -21,6 +22,7 @@ const emptyNode = (): CliNode => ({ keywords: new Map(), args: [] })
 function insert(
   root: CliNode,
   syntax: readonly SyntaxToken[],
+  guard: Guard | null,
   visit: (node: CliNode, depth: number) => void
 ) {
   let node = root
@@ -43,12 +45,14 @@ function insert(
       }
     }
     node = next
+    ;(node.guards ??= []).push(guard)
     visit(node, i + 1)
   })
 }
 
-function setRun(node: CliNode, run: CommandHandler): void {
+function setRun(node: CliNode, run: CommandHandler, guard: Guard | null): void {
   node.run = run
+  node.runGuard = guard
 }
 
 /** Arbre des commandes d'un mode (sans `no` ni `do`). */
@@ -57,8 +61,9 @@ function plainTree(commands: readonly CliCommand[], mode: IosMode): CliNode {
   for (const c of commands) {
     if (!c.modes.includes(mode) || !c.run) continue
     const run = c.run
-    insert(root, c.syntax, (node, depth) => {
-      if (depth === c.syntax.length) setRun(node, run)
+    const guard = c.available ?? null
+    insert(root, c.syntax, guard, (node, depth) => {
+      if (depth === c.syntax.length) setRun(node, run, guard)
     })
   }
   return root
@@ -72,8 +77,9 @@ function noTree(commands: readonly CliCommand[], mode: IosMode): CliNode | null 
     if (!c.modes.includes(mode) || !c.no) continue
     any = true
     const { run, min = c.syntax.length } = c.no
-    insert(root, c.syntax, (node, depth) => {
-      if (depth >= min) setRun(node, run)
+    const guard = c.available ?? null
+    insert(root, c.syntax, guard, (node, depth) => {
+      if (depth >= min) setRun(node, run, guard)
     })
   }
   return any ? root : null
