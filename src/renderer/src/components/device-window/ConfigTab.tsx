@@ -14,6 +14,7 @@ import { RouterInterfaceForm } from './config/RouterInterfaceForm'
 import { RoutesPanel } from './config/RoutesPanel'
 import { SubinterfacesPanel } from './config/SubinterfacesPanel'
 import { VlanPanel } from './config/VlanPanel'
+import { t } from '../../lib/i18n'
 
 type Page =
   | { kind: 'general' }
@@ -51,11 +52,11 @@ export function ConfigTab({ device }: { device: Device }) {
         <div className="px-2 pt-1 pb-0.5 text-[10px] font-semibold tracking-wider text-fg-subtle uppercase">
           Global
         </div>
-        {navItem('Paramètres généraux', { kind: 'general' })}
-        {device.kind === 'router' && navItem('Routage statique', { kind: 'routes' }, 'nav-routes')}
-        {device.kind === 'router' && navItem('Sous-interfaces', { kind: 'subifs' }, 'nav-subifs')}
+        {navItem(t('win.general'), { kind: 'general' })}
+        {device.kind === 'router' && navItem(t('win.staticRouting'), { kind: 'routes' }, 'nav-routes')}
+        {device.kind === 'router' && navItem(t('win.subifs'), { kind: 'subifs' }, 'nav-subifs')}
         {device.kind === 'switch' && !device.hostedBy && navItem('VLAN', { kind: 'vlans' }, 'nav-vlans')}
-        {isHostDevice(device) && navItem('Journal d’événements', { kind: 'events' }, 'nav-events')}
+        {isHostDevice(device) && navItem(t('win.eventLog'), { kind: 'events' }, 'nav-events')}
         {l3.length > 0 && (
           <div className="px-2 pt-2 pb-0.5 text-[10px] font-semibold tracking-wider text-fg-subtle uppercase">
             Interfaces
@@ -66,21 +67,21 @@ export function ConfigTab({ device }: { device: Device }) {
       <div className="min-w-0 flex-1 overflow-y-auto">
         {page.kind === 'general' && (
           <>
-            <Section title="Paramètres généraux">
+            <Section title={t('win.parametresGeneraux')}>
               <div className="grid max-w-md gap-3">
-                <Field label="Nom">
+                <Field label={t('win.nom')}>
                   <EditableName deviceId={device.id} name={device.name} />
                 </Field>
                 <div>
                   <Button
                     onClick={() => runCommand(command('topology.setPower', device.id, !device.powered))}
                   >
-                    <Power size={14} /> {device.powered ? 'Éteindre l’équipement' : 'Allumer l’équipement'}
+                    <Power size={14} /> {device.powered ? t('win.powerOff') : t('win.powerOn')}
                   </Button>
                 </div>
               </div>
             </Section>
-            <Section title={device.kind === 'switch' ? 'Ports' : 'Interfaces'}>
+            <Section title={device.kind === 'switch' ? t('props.portsX') : t('props.interfacesX')}>
               {device.kind === 'switch' && (
                 <div className="mb-2 flex flex-wrap gap-1">
                   {device.interfaces.map((port) => (

@@ -24,14 +24,27 @@ import { useLabsStore } from '../../store/labs'
 import { useTutorialStore } from '../../store/tutorial'
 import { useUiStore } from '../../store/ui'
 import { Button } from '../common/ui'
+import { t } from '../../lib/i18n'
 
 const STEP_TITLES: Record<TutorialStepId, string> = {
-  'place-server': 'Placer un serveur',
-  'place-client': 'Placer un poste client',
-  cable: 'Relier le serveur et le poste',
-  'ip-server': 'Donner une adresse IP fixe au serveur',
-  'ip-client': 'Adresser le poste dans le même réseau',
-  ping: 'Tester la communication avec ping'
+  get 'place-server'() {
+    return t('tuto.step.place_server')
+  },
+  get 'place-client'() {
+    return t('tuto.step.place_client')
+  },
+  get cable() {
+    return t('tuto.step.cable')
+  },
+  get 'ip-server'() {
+    return t('tuto.step.ip_server')
+  },
+  get 'ip-client'() {
+    return t('tuto.step.ip_client')
+  },
+  get ping() {
+    return t('tuto.step.ping')
+  }
 }
 
 export function TutorialCoach() {
@@ -41,7 +54,7 @@ export function TutorialCoach() {
   return (
     <aside
       className="fixed top-24 right-3 z-[280] w-[300px] rounded-md border border-line bg-overlay p-4 text-[13px] text-fg shadow-lg"
-      aria-label="Tutoriel"
+      aria-label={t('tuto.tutoriel')}
       data-testid="tutorial-card"
       data-phase={phase}
     >
@@ -62,8 +75,8 @@ function Header({ icon, title, onClose }: { icon: ReactNode; title: string; onCl
           type="button"
           onClick={onClose}
           className="ml-auto rounded p-1 text-fg-subtle hover:bg-surface-2 hover:text-fg"
-          aria-label="Quitter le tutoriel"
-          title="Quitter le tutoriel (relançable depuis Aide > Tutoriel interactif)"
+          aria-label={t('tuto.quitterLeTutoriel')}
+          title={t('tuto.quitterLeTutorielRelancable')}
           data-testid="tutorial-quit"
         >
           <X size={14} />
@@ -80,11 +93,8 @@ function Welcome() {
   }, [])
   return (
     <>
-      <Header icon={<GraduationCap size={18} />} title="Bienvenue dans ServerLab" />
-      <p className="text-fg-muted">
-        Ce tutoriel vous guide jusqu’à votre premier ping : placer un serveur et un poste, les câbler, leur
-        donner une adresse IP puis tester la communication. Comptez cinq minutes.
-      </p>
+      <Header icon={<GraduationCap size={18} />} title={t('tuto.bienvenueDansServerlab')} />
+      <p className="text-fg-muted">{t('tuto.intro')}</p>
       <div className="mt-3 flex items-center gap-2">
         <Button variant="primary" onClick={() => void startTutorial()} data-testid="tutorial-start">
           Commencer
@@ -104,7 +114,7 @@ function Welcome() {
           }}
           data-testid="tutorial-at-startup"
         />
-        Proposer le tutoriel au démarrage
+        {t('tuto.proposerLeTutorielAu')}
       </label>
     </>
   )
@@ -133,7 +143,7 @@ function Running() {
     <div data-testid="tutorial-step" data-step={progress.current ?? 'done'}>
       <Header
         icon={<GraduationCap size={18} />}
-        title={`Tutoriel · étape ${index} / ${TUTORIAL_STEPS.length}`}
+        title={t('tuto.stepOf', { index, total: TUTORIAL_STEPS.length })}
         onClose={closeTutorial}
       />
       <ol className="mb-3 flex flex-col gap-1">
@@ -145,9 +155,9 @@ function Running() {
               className={`flex items-center gap-2 text-[12px] ${isCurrent ? 'font-semibold text-fg' : step.done ? 'text-fg-muted' : 'text-fg-subtle'}`}
             >
               {step.done ? (
-                <CheckCircle2 size={14} className="shrink-0 text-ok" aria-label="Validée" />
+                <CheckCircle2 size={14} className="shrink-0 text-ok" aria-label={t('tuto.validee')} />
               ) : isCurrent ? (
-                <CircleDot size={14} className="shrink-0 text-accent" aria-label="En cours" />
+                <CircleDot size={14} className="shrink-0 text-accent" aria-label={t('tuto.enCours')} />
               ) : (
                 <Circle size={14} className="shrink-0" aria-hidden />
               )}
@@ -162,9 +172,7 @@ function Running() {
       >
         <Instruction progress={progress} />
       </div>
-      <p className="mt-2 text-[11px] text-fg-subtle">
-        Chaque étape se valide d’elle-même dès que le lab est dans le bon état.
-      </p>
+      <p className="mt-2 text-[11px] text-fg-subtle">{t('tuto.chaqueEtapeSeValide')}</p>
       <Spotlight progress={progress} />
     </div>
   )
@@ -186,25 +194,27 @@ function Instruction({ progress }: { progress: TutorialProgress }) {
   switch (progress.current) {
     case 'place-server':
       return armed === 'server' ? (
-        <>Cliquez sur le canvas pour y poser le serveur.</>
+        <>{t('tuto.cliquezSurLeCanvas')}</>
       ) : (
         <>
-          Dans la palette, cliquez sur <strong>Serveur</strong> (ou faites-le glisser sur le canvas).
+          Dans la palette, cliquez sur <strong>{t('tuto.serveur')}</strong> (ou faites-le glisser sur le
+          canvas).
         </>
       )
     case 'place-client':
       return armed === 'client' ? (
-        <>Cliquez sur le canvas pour y poser le poste.</>
+        <>{t('tuto.cliquezSurLeCanvas2')}</>
       ) : (
         <>
-          Dans la palette, cliquez sur <strong>Poste client</strong>, puis sur le canvas.
+          Dans la palette, cliquez sur <strong>{t('tuto.posteClient')}</strong>, puis sur le canvas.
         </>
       )
     case 'cable':
       if (tool !== 'cable')
         return (
           <>
-            Choisissez l’outil <strong>Câble</strong> dans la barre d’outils (touche <Mono>C</Mono>).
+            Choisissez l’outil <strong>{t('tuto.cable')}</strong> {t('tuto.dansLaBarreDoutils')}{' '}
+            <Mono>C</Mono>).
           </>
         )
       return cableStart ? (
@@ -215,7 +225,7 @@ function Instruction({ progress }: { progress: TutorialProgress }) {
         </>
       ) : (
         <>
-          Cliquez sur <strong>{server?.name}</strong> et choisissez le port <Mono>Ethernet0</Mono>.
+          Cliquez sur <strong>{server?.name}</strong> {t('tuto.etChoisissezLePort')} <Mono>Ethernet0</Mono>.
         </>
       )
     case 'ip-server':
@@ -230,9 +240,10 @@ function Instruction({ progress }: { progress: TutorialProgress }) {
       if (progress.current === 'ip-server')
         return (
           <>
-            Onglet <strong>Config</strong>, carte <Mono>Ethernet0</Mono> : choisissez « Utiliser l’adresse IP
-            suivante », saisissez par exemple <Mono>192.168.1.1</Mono> et le masque <Mono>255.255.255.0</Mono>
-            , puis <strong>Appliquer</strong>.
+            Onglet <strong>{t('tuto.config')}</strong>
+            {t('tuto.carte')} <Mono>Ethernet0</Mono> : choisissez « Utiliser l’adresse IP suivante »,
+            saisissez par exemple <Mono>192.168.1.1</Mono> {t('tuto.etLeMasque')} <Mono>255.255.255.0</Mono>,
+            puis <strong>{t('tuto.appliquer')}</strong>.
           </>
         )
       const suggestion =
@@ -251,7 +262,7 @@ function Instruction({ progress }: { progress: TutorialProgress }) {
               , par exemple <Mono>{suggestion}</Mono>
             </>
           )}
-          , puis <strong>Appliquer</strong>.
+          , puis <strong>{t('tuto.appliquer')}</strong>.
         </>
       )
     }
@@ -260,19 +271,20 @@ function Instruction({ progress }: { progress: TutorialProgress }) {
       if (!win)
         return (
           <>
-            Double-cliquez sur <strong>{client?.name}</strong>, puis ouvrez l’onglet <strong>Console</strong>.
+            Double-cliquez sur <strong>{client?.name}</strong>
+            {t('tuto.puisOuvrezLonglet')} <strong>{t('tuto.console')}</strong>.
           </>
         )
       if (win.tab !== 'console')
         return (
           <>
-            Ouvrez l’onglet <strong>Console</strong> de {client?.name}.
+            Ouvrez l’onglet <strong>{t('tuto.console')}</strong> de {client?.name}.
           </>
         )
       return (
         <>
-          Tapez <Mono>ping {server?.address}</Mono> puis Entrée. (L’outil <strong>PDU simple</strong> de{' '}
-          {client?.name} vers {server?.name} fonctionne aussi.)
+          Tapez <Mono>ping {server?.address}</Mono> {t('tuto.puisEntreeLoutil')}{' '}
+          <strong>{t('tuto.pduSimple')}</strong> de {client?.name} vers {server?.name} fonctionne aussi.)
         </>
       )
     }
@@ -344,7 +356,7 @@ function Done() {
   }
   return (
     <>
-      <Header icon={<PartyPopper size={18} />} title="Bravo !" />
+      <Header icon={<PartyPopper size={18} />} title={t('tuto.bravo')} />
       <p className="text-fg-muted" data-testid="tutorial-done">
         Premier ping réussi entre <strong className="text-fg">{client?.name}</strong> et{' '}
         <strong className="text-fg">{server?.name}</strong> : votre premier réseau fonctionne. Poursuivez avec
@@ -352,7 +364,7 @@ function Done() {
       </p>
       <div className="mt-3 flex items-center gap-2">
         <Button variant="primary" onClick={openLabPicker} data-testid="tutorial-open-lab">
-          Ouvrir un lab
+          {t('tuto.ouvrirUnLab')}
         </Button>
         <Button variant="ghost" onClick={closeTutorial} data-testid="tutorial-finish">
           Terminer

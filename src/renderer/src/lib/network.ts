@@ -6,6 +6,7 @@ import { useLabStore } from '../store/lab'
 import { useSimStore } from '../store/sim'
 import { useUiStore } from '../store/ui'
 import { observeTrace } from './tutorial'
+import { t } from './i18n'
 
 /**
  * Lance une opération réseau : immédiate en Temps réel, rejouée pas à pas en Simulation.
@@ -44,15 +45,12 @@ export function sendSimplePdu(sourceId: string, targetId: string): void {
   const dst = lab.devices[targetId]
   if (!src || !dst) return
   if (src.kind === 'switch' || dst.kind === 'switch') {
-    ui.notify(
-      'error',
-      'Un switch de niveau 2 n’a pas d’adresse IP : choisissez un serveur, un poste ou un routeur.'
-    )
+    ui.notify('error', t('pdu.switchNoIp'))
     return
   }
   const target = primaryAddress(targetId)
   if (!target) {
-    ui.notify('error', `${dst.name} n’a pas d’adresse IP.`)
+    ui.notify('error', t('pdu.noIp', { name: dst.name }))
     return
   }
   const result = ping(lab, sourceId, target, { count: 1 })
@@ -66,7 +64,11 @@ export function sendSimplePdu(sourceId: string, targetId: string): void {
     ui.addPduResult({ source: src.name, target: `${dst.name} (${target})`, success: value.success })
     ui.notify(
       value.success ? 'success' : 'error',
-      `Ping ${src.name} → ${dst.name} : ${value.success ? 'réussi' : 'échec'} — ${value.lines[1] ?? ''}`
+      t(value.success ? 'pdu.result.success' : 'pdu.result.failure', {
+        source: src.name,
+        target: dst.name,
+        detail: value.lines[1] ?? ''
+      })
     )
   })
 }

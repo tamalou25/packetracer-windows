@@ -4,6 +4,7 @@
 import { effectiveIpv4, endStatus, linkOnInterface, prefixToMask, type Device } from '@engine/index'
 import { useLabStore } from '../../store/lab'
 import { StatusDot } from '../common/ui'
+import { t } from '../../lib/i18n'
 
 export function InterfaceList({ device, compact = false }: { device: Device; compact?: boolean }) {
   const lab = useLabStore((s) => s.lab)
@@ -24,14 +25,18 @@ export function InterfaceList({ device, compact = false }: { device: Device; com
               <StatusDot status={iface.enabled ? status : 'down'} />
               <span className="font-semibold text-fg">{iface.name}</span>
               <span className="ml-auto truncate text-fg-muted">
-                {peer ? `→ ${peer.name} (${peerPort})` : iface.enabled ? 'non raccordé' : 'désactivé'}
+                {peer
+                  ? `→ ${peer.name} (${peerPort})`
+                  : iface.enabled
+                    ? t('props.notConnected')
+                    : t('props.disabled')}
               </span>
             </div>
             {iface.l3 && (
               <div className="selectable pl-4.5 font-mono text-[11px] text-fg-muted">
                 {ip
                   ? `${ip.address} / ${prefixToMask(ip.prefixLength)}${ip.source === 'apipa' ? ' (APIPA)' : ''}`
-                  : 'pas d’adresse IPv4'}
+                  : t('props.noIpv4')}
               </div>
             )}
             {!compact && (

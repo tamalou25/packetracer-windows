@@ -27,6 +27,7 @@ describe('settings.json', () => {
   it('lit un thème valide et ignore les champs inconnus', () => {
     expect(parseSettings('{"theme":"light","fenetre":{"x":1}}')).toEqual({
       theme: 'light',
+      language: 'system',
       showHomeOnStartup: true,
       showTutorialOnStartup: true
     })
@@ -37,6 +38,18 @@ describe('settings.json', () => {
     expect(parseSettings('{}').theme).toBe('system')
     expect(parseSettings('{"theme":"system"}').theme).toBe('system')
     expect(parseSettings('{"theme":"dark"}').theme).toBe('dark')
+  })
+
+  it('langue : celle du système par défaut, choix enregistré conservé, valeur invalide ignorée', () => {
+    expect(DEFAULT_SETTINGS.language).toBe('system')
+    // Fichier d'une version précédente (sans langue) : langue du système, thème conservé
+    expect(parseSettings('{"theme":"dark"}')).toMatchObject({ theme: 'dark', language: 'system' })
+    expect(parseSettings('{"language":"en"}').language).toBe('en')
+    expect(parseSettings('{"language":"fr"}').language).toBe('fr')
+    expect(parseSettings('{"theme":"light","language":"de"}')).toMatchObject({
+      theme: 'light',
+      language: 'system'
+    })
   })
 
   it('accueil au démarrage : affiché par défaut, choix enregistré conservé', () => {
@@ -59,6 +72,7 @@ describe('settings.json', () => {
     // Fichier d'une version précédente : tutoriel proposé, autres préférences conservées
     expect(parseSettings('{"theme":"dark","showHomeOnStartup":false}')).toEqual({
       theme: 'dark',
+      language: 'system',
       showHomeOnStartup: false,
       showTutorialOnStartup: true
     })

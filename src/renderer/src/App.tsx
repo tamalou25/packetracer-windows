@@ -1,7 +1,7 @@
 /**
  * Mise en page principale : palette à gauche, canvas au centre, propriétés à droite.
  */
-import { useCallback } from 'react'
+import { Fragment, useCallback } from 'react'
 import { ReactFlowProvider } from '@xyflow/react'
 import type { MenuCommandMessage } from '@shared/ipc'
 import { TopologyCanvas } from './components/canvas/TopologyCanvas'
@@ -26,6 +26,7 @@ import { useSimulationPlayback } from './hooks/useSimulationPlayback'
 import { newDocument, openDocument, openRecentDocument, saveDocument } from './lib/document'
 import { copySelection, deleteSelection, paste, redo, selectAll, undo } from './lib/editing'
 import { getFlowInstance } from './lib/flow'
+import { useLangStore } from './lib/i18n'
 import { offerTutorial } from './lib/tutorial'
 import { useSimStore } from './store/sim'
 import { useUiStore } from './store/ui'
@@ -96,6 +97,9 @@ function handleMenuCommand(msg: MenuCommandMessage): void {
     case 'view:theme':
       if (msg.arg === 'dark' || msg.arg === 'light') ui.setTheme(msg.arg)
       break
+    case 'view:language':
+      if (msg.arg === 'fr' || msg.arg === 'en') useLangStore.getState().setLang(msg.arg)
+      break
     case 'sim:realtime':
       ui.setMode('realtime')
       break
@@ -127,6 +131,9 @@ function handleMenuCommand(msg: MenuCommandMessage): void {
 
 export function App() {
   const showProperties = useUiStore((s) => s.showProperties)
+  // Changement de langue : l'interface est reconstruite (textes traduits au rendu) ; l'état vit
+  // dans les stores, le canvas garde sa vue (ReactFlowProvider conservé)
+  const lang = useLangStore((s) => s.lang)
   const onMenu = useCallback((msg: MenuCommandMessage) => handleMenuCommand(msg), [])
   useMenuBridge(onMenu)
   useKeyboardShortcuts()
@@ -137,24 +144,26 @@ export function App() {
 
   return (
     <ReactFlowProvider>
-      <div className="flex h-full flex-col">
-        <div className="flex min-h-0 flex-1">
-          <Palette />
-          <main className="min-w-0 flex-1">
-            <TopologyCanvas />
-          </main>
-          {showProperties && <RightPanel />}
+      <Fragment key={lang}>
+        <div className="flex h-full flex-col">
+          <div className="flex min-h-0 flex-1">
+            <Palette />
+            <main className="min-w-0 flex-1">
+              <TopologyCanvas />
+            </main>
+            {showProperties && <RightPanel />}
+          </div>
+          <StatusBar />
         </div>
-        <StatusBar />
-      </div>
-      <HomeScreen />
-      <TutorialCoach />
-      <DeviceWindows />
-      <LabPicker />
-      <LabEditor />
-      <Toasts />
-      <HelpPanel />
-      <Modal />
+        <HomeScreen />
+        <TutorialCoach />
+        <DeviceWindows />
+        <LabPicker />
+        <LabEditor />
+        <Toasts />
+        <HelpPanel />
+        <Modal />
+      </Fragment>
     </ReactFlowProvider>
   )
 }

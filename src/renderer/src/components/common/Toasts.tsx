@@ -2,11 +2,13 @@
  * Notifications temporaires (coin inférieur droit).
  */
 import { CircleAlert, CircleCheck, Info, TriangleAlert, X } from 'lucide-react'
+import { useT } from '../../lib/i18n'
 import { useUiStore } from '../../store/ui'
 
 export function Toasts() {
   const toasts = useUiStore((s) => s.toasts)
   const dismiss = useUiStore((s) => s.dismissToast)
+  const { t: tr } = useT()
   return (
     <div
       className="pointer-events-none fixed right-4 bottom-10 z-[300] flex w-96 flex-col gap-2"
@@ -40,7 +42,7 @@ export function Toasts() {
               type="button"
               onClick={() => dismiss(t.id)}
               className="text-fg-subtle hover:text-fg"
-              title="Fermer"
+              title={tr('common.close')}
             >
               <X size={14} />
             </button>

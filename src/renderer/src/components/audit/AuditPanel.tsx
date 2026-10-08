@@ -9,6 +9,7 @@ import { auditLab, compareAudits, type AuditSeverity } from '@engine/index'
 import { exportAuditReport } from '../../lib/auditReport'
 import { useLabStore } from '../../store/lab'
 import { Button } from '../common/ui'
+import { t } from '../../lib/i18n'
 
 const SEVERITY_CLASS: Record<AuditSeverity, string> = {
   critique: 'bg-danger text-on-accent',
@@ -38,7 +39,7 @@ export function AuditPanel() {
         )}
         <div>
           <div className="text-[11px] font-semibold tracking-wider text-fg-subtle uppercase">
-            Score de sécurité
+            {t('audit.scoreDeSecurite')}
           </div>
           <div className={`text-2xl font-semibold ${scoreClass(report.score)}`} data-testid="audit-score">
             {report.score}
@@ -51,7 +52,7 @@ export function AuditPanel() {
         <Button
           onClick={() => void exportAuditReport()}
           className="ml-auto"
-          title="Exporter le rapport d’audit en PDF"
+          title={t('audit.exporterLeRapportDaudit')}
           data-testid="audit-export"
         >
           <FileDown size={14} /> PDF
@@ -59,9 +60,7 @@ export function AuditPanel() {
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
         {report.recommendations.length === 0 ? (
-          <p className="text-xs text-fg-muted">
-            Aucune recommandation : toutes les règles de l’audit sont respectées.
-          </p>
+          <p className="text-xs text-fg-muted">{t('audit.aucuneRecommandationToutesLes')}</p>
         ) : (
           <ul className="flex flex-col gap-3">
             {report.recommendations.map((r) => (
@@ -86,7 +85,7 @@ export function AuditPanel() {
                   ))}
                 </ul>
                 <p className="text-[11px] text-fg-muted">
-                  <span className="font-semibold text-fg">Correction : </span>
+                  <span className="font-semibold text-fg">{t('audit.correction')} </span>
                   {r.fix}
                 </p>
               </li>

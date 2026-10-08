@@ -11,11 +11,30 @@ import { ConfigTab } from './ConfigTab'
 import { ConsoleTab } from '../console/ConsoleTab'
 import { DesktopShell } from '../desktop/DesktopShell'
 import { isHostDevice } from '@engine/index'
+import { t } from '../../lib/i18n'
 
 const TABS: { id: DeviceTab; label: string; icon: LucideIcon }[] = [
-  { id: 'config', label: 'Config', icon: Settings },
-  { id: 'desktop', label: 'Bureau', icon: Monitor },
-  { id: 'console', label: 'Console', icon: SquareTerminal }
+  {
+    id: 'config',
+    get label() {
+      return t('win.tab.config')
+    },
+    icon: Settings
+  },
+  {
+    id: 'desktop',
+    get label() {
+      return t('win.tab.desktop')
+    },
+    icon: Monitor
+  },
+  {
+    id: 'console',
+    get label() {
+      return t('win.tab.console')
+    },
+    icon: SquareTerminal
+  }
 ]
 
 export function DeviceWindow({ win }: { win: DeviceWindowState }) {
@@ -93,7 +112,7 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
           type="button"
           className="ml-auto rounded p-1 text-fg-muted hover:bg-surface-2 hover:text-fg"
           onClick={() => toggleMaximizeWindow(win.deviceId)}
-          title={win.maximized ? 'Restaurer' : 'Agrandir'}
+          title={win.maximized ? t('win.restore') : t('win.maximize')}
           data-testid="maximize-device-window"
         >
           {win.maximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
@@ -102,7 +121,7 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
           type="button"
           className="rounded p-1 text-fg-muted hover:bg-danger hover:text-white"
           onClick={() => closeWindow(win.deviceId)}
-          title="Fermer"
+          title={t('win.fermer')}
           data-testid="close-device-window"
         >
           <X size={16} />
@@ -129,14 +148,10 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
         {tab === 'config' && <ConfigTab device={device} />}
         {tab === 'desktop' &&
           isHostDevice(device) &&
-          (device.powered ? (
-            <DesktopShell device={device} />
-          ) : (
-            <Placeholder text="L’ordinateur est éteint." />
-          ))}
+          (device.powered ? <DesktopShell device={device} /> : <Placeholder text={t('win.off')} />)}
         {tab === 'console' &&
           isHostDevice(device) &&
-          (device.powered ? <ConsoleTab device={device} /> : <Placeholder text="L’ordinateur est éteint." />)}
+          (device.powered ? <ConsoleTab device={device} /> : <Placeholder text={t('win.off')} />)}
       </div>
       {!win.maximized && (
         <div
@@ -144,7 +159,7 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
           onPointerDown={onResizeDown}
           onPointerMove={onResizeMove}
           onPointerUp={() => (resize.current = null)}
-          title="Redimensionner"
+          title={t('win.redimensionner')}
           data-testid="resize-device-window"
         />
       )}

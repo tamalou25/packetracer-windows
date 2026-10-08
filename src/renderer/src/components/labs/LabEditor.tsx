@@ -33,8 +33,9 @@ import { useLabEditorStore, type DraftCriterion } from '../../store/labEditor'
 import { useLabStore } from '../../store/lab'
 import { Button, Field, inputClass } from '../common/ui'
 import { Markdown } from './Markdown'
+import { t } from '../../lib/i18n'
 
-const DIFFICULTIES = ['Débutant', 'Intermédiaire', 'Avancé'] as const
+const DIFFICULTIES = ['Débutant', 'Intermédiaire', 'Avancé'] as const // valeurs du format (libellés : difficulty.*)
 
 export function LabEditor() {
   const open = useLabEditorStore((s) => s.open)
@@ -59,12 +60,12 @@ export function LabEditor() {
       >
         <div className="flex items-center gap-2 border-b border-line px-5 py-3">
           <FlaskConical size={18} className="text-accent" />
-          <h2 className="text-base font-semibold text-fg">Éditeur de labs</h2>
+          <h2 className="text-base font-semibold text-fg">{t('lab.editeurDeLabs')}</h2>
           <button
             type="button"
             onClick={() => useLabEditorStore.getState().setOpen(false)}
             className="ml-auto rounded p-1 text-fg-subtle hover:bg-surface-2 hover:text-fg"
-            aria-label="Fermer"
+            aria-label={t('lab.fermer')}
             data-testid="editor-close"
           >
             <X size={16} />
@@ -73,7 +74,7 @@ export function LabEditor() {
         <div className="grid min-h-0 flex-1 grid-cols-[380px_1fr]">
           {/* Description du lab */}
           <div className="flex min-h-0 flex-col gap-3 overflow-y-auto border-r border-line p-4">
-            <Field label="Titre">
+            <Field label={t('lab.titre')}>
               <input
                 className={inputClass}
                 value={draft.title}
@@ -82,7 +83,7 @@ export function LabEditor() {
               />
             </Field>
             <div className="grid grid-cols-2 gap-2">
-              <Field label="Difficulté">
+              <Field label={t('lab.difficulte')}>
                 <select
                   className={inputClass}
                   value={draft.difficulty}
@@ -94,7 +95,7 @@ export function LabEditor() {
                   ))}
                 </select>
               </Field>
-              <Field label="Durée indicative">
+              <Field label={t('lab.dureeIndicative')}>
                 <input
                   className={inputClass}
                   value={draft.duration}
@@ -103,7 +104,7 @@ export function LabEditor() {
                 />
               </Field>
             </div>
-            <Field label="Résumé">
+            <Field label={t('lab.resume')}>
               <input
                 className={inputClass}
                 value={draft.summary}
@@ -113,14 +114,14 @@ export function LabEditor() {
             </Field>
             <div className="flex min-h-0 flex-1 flex-col gap-1">
               <div className="flex items-center gap-2 text-xs font-medium text-fg-muted">
-                <span>Énoncé (Markdown)</span>
+                <span>{t('lab.enonceMarkdown')}</span>
                 <button
                   type="button"
                   onClick={() => setPreview(!preview)}
                   className="ml-auto rounded px-1.5 py-0.5 text-[11px] text-accent hover:bg-accent-soft"
                   data-testid="editor-preview-toggle"
                 >
-                  {preview ? 'Modifier' : 'Aperçu'}
+                  {preview ? t('lab.edit') : t('lab.preview')}
                 </button>
               </div>
               {preview ? (
@@ -134,7 +135,7 @@ export function LabEditor() {
                 <textarea
                   className={`${inputClass} min-h-48 flex-1 resize-none py-1.5 font-mono text-[12px]`}
                   value={draft.statement}
-                  placeholder={'## Contexte\n\nDécrivez la situation et les tâches à réaliser.'}
+                  placeholder={t('lab.mdPlaceholder')}
                   onChange={(e) => update({ statement: e.target.value })}
                   data-testid="editor-statement"
                 />
@@ -142,14 +143,13 @@ export function LabEditor() {
             </div>
             <div className="rounded-md border border-line bg-surface p-2 text-[12px] text-fg-muted">
               <div className="mb-1 font-medium text-fg" data-testid="editor-start-info">
-                Topologie de départ : {start ? `${startCount} équipement(s)` : 'non capturée'}
+                {t('lab.startTopo', {
+                  state: start ? t('lab.startDevices', { count: startCount }) : t('lab.notCaptured')
+                })}
               </div>
-              <p className="mb-2">
-                Le départ est l’état du lab au moment de la capture. Réalisez ensuite la solution dans le lab
-                pour tester les critères.
-              </p>
+              <p className="mb-2">{t('lab.startHelp')}</p>
               <Button onClick={captureStart} data-testid="editor-capture">
-                Capturer le lab courant
+                {t('lab.capturerLeLabCourant')}
               </Button>
             </div>
           </div>
@@ -175,15 +175,12 @@ export function LabEditor() {
                 <Plus size={14} /> Ajouter
               </Button>
               <Button onClick={() => testCriteria()} data-testid="editor-test-all">
-                Tester tout
+                {t('lab.testerTout')}
               </Button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
               {draft.criteria.length === 0 ? (
-                <p className="text-[13px] text-fg-muted">
-                  Ajoutez un critère : choisissez ce qui doit être vérifié, puis les équipements ou objets
-                  concernés. Chaque critère se teste aussitôt sur le lab courant.
-                </p>
+                <p className="text-[13px] text-fg-muted">{t('lab.criteriaHelp')}</p>
               ) : (
                 <ol className="flex flex-col gap-3">
                   {draft.criteria.map((c, i) => (
@@ -253,18 +250,19 @@ function CriterionCard({
             <CircleDashed size={15} className="text-fg-subtle" />
           ) : criterion.tested ? (
             <>
-              <CircleCheck size={15} className="text-ok" /> <span className="text-ok">Validé</span>
+              <CircleCheck size={15} className="text-ok" /> <span className="text-ok">{t('lab.valide')}</span>
             </>
           ) : (
             <>
-              <CircleX size={15} className="text-danger" /> <span className="text-danger">Non validé</span>
+              <CircleX size={15} className="text-danger" />{' '}
+              <span className="text-danger">{t('lab.nonValide')}</span>
             </>
           )}
         </span>
         <Button
           onClick={() => testCriteria(criterion.key)}
           disabled={!criterion.check}
-          title="Tester sur le lab courant"
+          title={t('lab.testerSurLeLab')}
           data-testid="editor-test"
         >
           Tester
@@ -272,13 +270,13 @@ function CriterionCard({
         <Button
           variant="ghostDanger"
           onClick={() => removeCriterion(criterion.key)}
-          title="Supprimer le critère"
-          aria-label="Supprimer le critère"
+          title={t('lab.supprimerLeCritere')}
+          aria-label={t('lab.supprimerLeCritere')}
         >
           <Trash2 size={14} />
         </Button>
       </div>
-      <Field label="Ce qui est attendu (visible par l’étudiant)">
+      <Field label={t('lab.ceQuiEstAttendu')}>
         <input
           className={inputClass}
           value={criterion.label}
@@ -304,7 +302,7 @@ function CriterionCard({
       )}
       <div className="mt-2 flex flex-col gap-1">
         {criterion.hints.map((hint, n) => (
-          <Field key={n} label={`Indice ${n + 1}${n === 0 ? ' (après un échec)' : ' (sur demande)'}`}>
+          <Field key={n} label={t(n === 0 ? 'lab.hintFirst' : 'lab.hintMore', { n: n + 1 })}>
             <input
               className={inputClass}
               value={hint}
@@ -319,7 +317,7 @@ function CriterionCard({
           className="self-start text-[11px] text-accent hover:underline"
           data-testid="editor-add-hint"
         >
-          + Indice plus précis
+          {t('lab.indicePlusPrecis')}
         </button>
       </div>
     </li>
@@ -351,11 +349,13 @@ function FieldInput({
         >
           {field.optional && (
             <option value="">
-              {field.defaultValue === undefined ? '—' : `Par défaut (${field.defaultValue ? 'oui' : 'non'})`}
+              {field.defaultValue === undefined
+                ? '—'
+                : t('lab.default', { value: field.defaultValue ? t('lab.oui') : t('lab.non') })}
             </option>
           )}
-          <option value="true">Oui</option>
-          <option value="false">Non</option>
+          <option value="true">{t('lab.oui')}</option>
+          <option value="false">{t('lab.non')}</option>
         </select>
       </Field>
     )
@@ -369,7 +369,7 @@ function FieldInput({
           onChange={(e) => onChange(e.target.value)}
           data-testid={testId}
         >
-          <option value="">{field.optional ? '—' : 'Choisir…'}</option>
+          <option value="">{field.optional ? '—' : t('lab.choose')}</option>
           {field.options?.map((o) => (
             <option key={o}>{o}</option>
           ))}
@@ -399,7 +399,7 @@ function FieldInput({
   }
   const listId = suggestions.length > 0 ? `${testId}-suggestions` : undefined
   return (
-    <Field label={field.kind === 'list' ? `${label} — séparés par des virgules` : label}>
+    <Field label={field.kind === 'list' ? t('lab.commaList', { label }) : label}>
       <input
         className={inputClass}
         type={field.kind === 'number' ? 'number' : 'text'}

@@ -8,6 +8,7 @@ import { endStatus, linkOnInterface, type Device, type LedStatus } from '@engine
 import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
 import { pickCablePort } from '../../lib/cabling'
+import { useT } from '../../lib/i18n'
 
 type PortState = LedStatus | 'free' | 'disabled'
 
@@ -19,13 +20,14 @@ const DOT: Record<PortState, string> = {
   disabled: 'bg-fg-subtle/40'
 }
 
-const STATE_LABEL: Record<PortState, string> = {
-  up: 'lien actif',
-  degraded: 'lien actif, adressage incomplet',
-  down: 'lien inactif',
-  free: 'libre',
-  disabled: 'désactivé'
-}
+/** État du port dans l'infobulle (clés `port.state.<état>`). */
+const STATE_KEY = {
+  up: 'port.state.up',
+  degraded: 'port.state.degraded',
+  down: 'port.state.down',
+  free: 'port.state.free',
+  disabled: 'port.state.disabled'
+} as const satisfies Record<PortState, string>
 
 interface PortTrayProps {
   device: Device
@@ -38,6 +40,7 @@ interface PortTrayProps {
 export function PortTray({ device, interactive, onMouseEnter, onMouseLeave }: PortTrayProps) {
   const lab = useLabStore((s) => s.lab)
   const cableStart = useUiStore((s) => s.cableStart)
+  const { t, tp } = useT()
   // Les sous-interfaces partagent le port de leur carte parente
   const ports = device.interfaces
     .filter((iface) => !iface.subinterface)
@@ -68,14 +71,12 @@ export function PortTray({ device, interactive, onMouseEnter, onMouseLeave }: Po
       onMouseLeave={onMouseLeave}
     >
       <div className="mb-1 flex items-center justify-between gap-4 px-0.5 text-[10px] font-semibold tracking-wider text-fg-subtle uppercase">
-        <span>Ports</span>
-        <span className="font-normal normal-case">
-          {free}/{ports.length} libre{free > 1 ? 's' : ''}
-        </span>
+        <span>{t('port.tray.title')}</span>
+        <span className="font-normal normal-case">{tp('port.tray.free', free, { total: ports.length })}</span>
       </div>
       <div className={`grid gap-0.5 ${cols}`}>
         {ports.map(({ iface, state, peer, chosen }) => {
-          const title = `${iface.name} — ${STATE_LABEL[state]}${peer ? ` → ${peer}` : ''}`
+          const title = `${iface.name} — ${t(STATE_KEY[state])}${peer ? ` → ${peer}` : ''}`
           const content = (
             <>
               <span className={`h-2 w-2 shrink-0 rounded-full ${DOT[state]}`} />
@@ -96,7 +97,7 @@ export function PortTray({ device, interactive, onMouseEnter, onMouseLeave }: Po
               key={iface.id}
               type="button"
               disabled={!selectable}
-              title={selectable ? `${title} — cliquer pour raccorder` : title}
+              title={selectable ? t('port.tray.connect', { title }) : title}
               onClick={(e) => pick(e, iface.id)}
               data-testid={`port-chip-${iface.name}`}
               className={`${base} ${

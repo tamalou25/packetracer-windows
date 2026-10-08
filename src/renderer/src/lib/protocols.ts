@@ -17,9 +17,10 @@ export const PROTOCOL_COLORS: Record<Protocol, { fill: string; chip: string }> =
   RADIUS: { fill: 'fill-cyan-700', chip: 'bg-cyan-700' }
 }
 
+/** Issue d'un événement de la simulation (clés de traduction `outcome.<issue>`). */
 export const OUTCOME_LABELS = {
-  forwarded: 'transmis',
-  delivered: 'reçu',
-  ignored: 'ignoré',
-  dropped: 'rejeté'
+  forwarded: 'outcome.forwarded',
+  delivered: 'outcome.delivered',
+  ignored: 'outcome.ignored',
+  dropped: 'outcome.dropped'
 } as const

@@ -17,8 +17,10 @@ import {
 } from '../shared/ipc'
 import { parseRecentFiles } from '../shared/persisted'
 import { forgetRecent, rememberRecent } from '../shared/recent'
+import { t } from './i18n'
 
-const SLAB_FILTERS = [{ name: 'Lab ServerLab', extensions: ['slab'] }]
+/** Filtre des dialogues (libellé dans la langue de l'interface). */
+const slabFilters = () => [{ name: t('main.filter.slab'), extensions: ['slab'] }]
 
 /** Clé de comparaison d'un chemin (insensible à la casse sous Windows). */
 function pathKey(path: string): string {
@@ -49,14 +51,14 @@ function errorMessage(e: unknown): string {
   const code = (e as NodeJS.ErrnoException | undefined)?.code
   switch (code) {
     case 'ENOENT':
-      return 'Fichier introuvable.'
+      return t('main.error.notFound')
     case 'EACCES':
     case 'EPERM':
-      return 'Accès refusé : vérifiez les droits sur ce fichier ou ce dossier.'
+      return t('main.error.access')
     case 'ENOSPC':
-      return 'Espace disque insuffisant.'
+      return t('main.error.space')
     default:
-      return e instanceof Error ? e.message : 'Erreur inconnue.'
+      return e instanceof Error ? e.message : t('main.error.unknown')
   }
 }
 
@@ -143,11 +145,10 @@ export class FileService {
 
   /** Lit un fichier .slab (contrôle d'extension et de taille). */
   private async read(path: string): Promise<FileResult<OpenedFile>> {
-    if (!isSlabPath(path)) return { ok: false, error: 'Seuls les fichiers .slab peuvent être ouverts.' }
+    if (!isSlabPath(path)) return { ok: false, error: t('main.error.slabOnly') }
     try {
       const stat = await fs.stat(path)
-      if (stat.size > MAX_SLAB_BYTES)
-        return { ok: false, error: 'Fichier trop volumineux pour un lab ServerLab.' }
+      if (stat.size > MAX_SLAB_BYTES) return { ok: false, error: t('main.error.slabTooLarge') }
       const content = await fs.readFile(path, 'utf8')
       await this.remember(path)
       return { ok: true, value: { path: resolve(path), name: basename(path), content } }
@@ -158,8 +159,8 @@ export class FileService {
 
   async openDialog(win: BrowserWindow): Promise<FileResult<OpenedFile>> {
     const res = await dialog.showOpenDialog(win, {
-      title: 'Ouvrir un lab',
-      filters: SLAB_FILTERS,
+      title: t('main.dialog.openSlab'),
+      filters: slabFilters(),
       properties: ['openFile']
     })
     const path = res.filePaths[0]
@@ -169,7 +170,7 @@ export class FileService {
 
   async openRecent(path: unknown): Promise<FileResult<OpenedFile>> {
     if (typeof path !== 'string' || !this.isAllowed(path)) {
-      return { ok: false, error: 'Ce fichier ne fait pas partie des fichiers récents.' }
+      return { ok: false, error: t('main.error.notRecent') }
     }
     return this.read(path)
   }
@@ -182,12 +183,12 @@ export class FileService {
 
   async save(path: unknown, content: unknown): Promise<FileResult<string>> {
     if (typeof path !== 'string' || typeof content !== 'string')
-      return { ok: false, error: 'Paramètres invalides.' }
+      return { ok: false, error: t('main.error.params') }
     if (!isSlabPath(path) || !this.isAllowed(path)) {
-      return { ok: false, error: 'Emplacement non autorisé : utilisez « Enregistrer sous ».' }
+      return { ok: false, error: t('main.error.location') }
     }
     if (Buffer.byteLength(content, 'utf8') > MAX_SLAB_BYTES)
-      return { ok: false, error: 'Document trop volumineux.' }
+      return { ok: false, error: t('main.error.docTooLarge') }
     try {
       await writeAtomic(path, content)
       await this.remember(path)
@@ -198,15 +199,15 @@ export class FileService {
   }
 
   async saveAs(win: BrowserWindow, content: unknown, suggestedName: unknown): Promise<FileResult<string>> {
-    if (typeof content !== 'string') return { ok: false, error: 'Paramètres invalides.' }
+    if (typeof content !== 'string') return { ok: false, error: t('main.error.params') }
     const safeName =
       typeof suggestedName === 'string' && /^[^\\/:*?"<>|]{1,80}$/.test(suggestedName)
         ? suggestedName
-        : 'Sans titre'
+        : t('main.untitled')
     const res = await dialog.showSaveDialog(win, {
-      title: 'Enregistrer le lab',
+      title: t('main.dialog.saveSlab'),
       defaultPath: join(app.getPath('documents'), `${safeName.replace(/\.slab$/i, '')}.slab`),
-      filters: SLAB_FILTERS
+      filters: slabFilters()
     })
     if (res.canceled || !res.filePath) return { ok: false, canceled: true }
     const path = isSlabPath(res.filePath) ? res.filePath : `${res.filePath}.slab`

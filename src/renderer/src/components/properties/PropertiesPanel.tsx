@@ -46,6 +46,7 @@ import { EditableName } from '../common/EditableName'
 import { Button, StatusDot } from '../common/ui'
 import { InterfaceList } from './InterfaceList'
 import { PanelSection } from './PanelSection'
+import { t } from '../../lib/i18n'
 
 const HEALTH_DOT: Record<DeviceHealth, string> = {
   ok: 'bg-ok',
@@ -148,10 +149,10 @@ function DeviceProperties({ device }: { device: Device }) {
             </div>
           </div>
         </div>
-        <div className="mt-2 flex items-center gap-1" role="toolbar" aria-label="Actions">
+        <div className="mt-2 flex items-center gap-1" role="toolbar" aria-label={t('props.actions')}>
           <IconAction
             icon={AppWindow}
-            label="Ouvrir la fenêtre de l’équipement"
+            label={t('props.ouvrirLaFenetreDe')}
             onClick={() => ui().openWindow(device.id, 'config')}
             testId="open-device-window"
             tone="primary"
@@ -161,14 +162,14 @@ function DeviceProperties({ device }: { device: Device }) {
               {!linux && (
                 <IconAction
                   icon={Monitor}
-                  label="Ouvrir le Bureau"
+                  label={t('props.ouvrirLeBureau')}
                   onClick={() => ui().openWindow(device.id, 'desktop')}
                   testId="open-desktop"
                 />
               )}
               <IconAction
                 icon={SquareTerminal}
-                label="Ouvrir la console"
+                label={t('props.ouvrirLaConsole')}
                 onClick={() => ui().openWindow(device.id, 'console')}
                 testId="open-console"
               />
@@ -176,10 +177,12 @@ function DeviceProperties({ device }: { device: Device }) {
           )}
           <IconAction
             icon={Power}
-            label={device.powered ? 'Éteindre' : 'Allumer'}
+            label={device.powered ? t('props.powerOff') : t('props.powerOn')}
             onClick={() =>
               runCommand(command('topology.setPower', device.id, !device.powered), {
-                success: device.powered ? `${device.name} éteint` : `${device.name} démarré`
+                success: device.powered
+                  ? t('props.poweredOff', { name: device.name })
+                  : t('props.started', { name: device.name })
               })
             }
             testId="power-toggle"
@@ -187,7 +190,7 @@ function DeviceProperties({ device }: { device: Device }) {
           <span className="ml-auto" />
           <IconAction
             icon={Trash2}
-            label="Supprimer l’équipement"
+            label={t('props.supprimerLequipement')}
             onClick={() => {
               runCommand(command('topology.removeDevices', [device.id]))
               ui().closeWindow(device.id)
@@ -199,10 +202,10 @@ function DeviceProperties({ device }: { device: Device }) {
         </div>
       </div>
 
-      <PanelSection id="general" title="Général">
+      <PanelSection id="general" title={t('props.general')}>
         <div className="flex flex-col gap-2">
           <label className="flex flex-col gap-1 text-xs text-fg-muted">
-            {host ? 'Nom de l’ordinateur' : 'Nom'}
+            {host ? t('props.computerName') : t('props.name')}
             <EditableName deviceId={device.id} name={device.name} />
           </label>
           <KeyValues rows={generalRows(lab, device)} />
@@ -211,15 +214,15 @@ function DeviceProperties({ device }: { device: Device }) {
 
       <PanelSection
         id="interfaces"
-        title={device.kind === 'switch' ? 'Ports' : 'Interfaces'}
+        title={device.kind === 'switch' ? t('props.ports') : t('props.interfaces')}
         count={device.interfaces.length}
         actions={
           device.kind === 'server' ? (
             <button
               type="button"
               onClick={() => runCommand(command('topology.addServerInterface', device.id))}
-              title="Ajouter une carte réseau"
-              aria-label="Ajouter une carte réseau"
+              title={t('props.ajouterUneCarteReseau')}
+              aria-label={t('props.ajouterUneCarteReseau')}
               className="flex h-6 w-6 items-center justify-center rounded text-fg-muted hover:bg-surface-2 hover:text-fg"
             >
               <Plus size={14} />
@@ -242,30 +245,34 @@ function generalRows(lab: LabState, device: Device): [string, ReactNode][] {
   const rows: [string, ReactNode][] = []
   if (isHostDevice(device)) {
     const { host } = device
-    rows.push(host.domain ? ['Domaine', host.domain] : ['Groupe de travail', host.workgroup], [
-      'Session',
+    rows.push(host.domain ? [t('props.domain'), host.domain] : [t('props.workgroup'), host.workgroup], [
+      t('props.session'),
       host.session ? (
         `${host.session.domain ?? device.name}\\${host.session.user}`
       ) : (
-        <span className="text-fg-subtle">écran de connexion</span>
+        <span className="text-fg-subtle">{t('props.ecranDeConnexion')}</span>
       )
     ])
-    if (host.pendingReboot) rows.push(['Redémarrage', <span className="text-warn">requis</span>])
+    if (host.pendingReboot)
+      rows.push([t('props.reboot'), <span className="text-warn">{t('props.required')}</span>])
   }
   if (device.kind === 'switch') {
-    rows.push(['Ports utilisés', `${usedInterfaces(lab, device.id).length} / ${device.interfaces.length}`])
+    rows.push([
+      t('props.usedPorts'),
+      `${usedInterfaces(lab, device.id).length} / ${device.interfaces.length}`
+    ])
   }
-  if (device.kind === 'router') rows.push(['Routes statiques', String(device.routes.length)])
-  rows.push(['État', device.powered ? 'allumé' : 'éteint'])
+  if (device.kind === 'router') rows.push([t('props.staticRoutes'), String(device.routes.length)])
+  rows.push([t('props.state'), device.powered ? t('props.on') : t('props.off')])
   return rows
 }
 
 function RolesSection({ device }: { device: HostDevice }) {
   const roles = allFeatures().filter((f) => f.role && device.host.features.includes(f.name))
   return (
-    <PanelSection id="roles" title="Rôles installés" count={roles.length}>
+    <PanelSection id="roles" title={t('props.rolesInstalles')} count={roles.length}>
       {roles.length === 0 ? (
-        <p className="text-xs text-fg-subtle">Aucun rôle installé.</p>
+        <p className="text-xs text-fg-subtle">{t('props.aucunRoleInstalle')}</p>
       ) : (
         <ul className="flex flex-wrap gap-1">
           {roles.map((r) => (
@@ -291,12 +298,12 @@ function ServicesSection({ lab, device }: { lab: LabState; device: HostDevice })
       const scopes = dhcp.scopes.length
       const leases = dhcp.scopes.reduce((n, s) => n + s.leases.length, 0)
       rows.push([
-        'Serveur DHCP',
+        t('props.dhcpServer'),
         <>
           {scopes} étendue{scopes > 1 ? 's' : ''} · {leases} bail{leases > 1 ? 'x' : ''}
           {device.host.domain && (
             <span className={dhcp.authorized ? 'text-ok' : 'text-warn'}>
-              {dhcp.authorized ? ' · autorisé' : ' · non autorisé'}
+              {dhcp.authorized ? t('props.authorized') : t('props.notAuthorized')}
             </span>
           )}
         </>
@@ -306,16 +313,16 @@ function ServicesSection({ lab, device }: { lab: LabState; device: HostDevice })
     if (dns) {
       const zones = dns.zones.length
       rows.push([
-        'Serveur DNS',
+        t('props.dnsServer'),
         `${zones} zone${zones > 1 ? 's' : ''}${dns.forwarders.length ? ' · redirecteurs' : ''}`
       ])
     }
     const domain = controlledDomain(lab, device.id)
-    if (domain) rows.push(['AD DS', `contrôleur de ${domain.name}`])
+    if (domain) rows.push(['AD DS', t('props.dcOf', { domain: domain.name })])
   }
   const dhcpClients = device.interfaces.filter((i) => i.l3 && i.addressing === 'dhcp')
   rows.push([
-    'Client DHCP',
+    t('props.dhcpClient'),
     dhcpClients.length > 0 ? (
       dhcpClients.map((i) => i.name).join(', ')
     ) : (
@@ -324,7 +331,7 @@ function ServicesSection({ lab, device }: { lab: LabState; device: HostDevice })
   ])
   const dns = [...new Set(device.interfaces.flatMap((i) => i.dnsServers))]
   rows.push([
-    'Client DNS',
+    t('props.dnsClient'),
     dns.length > 0 ? (
       <span className="font-mono">{dns.join(', ')}</span>
     ) : (
@@ -332,7 +339,7 @@ function ServicesSection({ lab, device }: { lab: LabState; device: HostDevice })
     )
   ])
   return (
-    <PanelSection id="services" title="Services">
+    <PanelSection id="services" title={t('props.services')}>
       <KeyValues rows={rows} />
     </PanelSection>
   )
@@ -340,9 +347,9 @@ function ServicesSection({ lab, device }: { lab: LabState; device: HostDevice })
 
 function RoutesSection({ device }: { device: RouterDevice }) {
   return (
-    <PanelSection id="routes" title="Routes statiques" count={device.routes.length}>
+    <PanelSection id="routes" title={t('props.routesStatiques')} count={device.routes.length}>
       {device.routes.length === 0 ? (
-        <p className="text-xs text-fg-subtle">Aucune route statique.</p>
+        <p className="text-xs text-fg-subtle">{t('props.aucuneRouteStatique')}</p>
       ) : (
         <ul className="flex flex-col gap-0.5 font-mono text-[11px] text-fg">
           {device.routes.map((r) => (
@@ -365,9 +372,9 @@ const LEVELS = {
 function EventsSection({ device }: { device: HostDevice }) {
   const events = device.host.eventLog.slice(-5).reverse()
   return (
-    <PanelSection id="events" title="Derniers événements" count={device.host.eventLog.length}>
+    <PanelSection id="events" title={t('props.derniersEvenements')} count={device.host.eventLog.length}>
       {events.length === 0 ? (
-        <p className="text-xs text-fg-subtle">Aucun événement.</p>
+        <p className="text-xs text-fg-subtle">{t('props.aucunEvenement')}</p>
       ) : (
         <ul className="flex flex-col gap-1.5">
           {events.map((e) => {
@@ -395,7 +402,7 @@ function EventsSection({ device }: { device: HostDevice }) {
         onClick={() => useUiStore.getState().openWindow(device.id, 'config')}
         className="mt-2 text-[11px] text-accent-text hover:underline"
       >
-        Ouvrir le journal complet
+        {t('props.ouvrirLeJournalComplet')}
       </button>
     </PanelSection>
   )
@@ -403,7 +410,7 @@ function EventsSection({ device }: { device: HostDevice }) {
 
 function MultiProperties({ devices }: { devices: Device[] }) {
   return (
-    <PanelSection id="multi" title={`${devices.length} équipements sélectionnés`}>
+    <PanelSection id="multi" title={t('props.selected', { count: devices.length })}>
       <ul className="mb-3 flex flex-col gap-1 text-[13px]">
         {devices.map((d) => (
           <li key={d.id}>
@@ -439,9 +446,9 @@ function LinkProperties({ link }: { link: Link }) {
     return { device, iface, status }
   }
   const ends = [describe('a'), describe('b')]
-  const labels = { up: 'actif', degraded: 'actif, adressage incomplet', down: 'inactif' }
+  const labels = { up: t('props.up'), degraded: t('props.degraded'), down: t('props.down') }
   return (
-    <PanelSection id="link" title="Câble Ethernet">
+    <PanelSection id="link" title={t('props.cableEthernet')}>
       <ul className="mb-3 flex flex-col gap-2">
         {ends.map((e, i) => (
           <li key={i} className="flex items-center gap-2 text-[13px]">
@@ -473,7 +480,7 @@ function LabOverview({ lab }: { lab: LabState }) {
   for (const l of links) byStatus[linkStatus(lab, l)]++
   return (
     <>
-      <PanelSection id="overview" title="Vue d’ensemble">
+      <PanelSection id="overview" title={t('props.vueDensemble')}>
         <div className="grid grid-cols-5 gap-1">
           {DEVICE_KINDS.map((kind) => {
             const Icon = DEVICE_ICONS[kind]
@@ -494,9 +501,9 @@ function LabOverview({ lab }: { lab: LabState }) {
         <div className="mt-3">
           <KeyValues
             rows={[
-              ['Équipements', String(devices.length)],
+              [t('props.devices'), String(devices.length)],
               [
-                'Liens',
+                t('props.links'),
                 <>
                   {links.length}
                   {links.length > 0 && (
@@ -511,14 +518,14 @@ function LabOverview({ lab }: { lab: LabState }) {
                   )}
                 </>
               ],
-              ['Domaines AD', Object.keys(lab.domains).join(', ') || '—']
+              [t('props.adDomains'), Object.keys(lab.domains).join(', ') || '—']
             ]}
           />
         </div>
       </PanelSection>
       <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-xs text-fg-subtle">
         <MousePointerClick size={24} strokeWidth={1.5} />
-        <p>Sélectionnez un équipement ou un câble pour afficher ses propriétés.</p>
+        <p>{t('props.selectionnezUnEquipementOu')}</p>
       </div>
     </>
   )

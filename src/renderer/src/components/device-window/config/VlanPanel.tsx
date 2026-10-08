@@ -6,6 +6,7 @@ import { Trash2 } from 'lucide-react'
 import { command, switchportOf, type NetInterface, type SwitchDevice } from '@engine/index'
 import { runCommand, runCommandOk } from '../../../lib/run'
 import { Button, Section, inputClass } from '../../common/ui'
+import { t } from '../../../lib/i18n'
 
 /** « 1,10,20-22 » → [1, 10, 20, 21, 22] ; vide → null (tous les VLAN). */
 function parseVlanList(text: string): number[] | null | undefined {
@@ -36,8 +37,8 @@ function PortRow({ device, port }: { device: SwitchDevice; port: NetInterface })
           data-testid="vlan-mode"
           onChange={(e) => set({ mode: e.target.value as 'access' | 'trunk' })}
         >
-          <option value="access">Accès</option>
-          <option value="trunk">Trunk 802.1Q</option>
+          <option value="access">{t('win.acces')}</option>
+          <option value="trunk">{t('win.trunk8021q')}</option>
         </select>
       </td>
       <td className="py-1">
@@ -58,7 +59,7 @@ function PortRow({ device, port }: { device: SwitchDevice; port: NetInterface })
           <select
             className={inputClass}
             value={config.nativeVlan}
-            title="VLAN natif (non étiqueté)"
+            title={t('win.vlanNatifNonEtiquete')}
             onChange={(e) => set({ mode: 'trunk', nativeVlan: Number(e.target.value) })}
           >
             {device.vlans.map((v) => (
@@ -75,7 +76,7 @@ function PortRow({ device, port }: { device: SwitchDevice; port: NetInterface })
             className={inputClass}
             placeholder="tous"
             value={allowed}
-            title="VLAN autorisés : 1,10,20-30 (vide : tous)"
+            title={t('win.vlanAutorises110')}
             onChange={(e) => setAllowed(e.target.value)}
             onBlur={() => {
               const list = parseVlanList(allowed)
@@ -123,13 +124,13 @@ export function VlanPanel({ device }: { device: SwitchDevice }) {
 
   return (
     <>
-      <Section title="Base des VLAN">
+      <Section title={t('win.baseDesVlan')}>
         <table className="mb-3 w-full max-w-xl text-xs" data-testid="vlan-db">
           <thead className="text-left text-fg-muted">
             <tr>
               <th className="py-1">VLAN</th>
-              <th className="py-1">Nom</th>
-              <th className="py-1">Ports d’accès</th>
+              <th className="py-1">{t('win.nom')}</th>
+              <th className="py-1">{t('win.portsDacces')}</th>
               <th />
             </tr>
           </thead>
@@ -144,7 +145,7 @@ export function VlanPanel({ device }: { device: SwitchDevice }) {
                     <button
                       type="button"
                       className="rounded p-1 text-fg-subtle hover:bg-danger-soft hover:text-danger"
-                      title="Supprimer le VLAN"
+                      title={t('win.supprimerLeVlan')}
                       onClick={() => runCommand(command('net.removeVlan', device.id, v.id))}
                     >
                       <Trash2 size={13} />
@@ -158,14 +159,14 @@ export function VlanPanel({ device }: { device: SwitchDevice }) {
         <div className="grid max-w-xl grid-cols-[120px_1fr_auto] items-end gap-2">
           <input
             className={inputClass}
-            placeholder="Numéro (10)"
+            placeholder={t('win.numero10')}
             value={id}
             data-testid="vlan-new-id"
             onChange={(e) => setId(e.target.value)}
           />
           <input
             className={inputClass}
-            placeholder="Nom (Compta)"
+            placeholder={t('win.nomCompta')}
             value={name}
             data-testid="vlan-new-name"
             onChange={(e) => setName(e.target.value)}
@@ -175,14 +176,14 @@ export function VlanPanel({ device }: { device: SwitchDevice }) {
           </Button>
         </div>
       </Section>
-      <Section title="Ports">
+      <Section title={t('win.ports')}>
         <table className="w-full max-w-2xl text-xs">
           <thead className="text-left text-fg-muted">
             <tr>
-              <th className="py-1">Port</th>
-              <th className="py-1">Mode</th>
+              <th className="py-1">{t('win.port')}</th>
+              <th className="py-1">{t('win.mode')}</th>
               <th className="py-1">VLAN</th>
-              <th className="py-1">VLAN autorisés (trunk)</th>
+              <th className="py-1">{t('win.vlanAutorisesTrunk')}</th>
             </tr>
           </thead>
           <tbody>
@@ -195,10 +196,7 @@ export function VlanPanel({ device }: { device: SwitchDevice }) {
             ))}
           </tbody>
         </table>
-        <p className="mt-2 text-xs text-fg-muted">
-          Un port d’accès transmet les trames de son VLAN sans étiquette ; un trunk transporte plusieurs VLAN,
-          étiquetés 802.1Q, sauf le VLAN natif.
-        </p>
+        <p className="mt-2 text-xs text-fg-muted">{t('win.vlanHelp')}</p>
       </Section>
     </>
   )

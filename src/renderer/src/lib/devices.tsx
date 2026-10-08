@@ -2,7 +2,8 @@
  * Apparence des équipements (icônes lucide, couleurs) — purement visuel.
  */
 import { Cloud, Monitor, Network, Router, Server, SquareTerminal, type LucideIcon } from 'lucide-react'
-import { DEVICE_KIND_INFO, type Device, type DeviceKind } from '@engine/index'
+import type { Device, DeviceKind } from '@engine/index'
+import { t } from './i18n'
 
 /** Entrée de la palette : un type d'équipement, ou le poste Linux (poste client Ubuntu simulé). */
 export type PaletteKind = DeviceKind | 'linux'
@@ -15,17 +16,17 @@ export function paletteParams(kind: PaletteKind): { kind: DeviceKind; os?: 'linu
   return kind === 'linux' ? { kind: 'client', os: 'linux' } : { kind }
 }
 
-export const LINUX_INFO = {
-  label: 'Poste Linux',
-  description: 'Poste Ubuntu avec console bash (ip, dig, realm, mount cifs)',
-  model: 'Ubuntu 22.04 (simulé) · 1 carte'
-}
+/** Entrée de la palette correspondant à un équipement (poste Linux distingué). */
+export const paletteKind = (device: Device): PaletteKind => (isLinux(device) ? 'linux' : device.kind)
 
-/** Libellé d'une entrée de la palette ou d'un équipement. */
-export const paletteLabel = (kind: PaletteKind): string =>
-  kind === 'linux' ? LINUX_INFO.label : DEVICE_KIND_INFO[kind].label
-export const deviceLabel = (device: Device): string =>
-  isLinux(device) ? LINUX_INFO.label : DEVICE_KIND_INFO[device.kind].label
+/**
+ * Libellé, description (infobulle, recherche) et modèle d'une entrée de la palette, dans la langue
+ * de l'interface (à appeler au rendu d'un composant abonné à la langue : useT).
+ */
+export const paletteLabel = (kind: PaletteKind): string => t(`device.${kind}.label`)
+export const paletteDescription = (kind: PaletteKind): string => t(`device.${kind}.description`)
+export const paletteModel = (kind: PaletteKind): string => t(`device.${kind}.model`)
+export const deviceLabel = (device: Device): string => paletteLabel(paletteKind(device))
 
 export const DEVICE_ICONS: Record<PaletteKind, LucideIcon> = {
   server: Server,
@@ -37,8 +38,7 @@ export const DEVICE_ICONS: Record<PaletteKind, LucideIcon> = {
 }
 
 /** Icône d'un équipement (poste Linux distingué). */
-export const deviceIcon = (device: Device): LucideIcon =>
-  DEVICE_ICONS[isLinux(device) ? 'linux' : device.kind]
+export const deviceIcon = (device: Device): LucideIcon => DEVICE_ICONS[paletteKind(device)]
 
 /** Liseré de catégorie des nœuds du canvas. */
 export const KIND_STRIPE: Record<PaletteKind, string> = {

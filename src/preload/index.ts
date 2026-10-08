@@ -5,7 +5,9 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import {
   IPC,
+  LANG_ARG_PREFIX,
   THEME_ARG_PREFIX,
+  type Lang,
   type MenuCommandMessage,
   type OpenedFile,
   type ServerLabApi,
@@ -27,10 +29,17 @@ function readInitialTheme(): Theme {
   return arg?.slice(THEME_ARG_PREFIX.length) === 'light' ? 'light' : 'dark'
 }
 
+/** Langue transmise par le main en argument du process renderer (français par défaut). */
+function readInitialLanguage(): Lang {
+  const arg = process.argv.find((a) => a.startsWith(LANG_ARG_PREFIX))
+  return arg?.slice(LANG_ARG_PREFIX.length) === 'en' ? 'en' : 'fr'
+}
+
 const api: ServerLabApi = {
   appInfo: () => ipcRenderer.invoke(IPC.appInfo),
   initialTheme: readInitialTheme(),
   setTheme: (theme) => ipcRenderer.send(IPC.themeSet, theme),
+  initialLanguage: readInitialLanguage(),
   setMenuState: (state) => ipcRenderer.send(IPC.menuState, state),
   onMenuCommand: (cb) => subscribe<MenuCommandMessage>(IPC.menuCommand, cb),
 

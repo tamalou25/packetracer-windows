@@ -7,6 +7,8 @@ import {
   accelerator,
   formatShortcut,
   SHORTCUT_GROUPS,
+  shortcutGroupLabel,
+  shortcutLabel,
   SHORTCUTS,
   type Shortcut
 } from '../../src/shared/shortcuts'
@@ -43,11 +45,16 @@ describe('raccourcis clavier', () => {
     }
   })
 
-  it('format français et accélérateur du menu', () => {
-    expect(formatShortcut('CmdOrCtrl+Shift+S')).toBe('Ctrl+Maj+S')
-    expect(formatShortcut('Delete')).toBe('Suppr')
-    expect(formatShortcut('Escape')).toBe('Échap')
-    expect(formatShortcut('F6')).toBe('F6')
+  it('format selon la langue et accélérateur du menu', () => {
+    expect(formatShortcut('CmdOrCtrl+Shift+S', 'fr')).toBe('Ctrl+Maj+S')
+    expect(formatShortcut('Delete', 'fr')).toBe('Suppr')
+    expect(formatShortcut('Escape', 'fr')).toBe('Échap')
+    expect(formatShortcut('F6', 'fr')).toBe('F6')
+    expect(formatShortcut('CmdOrCtrl+Shift+S', 'en')).toBe('Ctrl+Shift+S')
+    expect(formatShortcut('Delete', 'en')).toBe('Del')
+    expect(shortcutLabel('toolCable', 'fr')).toBe('Outil Câble')
+    expect(shortcutLabel('toolCable', 'en')).toBe('Cable tool')
+    expect(shortcutGroupLabel('tools', 'en')).toBe('Canvas tools')
     expect(accelerator('redo')).toBe('CmdOrCtrl+Y')
     expect(SHORTCUTS.redo.keys).toContain('CmdOrCtrl+Shift+Z')
   })

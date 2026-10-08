@@ -6,11 +6,30 @@ import { CircleAlert, Info, TriangleAlert } from 'lucide-react'
 import type { HostDevice } from '@engine/index'
 import { formatSimTime } from '../../../lib/format'
 import { Section } from '../../common/ui'
+import { t } from '../../../lib/i18n'
 
 const LEVELS = {
-  information: { label: 'Information', icon: Info, cls: 'text-info' },
-  warning: { label: 'Avertissement', icon: TriangleAlert, cls: 'text-warn' },
-  error: { label: 'Erreur', icon: CircleAlert, cls: 'text-danger' }
+  information: {
+    get label() {
+      return t('level.information')
+    },
+    icon: Info,
+    cls: 'text-info'
+  },
+  warning: {
+    get label() {
+      return t('level.warning')
+    },
+    icon: TriangleAlert,
+    cls: 'text-warn'
+  },
+  error: {
+    get label() {
+      return t('level.error')
+    },
+    icon: CircleAlert,
+    cls: 'text-danger'
+  }
 } as const
 
 export function EventLogView({ device }: { device: HostDevice }) {
@@ -18,15 +37,15 @@ export function EventLogView({ device }: { device: HostDevice }) {
   const [selected, setSelected] = useState<number | null>(entries[0]?.id ?? null)
   const current = entries.find((e) => e.id === selected)
   return (
-    <Section title={`Observateur d’événements — ${entries.length} événement(s)`}>
+    <Section title={t('win.events', { count: entries.length })}>
       <div className="max-h-64 overflow-y-auto rounded border border-line">
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-surface-2 text-left text-fg-muted">
             <tr>
-              <th className="px-2 py-1 font-medium">Niveau</th>
-              <th className="px-2 py-1 font-medium">Date et heure</th>
-              <th className="px-2 py-1 font-medium">Journal</th>
-              <th className="px-2 py-1 font-medium">Source</th>
+              <th className="px-2 py-1 font-medium">{t('win.niveau')}</th>
+              <th className="px-2 py-1 font-medium">{t('win.dateEtHeure')}</th>
+              <th className="px-2 py-1 font-medium">{t('win.journal')}</th>
+              <th className="px-2 py-1 font-medium">{t('win.source')}</th>
               <th className="px-2 py-1 font-medium">ID</th>
             </tr>
           </thead>
@@ -34,7 +53,7 @@ export function EventLogView({ device }: { device: HostDevice }) {
             {entries.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-2 py-3 text-fg-subtle">
-                  Aucun événement.
+                  {t('win.aucunEvenement')}
                 </td>
               </tr>
             )}

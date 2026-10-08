@@ -8,6 +8,7 @@ import { formatDuration, remainingMs, type ExamResult } from '@engine/index'
 import { exportExamResult } from '../../lib/exam'
 import { useExamStore } from '../../store/exam'
 import { Button } from '../common/ui'
+import { t } from '../../lib/i18n'
 
 /** « 19:59 » */
 const clock = (ms: number) => {
@@ -29,7 +30,7 @@ export function ExamBanner() {
     <div className="border-b border-line bg-accent-soft px-4 py-2" data-testid="exam-banner">
       <div className="flex items-center gap-2">
         <Timer size={16} className={left < 5 * 60_000 ? 'text-danger' : 'text-accent'} />
-        <span className="text-[12px] font-semibold text-fg">Examen en cours</span>
+        <span className="text-[12px] font-semibold text-fg">{t('lab.examenEnCours')}</span>
         <span
           className={`ml-auto font-mono text-base font-semibold ${left < 5 * 60_000 ? 'text-danger' : 'text-fg'}`}
           data-testid="exam-timer"
@@ -38,23 +39,35 @@ export function ExamBanner() {
         </span>
       </div>
       <p className="mt-0.5 text-[11px] text-fg-muted">
-        Indices désactivés · vérification finale unique
-        {exits > 0 ? ` · ${exits} sortie(s) de l’application signalée(s)` : ''}
+        {t('lab.indicesDesactivesVerificationFinale')}
+        {exits > 0 ? t('exam.exits', { count: exits }) : ''}
       </p>
     </div>
   )
 }
 
 const ENDINGS: Record<ExamResult['ending'], string> = {
-  finish: 'Terminé par le candidat',
-  timeout: 'Temps écoulé',
-  abandon: 'Abandonné avant la fin'
+  get finish() {
+    return t('exam.end.finish')
+  },
+  get timeout() {
+    return t('exam.timeout')
+  },
+  get abandon() {
+    return t('exam.end.abandon')
+  }
 }
 
 const EXITS: Partial<Record<ExamResult['exits'][number]['type'], string>> = {
-  leave: 'Application quittée',
-  abandon: 'Examen abandonné',
-  timeout: 'Temps écoulé'
+  get leave() {
+    return t('exam.exit.leave')
+  },
+  get abandon() {
+    return t('exam.exit.abandon')
+  },
+  get timeout() {
+    return t('exam.timeout')
+  }
 }
 
 export function ExamResultPanel({ result }: { result: ExamResult }) {
@@ -65,7 +78,7 @@ export function ExamResultPanel({ result }: { result: ExamResult }) {
       <div className="flex items-start gap-2 border-b border-line px-4 py-3">
         <div className="min-w-0">
           <div className="text-[11px] font-semibold tracking-wider text-fg-subtle uppercase">
-            Résultat de l’examen
+            {t('lab.resultatDeLexamen')}
           </div>
           <h2 className="text-sm font-semibold text-fg">{result.labTitle}</h2>
         </div>
@@ -73,7 +86,7 @@ export function ExamResultPanel({ result }: { result: ExamResult }) {
           type="button"
           onClick={() => useExamStore.getState().set({ result: null })}
           className="ml-auto rounded p-1 text-fg-subtle hover:bg-surface-2 hover:text-fg"
-          aria-label="Fermer le résultat"
+          aria-label={t('lab.fermerLeResultat')}
           data-testid="exam-close"
         >
           <X size={14} />
@@ -85,15 +98,15 @@ export function ExamResultPanel({ result }: { result: ExamResult }) {
           <span className="text-sm text-fg-subtle"> / 20</span>
         </div>
         <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[12px]">
-          <dt className="text-fg-subtle">Critères</dt>
+          <dt className="text-fg-subtle">{t('lab.criteres')}</dt>
           <dd className="text-fg">
             {result.passed} / {result.total} validé(s)
           </dd>
-          <dt className="text-fg-subtle">Durée</dt>
+          <dt className="text-fg-subtle">{t('lab.duree')}</dt>
           <dd className="text-fg">
             {formatDuration(result.elapsedMs)} sur {result.minutes} min
           </dd>
-          <dt className="text-fg-subtle">Fin</dt>
+          <dt className="text-fg-subtle">{t('lab.fin')}</dt>
           <dd className="text-fg" data-testid="exam-ending">
             {ENDINGS[result.ending]}
           </dd>
@@ -112,7 +125,7 @@ export function ExamResultPanel({ result }: { result: ExamResult }) {
         </ul>
         <div className="mt-3" data-testid="exam-exits">
           {result.exits.length === 0 ? (
-            <p className="text-[12px] text-fg-muted">Aucune sortie du mode examen.</p>
+            <p className="text-[12px] text-fg-muted">{t('lab.aucuneSortieDuMode')}</p>
           ) : (
             <>
               <p className="flex items-center gap-1 text-[12px] font-semibold text-warn">

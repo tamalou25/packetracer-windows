@@ -92,9 +92,13 @@ export function historyLabels(history: History): { undo: string | null; redo: st
 /** Longueur maximale d'un libellé dans le menu Édition. */
 export const MENU_LABEL_MAX = 60
 
+/** Libellé de commande tronqué pour le menu Édition (« … » final au-delà de `max` caractères). */
+export function truncateMenuLabel(label: string, max = MENU_LABEL_MAX): string {
+  return label.length > max ? `${label.slice(0, max - 1).trimEnd()}…` : label
+}
+
 /** Libellé d'un élément de menu : « Annuler : Ajouter SRV1 », tronqué au besoin. */
 export function menuLabel(action: string, label: string | null, max = MENU_LABEL_MAX): string {
   if (!label) return action
-  const text = label.length > max ? `${label.slice(0, max - 1).trimEnd()}…` : label
-  return `${action} : ${text}`
+  return `${action} : ${truncateMenuLabel(label, max)}`
 }

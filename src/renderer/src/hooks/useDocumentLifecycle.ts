@@ -3,7 +3,14 @@
  * ouverture depuis l'extérieur et enregistrement avant fermeture.
  */
 import { useEffect } from 'react'
-import { openExternalDocument, saveDocument, serializeCurrent, startupDocument } from '../lib/document'
+import {
+  displayName,
+  openExternalDocument,
+  saveDocument,
+  serializeCurrent,
+  startupDocument
+} from '../lib/document'
+import { useT } from '../lib/i18n'
 import { useLabStore } from '../store/lab'
 import { useUiStore } from '../store/ui'
 
@@ -11,13 +18,17 @@ export const AUTOSAVE_INTERVAL_MS = 60_000
 
 export function useDocumentLifecycle(): void {
   const fileName = useLabStore((s) => s.fileName)
+  const filePath = useLabStore((s) => s.filePath)
   const dirty = useLabStore((s) => s.dirty)
+  // Nom par défaut traduit (« Sans titre », « Untitled ») : recalculé au changement de langue
+  const { lang } = useT()
+  const name = displayName(fileName, filePath)
 
   // Titre de la fenêtre + état transmis au main (confirmation à la fermeture)
   useEffect(() => {
-    document.title = `${fileName}${dirty ? ' *' : ''} — ServerLab`
-    window.serverlab?.setDocumentState({ name: fileName, dirty })
-  }, [fileName, dirty])
+    document.title = `${name}${dirty ? ' *' : ''} — ServerLab`
+    window.serverlab?.setDocumentState({ name, dirty })
+  }, [name, dirty, lang])
 
   useEffect(() => {
     const api = window.serverlab

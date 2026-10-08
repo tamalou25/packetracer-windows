@@ -2,8 +2,9 @@
  * Fichiers récents : logique pure partagée par le process principal (liste enregistrée dans
  * recent.json) et l'écran d'accueil (affichage du nom, du dossier et de la date d'ouverture).
  */
+import { translate } from './i18n'
 import { MAX_RECENT } from './persisted'
-import type { RecentFile } from './ipc'
+import type { Lang, RecentFile } from './ipc'
 
 /** Nom du fichier et dossier qui le contient, pour un chemin Windows ou Linux. */
 export function splitPath(path: string): { name: string; folder: string } {
@@ -15,8 +16,11 @@ export function splitPath(path: string): { name: string; folder: string } {
   return { name: path.slice(i + 1), folder }
 }
 
-const TIME = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' })
-const DAY = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+/** Formats de l'heure et du jour (24 h dans les deux langues). */
+const LOCALE: Record<Lang, string> = { fr: 'fr-FR', en: 'en-GB' }
+const TIME = (lang: Lang) => new Intl.DateTimeFormat(LOCALE[lang], { hour: '2-digit', minute: '2-digit' })
+const DAY = (lang: Lang) =>
+  new Intl.DateTimeFormat(LOCALE[lang], { day: 'numeric', month: 'short', year: 'numeric' })
 
 function sameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
@@ -24,15 +28,16 @@ function sameDay(a: Date, b: Date): boolean {
 
 /**
  * Date de dernière ouverture, en heure locale : « Aujourd’hui, 14:05 », « Hier, 09:12 » ou
- * « 3 oct. 2026 ». Date illisible : chaîne vide.
+ * « 3 oct. 2026 » (en anglais : « Today, 14:05 », « 3 Oct 2026 »). Date illisible : chaîne vide.
  */
-export function formatOpenedAt(iso: string, now: Date): string {
+export function formatOpenedAt(iso: string, now: Date, lang: Lang): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return ''
   const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
-  if (sameDay(date, now)) return `Aujourd’hui, ${TIME.format(date)}`
-  if (sameDay(date, yesterday)) return `Hier, ${TIME.format(date)}`
-  return DAY.format(date)
+  const time = TIME(lang).format(date)
+  if (sameDay(date, now)) return translate(lang, 'recent.today', { time })
+  if (sameDay(date, yesterday)) return translate(lang, 'recent.yesterday', { time })
+  return DAY(lang).format(date)
 }
 
 /**

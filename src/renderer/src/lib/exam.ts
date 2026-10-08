@@ -20,6 +20,7 @@ import { useLabStore } from '../store/lab'
 import { useLabsStore } from '../store/labs'
 import { useUiStore } from '../store/ui'
 import { resetDocumentUi } from './document'
+import { t } from './i18n'
 
 /** Propose de démarrer l'examen sur le lab en cours (départ reconstruit). */
 export function askStartExam(): void {
@@ -27,9 +28,9 @@ export function askStartExam(): void {
   if (!lab) return
   const minutes = durationMinutes(lab.duration)
   useUiStore.getState().showModal({
-    title: 'Démarrer l’examen',
-    message: `Le lab repart de son état de départ (les modifications en cours sont perdues). Vous disposez de ${minutes} min ; les indices sont désactivés et la vérification finale est unique. Toute sortie de l’application est signalée dans le résultat.`,
-    confirmLabel: 'Démarrer',
+    title: t('exam.start.title'),
+    message: t('exam.start.message', { minutes }),
+    confirmLabel: t('exam.start.confirm'),
     onConfirm: () => {
       resetDocumentUi()
       useLabStore.getState().load(buildLabStart(lab.start), { path: null, name: `${lab.id}.slab` })
@@ -61,9 +62,9 @@ export function endExam(
 
 export function askFinishExam(): void {
   useUiStore.getState().showModal({
-    title: 'Terminer l’examen',
-    message: 'La vérification finale est unique : vos réponses ne pourront plus être modifiées.',
-    confirmLabel: 'Terminer',
+    title: t('exam.finish.title'),
+    message: t('exam.finish.message'),
+    confirmLabel: t('exam.finish.confirm'),
     onConfirm: () => endExam('finish')
   })
 }
@@ -76,12 +77,12 @@ export async function exportExamResult(): Promise<void> {
   if (!result) return
   const res = await window.serverlab.exportExamResult(
     examResultText(result, formatTime),
-    `Examen - ${result.labId}`
+    t('exam.exportName', { lab: result.labId })
   )
   const ui = useUiStore.getState()
-  if (res.ok) ui.notify('success', `Résultat enregistré : ${res.value}`)
+  if (res.ok) ui.notify('success', t('exam.exported', { path: res.value }))
   else if (!res.canceled)
-    ui.showModal({ title: 'Export impossible', message: res.error ?? 'Erreur inconnue.' })
+    ui.showModal({ title: t('exam.exportFailed'), message: res.error ?? t('error.unknown') })
 }
 
 /**

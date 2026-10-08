@@ -3,17 +3,26 @@
  * `shared/shortcuts.ts`, d'où le menu natif tire aussi ses accélérateurs).
  */
 import { X } from 'lucide-react'
-import { formatShortcut, SHORTCUT_GROUPS, SHORTCUTS, type Shortcut } from '@shared/shortcuts'
+import {
+  formatShortcut,
+  SHORTCUT_GROUPS,
+  shortcutGroupLabel,
+  shortcutLabel,
+  SHORTCUTS,
+  type ShortcutId
+} from '@shared/shortcuts'
+import { rich, useT } from '../../lib/i18n'
 import { useUiStore } from '../../store/ui'
 
 /** Raccourcis groupés, dans l'ordre de l'aide (catalogue partagé avec le menu natif). */
 const SHORTCUT_ROWS = SHORTCUT_GROUPS.map((group) => ({
   group,
-  rows: (Object.values(SHORTCUTS) as Shortcut[]).filter((s) => s.group === group)
+  rows: (Object.keys(SHORTCUTS) as ShortcutId[]).filter((id) => SHORTCUTS[id].group === group)
 }))
 
 export function HelpPanel() {
   const panel = useUiStore((s) => s.helpPanel)
+  const { lang, t } = useT()
   const close = () => useUiStore.getState().setHelpPanel(null)
   if (!panel) return null
   return (
@@ -24,13 +33,13 @@ export function HelpPanel() {
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-fg">
-            {panel === 'guide' ? 'Guide de démarrage' : 'Raccourcis clavier'}
+            {panel === 'guide' ? t('help.guide.title') : t('help.shortcuts.title')}
           </h2>
           <button
             type="button"
             onClick={close}
             className="rounded p-1 text-fg-muted hover:bg-surface-2 hover:text-fg"
-            title="Fermer"
+            title={t('common.close')}
           >
             <X size={18} />
           </button>
@@ -44,15 +53,17 @@ export function HelpPanel() {
                     colSpan={2}
                     className="pt-3 pb-1 text-left text-xs font-semibold text-fg-subtle uppercase"
                   >
-                    {group}
+                    {shortcutGroupLabel(group, lang)}
                   </th>
                 </tr>
-                {rows.map((shortcut) => (
-                  <tr key={shortcut.label} className="border-b border-line">
+                {rows.map((id) => (
+                  <tr key={id} className="border-b border-line">
                     <td className="py-1.5 pr-4 font-mono text-xs whitespace-nowrap text-fg-muted">
-                      {shortcut.keys.map(formatShortcut).join(' ou ')}
+                      {SHORTCUTS[id].keys
+                        .map((key) => formatShortcut(key, lang))
+                        .join(` ${t('shortcut.or')} `)}
                     </td>
-                    <td className="py-1.5 text-fg">{shortcut.label}</td>
+                    <td className="py-1.5 text-fg">{shortcutLabel(id, lang)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -60,29 +71,18 @@ export function HelpPanel() {
           </table>
         ) : (
           <ol className="flex list-decimal flex-col gap-2 pl-5 text-[13px] text-fg">
-            <li>Glissez des équipements depuis la palette (à gauche) vers le canvas.</li>
+            <li>{t('help.guide.1')}</li>
+            <li>{t('help.guide.2')}</li>
             <li>
-              Choisissez l’outil « Câble », cliquez sur un équipement, choisissez un port, puis faites de même
-              sur le second.
+              {rich(t('help.guide.3'), {
+                green: <b className="text-ok">{t('help.guide.green')}</b>,
+                orange: <b className="text-warn">{t('help.guide.orange')}</b>,
+                red: <b className="text-danger">{t('help.guide.red')}</b>
+              })}
             </li>
-            <li>
-              Les voyants indiquent l’état du lien : <b className="text-ok">vert</b> actif,{' '}
-              <b className="text-warn">orange</b> adressage incomplet, <b className="text-danger">rouge</b>{' '}
-              inactif.
-            </li>
-            <li>
-              Double-cliquez sur un équipement pour ouvrir sa fenêtre : l’onglet Config permet de régler
-              l’adressage IP de chaque carte et, pour un routeur, ses routes statiques.
-            </li>
-            <li>
-              L’outil « PDU simple » envoie un ping d’un équipement à un autre. En mode Simulation (Ctrl+2),
-              les trames (ARP, ICMP…) sont rejouées pas à pas : cliquez sur un événement pour voir le détail
-              de chaque couche.
-            </li>
-            <li>
-              Enregistrez votre lab au format .slab (Fichier &gt; Enregistrer). Une copie de récupération est
-              faite toutes les 60 s.
-            </li>
+            <li>{t('help.guide.4')}</li>
+            <li>{t('help.guide.5')}</li>
+            <li>{t('help.guide.6')}</li>
           </ol>
         )}
       </div>

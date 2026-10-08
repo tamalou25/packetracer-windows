@@ -7,6 +7,7 @@ import { terminalKey, useConsoleStore } from '../../store/console'
 import { useLabStore } from '../../store/lab'
 import { cancelConsoleInput, ensureTerminal, promptOf, submitConsoleInput } from '../../lib/console'
 import { redo, undo } from '../../lib/editing'
+import { t } from '../../lib/i18n'
 
 interface TerminalProps {
   deviceId: string
@@ -165,7 +166,7 @@ export function Terminal({ deviceId, kind, autoFocus }: TerminalProps) {
         </div>
       ))}
       {term.busy ? (
-        <div className="text-cyan-300">… simulation en cours (panneau Simulation : Avancer / Lecture)</div>
+        <div className="text-cyan-300">{t('console.simulationEnCoursPanneau')}</div>
       ) : (
         <div className="flex">
           <span className="whitespace-pre">{promptText}</span>

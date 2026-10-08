@@ -194,6 +194,12 @@ La palette propose un **Poste Linux** (Ubuntu simulé) avec une console bash : `
 aux partages selon les autorisations NTFS du compte. Les sorties reprennent le format d'origine des outils
 (en anglais).
 
+## Langue
+
+Affichage › Langue : **langue du système** (par défaut), Français ou English. Menus, dialogues et interface
+de l'application sont traduits ; le serveur simulé (Bureau, consoles, messages) reste installé en français,
+comme le contenu des labs.
+
 ## Audit de sécurité
 
 L'onglet **Audit** du panneau latéral note la sécurité du lab sur 100 et liste les recommandations par
