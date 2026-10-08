@@ -11,6 +11,7 @@ import { useLabsStore } from '../../store/labs'
 import { Button } from '../common/ui'
 import { DifficultyBadge } from './DifficultyBadge'
 import { LibraryList } from './LibraryList'
+import { rich, t } from '../../lib/i18n'
 
 export function LabPicker() {
   const open = useLabsStore((s) => s.pickerOpen)
@@ -35,12 +36,12 @@ export function LabPicker() {
       >
         <div className="flex items-center gap-2 border-b border-line px-5 py-3">
           <GraduationCap size={18} className="text-accent" />
-          <h2 className="text-base font-semibold text-fg">Ouvrir un lab</h2>
+          <h2 className="text-base font-semibold text-fg">{t('lab.ouvrirUnLab')}</h2>
           <button
             type="button"
             onClick={close}
             className="ml-auto rounded p-1 text-fg-subtle hover:bg-surface-2 hover:text-fg"
-            aria-label="Fermer"
+            aria-label={t('lab.fermer')}
           >
             <X size={16} />
           </button>
@@ -48,8 +49,8 @@ export function LabPicker() {
         <div className="flex border-b border-line px-5" role="tablist">
           {(
             [
-              ['builtin', 'Labs fournis'],
-              ['library', 'Bibliothèque']
+              ['builtin', t('lab.tab.builtin')],
+              ['library', t('lab.tab.library')]
             ] as const
           ).map(([id, label]) => (
             <button
@@ -72,10 +73,7 @@ export function LabPicker() {
         ) : (
           <>
             <p className="px-5 pt-3 text-[13px] text-fg-muted">
-              Chaque lab part d’une topologie prête à l’emploi. Réalisez les tâches de l’énoncé, puis cliquez
-              sur
-              <strong className="text-fg"> Vérifier</strong> dans l’onglet Lab : chaque objectif est validé,
-              avec un indice en cas d’échec.
+              {rich(t('lab.pickerHelp'), { check: <strong className="text-fg">{t('lab.verifier')}</strong> })}
             </p>
             <ul className="min-h-0 flex-1 overflow-y-auto p-5">
               {LABS.map((lab, i) => (

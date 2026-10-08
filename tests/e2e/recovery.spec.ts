@@ -11,7 +11,7 @@ function profileWithRecovery(content: string): { userData: string; recovery: str
   const userData = mkdtempSync(join(tmpdir(), 'serverlab-e2e-'))
   writeFileSync(
     join(userData, 'settings.json'),
-    JSON.stringify({ showHomeOnStartup: false, showTutorialOnStartup: false })
+    JSON.stringify({ language: 'fr', showHomeOnStartup: false, showTutorialOnStartup: false })
   )
   mkdirSync(join(userData, 'autosave'))
   const recovery = join(userData, 'autosave', 'recovery.slab')

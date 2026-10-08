@@ -7,6 +7,7 @@ import { Trash2 } from 'lucide-react'
 import { command, toCidr, type RouterDevice } from '@engine/index'
 import { runCommand } from '../../../lib/run'
 import { Button, Section, inputClass } from '../../common/ui'
+import { t } from '../../../lib/i18n'
 
 export function SubinterfacesPanel({ device }: { device: RouterDevice }) {
   const physical = device.interfaces.filter((i) => !i.subinterface)
@@ -19,13 +20,13 @@ export function SubinterfacesPanel({ device }: { device: RouterDevice }) {
   }
 
   return (
-    <Section title="Sous-interfaces 802.1Q">
+    <Section title={t('win.sousInterfaces8021q')}>
       <table className="mb-3 w-full max-w-xl text-xs" data-testid="subif-list">
         <thead className="text-left text-fg-muted">
           <tr>
-            <th className="py-1">Interface</th>
-            <th className="py-1">Encapsulation</th>
-            <th className="py-1">Adresse</th>
+            <th className="py-1">{t('win.interface')}</th>
+            <th className="py-1">{t('win.encapsulation')}</th>
+            <th className="py-1">{t('win.adresse')}</th>
             <th />
           </tr>
         </thead>
@@ -33,7 +34,7 @@ export function SubinterfacesPanel({ device }: { device: RouterDevice }) {
           {subs.length === 0 && (
             <tr>
               <td colSpan={4} className="py-2 text-fg-subtle">
-                Aucune sous-interface.
+                {t('win.aucuneSousInterface')}
               </td>
             </tr>
           )}
@@ -48,7 +49,7 @@ export function SubinterfacesPanel({ device }: { device: RouterDevice }) {
                 <button
                   type="button"
                   className="rounded p-1 text-fg-subtle hover:bg-danger-soft hover:text-danger"
-                  title="Supprimer la sous-interface"
+                  title={t('win.supprimerLaSousInterface')}
                   onClick={() => runCommand(command('net.removeSubinterface', device.id, i.id))}
                 >
                   <Trash2 size={13} />
@@ -68,7 +69,7 @@ export function SubinterfacesPanel({ device }: { device: RouterDevice }) {
         </select>
         <input
           className={inputClass}
-          placeholder="VLAN (10)"
+          placeholder={t('win.vlan10')}
           value={vlan}
           data-testid="subif-vlan"
           onChange={(e) => setVlan(e.target.value)}

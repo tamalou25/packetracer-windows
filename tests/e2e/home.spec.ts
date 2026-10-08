@@ -72,7 +72,7 @@ test('récents : fichier introuvable signalé puis retiré, fichier existant ouv
   const missing = join(folder, 'disparu.slab')
   writeLab(existing)
   // Tutoriel désactivé : seul l'écran d'accueil est vérifié ici
-  writeFileSync(join(userData, 'settings.json'), '{ "showTutorialOnStartup": false }')
+  writeFileSync(join(userData, 'settings.json'), '{ "language": "fr", "showTutorialOnStartup": false }')
   const now = Date.now()
   writeFileSync(
     join(userData, 'recent.json'),

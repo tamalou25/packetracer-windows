@@ -10,6 +10,7 @@ import { useLabsStore } from '../../store/labs'
 import { Button } from '../common/ui'
 import { ExamBanner } from './Exam'
 import { Markdown } from './Markdown'
+import { t } from '../../lib/i18n'
 
 const DIFFICULTY_CLASS: Record<string, string> = {
   Débutant: 'bg-ok-soft text-ok',
@@ -46,8 +47,8 @@ export function LabPanel() {
             type="button"
             onClick={() => useLabsStore.getState().setActive(null)}
             className="ml-auto rounded p-1 text-fg-subtle hover:bg-surface-2 hover:text-fg"
-            title="Quitter le lab (le document est conservé)"
-            aria-label="Quitter le lab"
+            title={t('lab.quitterLeLabLe')}
+            aria-label={t('lab.quitterLeLab')}
             data-testid="lab-quit"
           >
             <X size={14} />
@@ -94,7 +95,9 @@ export function LabPanel() {
       <div className="border-t border-line px-4 py-3">
         <div className="mb-2 flex items-center justify-between text-[12px] text-fg-muted">
           <span data-testid="lab-score">
-            {progress ? `${progress.passed} / ${progress.total} critère(s) validé(s)` : 'Pas encore vérifié'}
+            {progress
+              ? t('lab.progress', { passed: progress.passed, total: progress.total })
+              : t('lab.notChecked')}
           </span>
           <span className="font-mono">{progress ? `${percent} %` : ''}</span>
         </div>
@@ -116,15 +119,11 @@ export function LabPanel() {
             <Button
               onClick={askStartExam}
               data-testid="exam-start"
-              title="Mode examen : chronomètre, sans indice"
+              title={t('lab.modeExamenChronometreSans')}
             >
               <Timer size={14} /> Examen
             </Button>
-            <Button
-              onClick={restartLab}
-              data-testid="lab-restart"
-              title="Recommencer depuis l’état de départ"
-            >
+            <Button onClick={restartLab} data-testid="lab-restart" title={t('lab.recommencerDepuisLetatDe')}>
               <RotateCcw size={14} />
             </Button>
           </div>
@@ -142,7 +141,7 @@ function Hints({ id, levels }: { id: string; levels: string[] }) {
     <div className="mt-0.5 flex flex-col gap-0.5 text-[12px] text-warn" data-testid={`lab-hint-${id}`}>
       {shown.map((hint, i) => (
         <div key={i}>
-          {shown.length > 1 ? `Indice ${i + 1} : ` : 'Indice : '}
+          {shown.length > 1 ? t('lab.hintN', { n: i + 1 }) : t('lab.hint')}
           {hint}
         </div>
       ))}

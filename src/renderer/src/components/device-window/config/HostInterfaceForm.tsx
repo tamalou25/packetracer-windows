@@ -8,6 +8,7 @@ import { runNetworkOperation } from '../../../lib/network'
 import { useLabStore } from '../../../store/lab'
 import { useUiStore } from '../../../store/ui'
 import { Button, Section, inputClass } from '../../common/ui'
+import { t } from '../../../lib/i18n'
 
 interface FormState {
   addressing: 'static' | 'dhcp'
@@ -60,8 +61,8 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
       useLabStore.getState().commit(prepared)
       const ui = useUiStore.getState()
       if (op.outcome === 'failed') ui.notify('error', `${iface.name} : ${op.message}`)
-      else if (op.outcome === 'released') ui.notify('info', `Bail de ${iface.name} libéré.`)
-      else if (op.address) ui.notify('success', `${iface.name} : bail obtenu (${op.address}).`)
+      else if (op.outcome === 'released') ui.notify('info', t('win.released', { iface: iface.name }))
+      else if (op.address) ui.notify('success', t('win.leased', { iface: iface.name, address: op.address }))
     })
   }
 
@@ -80,12 +81,12 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
     if (!result) return
     const ui = useUiStore.getState()
     if (result.warnings.length > 0) result.warnings.forEach((w) => ui.notify('warning', w))
-    else ui.notify('success', `Configuration de ${iface.name} appliquée.`)
+    else ui.notify('success', t('win.applied', { iface: iface.name }))
   }
 
   return (
     <>
-      <Section title={`${iface.name} — Propriétés de TCP/IPv4`}>
+      <Section title={t('win.tcpip', { iface: iface.name })}>
         <div className="flex max-w-lg flex-col gap-3">
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -95,7 +96,7 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
                 runCommand(command('net.setInterfaceEnabled', device.id, iface.id, e.target.checked))
               }
             />
-            Carte activée
+            {t('win.carteActivee')}
           </label>
           <fieldset className="flex flex-col gap-2 rounded-md border border-line p-3">
             <label className="flex items-center gap-2 text-sm">
@@ -105,7 +106,7 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
                 onChange={() => set('addressing', 'dhcp')}
                 data-testid="ip-dhcp"
               />
-              Obtenir une adresse IP automatiquement (DHCP)
+              {t('win.obtenirUneAdresseIp')}
             </label>
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -114,10 +115,10 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
                 onChange={() => set('addressing', 'static')}
                 data-testid="ip-static"
               />
-              Utiliser l’adresse IP suivante :
+              {t('win.utiliserLadresseIpSuivante')}
             </label>
             <div className="grid grid-cols-[150px_1fr] items-center gap-2 pl-6">
-              <span className="text-xs text-fg-muted">Adresse IP</span>
+              <span className="text-xs text-fg-muted">{t('win.adresseIp')}</span>
               <input
                 className={inputClass}
                 disabled={!staticIp}
@@ -126,7 +127,7 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
                 placeholder="192.168.1.10"
                 data-testid="ip-address"
               />
-              <span className="text-xs text-fg-muted">Masque de sous-réseau</span>
+              <span className="text-xs text-fg-muted">{t('win.masqueDeSousReseau')}</span>
               <input
                 className={inputClass}
                 disabled={!staticIp}
@@ -135,7 +136,7 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
                 placeholder={suggestedMask || '255.255.255.0'}
                 data-testid="ip-mask"
               />
-              <span className="text-xs text-fg-muted">Passerelle par défaut</span>
+              <span className="text-xs text-fg-muted">{t('win.passerelleParDefaut')}</span>
               <input
                 className={inputClass}
                 disabled={!staticIp}
@@ -153,14 +154,14 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
                 checked={!dnsStatic}
                 onChange={() => set('dnsMode', 'dhcp')}
               />
-              Obtenir les adresses des serveurs DNS automatiquement
+              {t('win.obtenirLesAdressesDes')}
             </label>
             <label className="flex items-center gap-2 text-sm">
               <input type="radio" checked={dnsStatic} onChange={() => set('dnsMode', 'static')} />
-              Utiliser l’adresse de serveur DNS suivante :
+              {t('win.utiliserLadresseDeServeur')}
             </label>
             <div className="grid grid-cols-[150px_1fr] items-center gap-2 pl-6">
-              <span className="text-xs text-fg-muted">Serveur DNS préféré</span>
+              <span className="text-xs text-fg-muted">{t('win.serveurDnsPrefere')}</span>
               <input
                 className={inputClass}
                 disabled={!dnsStatic}
@@ -168,7 +169,7 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
                 onChange={(e) => set('dns1', e.target.value)}
                 data-testid="ip-dns1"
               />
-              <span className="text-xs text-fg-muted">Serveur DNS auxiliaire</span>
+              <span className="text-xs text-fg-muted">{t('win.serveurDnsAuxiliaire')}</span>
               <input
                 className={inputClass}
                 disabled={!dnsStatic}
@@ -181,17 +182,17 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
             <Button variant="primary" onClick={apply} data-testid="ip-apply">
               Appliquer
             </Button>
-            <Button onClick={() => setForm(fromIface(iface))}>Annuler les modifications</Button>
+            <Button onClick={() => setForm(fromIface(iface))}>{t('win.annulerLesModifications')}</Button>
           </div>
         </div>
       </Section>
       <Section
-        title="État de la connexion"
+        title={t('win.etatDeLaConnexion')}
         actions={
           iface.addressing === 'dhcp' ? (
             <div className="flex gap-1">
               <Button variant="ghost" onClick={() => dhcpOperation('renew')} data-testid="dhcp-renew">
-                Renouveler le bail
+                {t('win.renouvelerLeBail')}
               </Button>
               <Button variant="ghost" onClick={() => dhcpOperation('release')}>
                 Libérer
@@ -201,19 +202,19 @@ export function HostInterfaceForm({ device, iface }: { device: Device; iface: Ne
         }
       >
         <dl className="selectable grid max-w-lg grid-cols-[180px_1fr] gap-y-1 text-xs">
-          <dt className="text-fg-muted">Adresse physique</dt>
+          <dt className="text-fg-muted">{t('win.adressePhysique')}</dt>
           <dd className="font-mono">{iface.mac}</dd>
-          <dt className="text-fg-muted">Adresse IPv4</dt>
+          <dt className="text-fg-muted">{t('win.adresseIpv4')}</dt>
           <dd className="font-mono" data-testid="ip-effective">
             {eff
               ? `${eff.address}${eff.source === 'apipa' ? ' (APIPA — aucun serveur DHCP)' : eff.source === 'dhcp' ? ' (DHCP)' : ''}`
               : '—'}
           </dd>
-          <dt className="text-fg-muted">Masque de sous-réseau</dt>
+          <dt className="text-fg-muted">{t('win.masqueDeSousReseau')}</dt>
           <dd className="font-mono">{eff ? prefixToMask(eff.prefixLength) : '—'}</dd>
-          <dt className="text-fg-muted">Passerelle par défaut</dt>
+          <dt className="text-fg-muted">{t('win.passerelleParDefaut')}</dt>
           <dd className="font-mono">{eff?.gateway ?? '—'}</dd>
-          <dt className="text-fg-muted">Serveurs DNS</dt>
+          <dt className="text-fg-muted">{t('win.serveursDns')}</dt>
           <dd className="font-mono">{eff && eff.dnsServers.length > 0 ? eff.dnsServers.join(', ') : '—'}</dd>
         </dl>
       </Section>

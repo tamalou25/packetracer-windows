@@ -8,6 +8,7 @@ import type { LibraryEntry, LibraryIndex } from '@engine/index'
 import { loadLibraryIndex, openLibraryLab } from '../../lib/library'
 import { Button } from '../common/ui'
 import { DifficultyBadge } from './DifficultyBadge'
+import { t } from '../../lib/i18n'
 
 type State = { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'ready'; index: LibraryIndex }
 
@@ -33,8 +34,7 @@ export function LibraryList() {
     <div className="flex min-h-0 flex-1 flex-col" data-testid="library">
       <p className="flex items-start gap-1.5 px-5 pt-3 text-[12px] text-fg-muted">
         <ShieldCheck size={14} className="mt-0.5 shrink-0 text-ok" />
-        Labs partagés par la communauté. Chaque lab est vérifié avant ouverture (empreinte SHA-256, format) ;
-        un lab ne contient que des données : aucun code n’est exécuté.
+        {t('lab.libraryHelp')}
       </p>
       {error && (
         <p
@@ -47,7 +47,7 @@ export function LibraryList() {
       <div className="min-h-0 flex-1 overflow-y-auto p-5">
         {state.kind === 'loading' ? (
           <p className="text-[13px] text-fg-muted" data-testid="library-loading">
-            Chargement de la bibliothèque…
+            {t('lab.chargementDeLaBibliotheque')}
           </p>
         ) : state.kind === 'error' ? (
           <div className="flex flex-col items-start gap-2">
@@ -59,7 +59,7 @@ export function LibraryList() {
             </Button>
           </div>
         ) : state.index.labs.length === 0 ? (
-          <p className="text-[13px] text-fg-muted">La bibliothèque ne contient encore aucun lab.</p>
+          <p className="text-[13px] text-fg-muted">{t('lab.laBibliothequeNeContient')}</p>
         ) : (
           <ul className="flex flex-col gap-3">
             {state.index.labs.map((entry) => (
@@ -83,7 +83,7 @@ export function LibraryList() {
                   onClick={() => void open(entry)}
                   data-testid={`library-open-${entry.id}`}
                 >
-                  <CloudDownload size={14} /> {busy === entry.id ? 'Vérification…' : 'Ouvrir'}
+                  <CloudDownload size={14} /> {busy === entry.id ? t('lab.verifying') : t('lab.open')}
                 </Button>
               </li>
             ))}

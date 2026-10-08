@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import type { HostDevice, ShellKind } from '@engine/index'
 import { Terminal } from './Terminal'
+import { t } from '../../lib/i18n'
 
 export function ConsoleTab({ device }: { device: HostDevice }) {
   const [kind, setKind] = useState<ShellKind>(device.kind === 'server' ? 'powershell' : 'cmd')
@@ -16,7 +17,7 @@ export function ConsoleTab({ device }: { device: HostDevice }) {
   if (!device.host.session)
     return (
       <div className="flex h-full items-center justify-center p-8 text-center text-sm text-fg-muted">
-        Aucune session ouverte : connectez-vous depuis l’onglet Bureau.
+        {t('console.aucuneSessionOuverteConnectez')}
       </div>
     )
   return (
@@ -30,7 +31,7 @@ export function ConsoleTab({ device }: { device: HostDevice }) {
             data-testid={`console-${k}`}
             className={`rounded px-3 py-1 text-xs font-medium ${kind === k ? 'bg-accent text-on-accent' : 'text-fg-muted hover:bg-surface-3'}`}
           >
-            {k === 'cmd' ? 'Invite de commandes' : 'PowerShell'}
+            {k === 'cmd' ? t('console.cmd') : 'PowerShell'}
           </button>
         ))}
       </div>

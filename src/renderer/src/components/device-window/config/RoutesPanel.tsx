@@ -8,6 +8,7 @@ import { useLabStore } from '../../../store/lab'
 import { useUiStore } from '../../../store/ui'
 import { runCommand } from '../../../lib/run'
 import { Button, Section, inputClass } from '../../common/ui'
+import { t } from '../../../lib/i18n'
 
 const SOURCE_LABEL = { connected: 'C', static: 'S', default: 'S*' } as const
 
@@ -29,13 +30,13 @@ export function RoutesPanel({ device }: { device: RouterDevice }) {
 
   return (
     <>
-      <Section title="Routes statiques">
+      <Section title={t('win.routesStatiques')}>
         <table className="mb-3 w-full max-w-xl text-xs">
           <thead className="text-left text-fg-muted">
             <tr>
-              <th className="py-1">Réseau</th>
-              <th className="py-1">Masque</th>
-              <th className="py-1">Prochain saut</th>
+              <th className="py-1">{t('win.reseau')}</th>
+              <th className="py-1">{t('win.masque')}</th>
+              <th className="py-1">{t('win.prochainSaut')}</th>
               <th />
             </tr>
           </thead>
@@ -43,7 +44,7 @@ export function RoutesPanel({ device }: { device: RouterDevice }) {
             {device.routes.length === 0 && (
               <tr>
                 <td colSpan={4} className="py-2 font-sans text-fg-subtle">
-                  Aucune route statique.
+                  {t('win.aucuneRouteStatique')}
                 </td>
               </tr>
             )}
@@ -56,7 +57,7 @@ export function RoutesPanel({ device }: { device: RouterDevice }) {
                   <button
                     type="button"
                     className="rounded p-1 text-fg-subtle hover:bg-danger-soft hover:text-danger"
-                    title="Supprimer la route"
+                    title={t('win.supprimerLaRoute')}
                     onClick={() => runCommand(command('net.removeStaticRoute', device.id, i))}
                   >
                     <Trash2 size={13} />
@@ -69,19 +70,19 @@ export function RoutesPanel({ device }: { device: RouterDevice }) {
         <div className="grid max-w-xl grid-cols-[1fr_1fr_1fr_auto] items-end gap-2">
           <input
             className={inputClass}
-            placeholder="Réseau (192.168.2.0)"
+            placeholder={t('win.reseau1921682')}
             value={network}
             onChange={(e) => setNetwork(e.target.value)}
           />
           <input
             className={inputClass}
-            placeholder="Masque (255.255.255.0)"
+            placeholder={t('win.masque255255255')}
             value={mask}
             onChange={(e) => setMask(e.target.value)}
           />
           <input
             className={inputClass}
-            placeholder="Prochain saut"
+            placeholder={t('win.prochainSaut')}
             value={nextHop}
             onChange={(e) => setNextHop(e.target.value)}
           />
@@ -89,19 +90,25 @@ export function RoutesPanel({ device }: { device: RouterDevice }) {
             Ajouter
           </Button>
         </div>
-        <p className="mt-2 text-xs text-fg-muted">Route par défaut : réseau 0.0.0.0, masque 0.0.0.0.</p>
+        <p className="mt-2 text-xs text-fg-muted">{t('win.routeParDefautReseau')}</p>
       </Section>
-      <Section title="Table de routage">
+      <Section title={t('win.tableDeRoutage')}>
         <pre className="selectable rounded border border-line bg-app p-3 font-mono text-[11px] leading-5 text-fg">
           {table.length === 0
-            ? 'Aucune route (aucune interface configurée).'
+            ? t('win.noRoutes')
             : table
                 .map((r) => {
                   const code = SOURCE_LABEL[r.source].padEnd(3)
                   const iface = device.interfaces.find((i) => i.id === r.ifaceId)?.name ?? ''
                   return r.gateway
-                    ? `${code} ${r.network}/${r.prefixLength} via ${r.gateway}, ${iface}`
-                    : `${code} ${r.network}/${r.prefixLength} directement connecté, ${iface}`
+                    ? t('win.routeVia', {
+                        code,
+                        network: r.network,
+                        prefix: r.prefixLength,
+                        gateway: r.gateway,
+                        iface
+                      })
+                    : t('win.routeConnected', { code, network: r.network, prefix: r.prefixLength, iface })
                 })
                 .join('\n')}
         </pre>
