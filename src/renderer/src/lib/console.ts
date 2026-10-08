@@ -7,6 +7,7 @@ import {
   command,
   createShellSession,
   executeLine,
+  IOS_CTRL_Z,
   shellBanner,
   shellPrompt,
   type LabState,
@@ -153,8 +154,10 @@ export function submitConsoleInput(key: string, input: string): void {
     run(key, line, [...answers, input], displayed, base, session)
     return
   }
-  store.append(key, [{ text: `${promptOf(term.session)}${input}`, kind: 'input' }])
-  store.pushHistory(key, input)
+  // Ctrl+Z de la console IOS : affiché « ^Z », absent de l'historique
+  const ctrlZ = input === IOS_CTRL_Z
+  store.append(key, [{ text: `${promptOf(term.session)}${ctrlZ ? '^Z' : input}`, kind: 'input' }])
+  if (!ctrlZ) store.pushHistory(key, input)
   if (input.trim() === '') return
   run(key, input, [], 0, useLabStore.getState().lab, term.session)
 }

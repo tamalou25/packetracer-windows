@@ -36,7 +36,7 @@ export function RouterInterfaceForm({ device, iface }: { device: Device; iface: 
     <Section
       title={
         iface.subinterface
-          ? t('win.subifTitle', { iface: iface.name, vlan: iface.subinterface.vlan })
+          ? t('win.subifTitle', { iface: iface.name, vlan: iface.subinterface.vlan ?? '—' })
           : t('win.ifTitle', { iface: iface.name })
       }
     >

@@ -1,0 +1,158 @@
+/**
+ * Navigation entre les modes IOS : enable, disable, configure terminal, interface, line, router,
+ * exit, end. Textes d'aide repris d'IOS 15.
+ */
+import { iface, number } from '../cli/args'
+import type { CliCommand, IosMode, IosRunContext, SyntaxToken } from '../cli/types'
+import { CONFIG_SUBMODES } from '../cli/types'
+import { createSubinterface, removeSubinterfaceByName } from '../actions'
+import { defineIosFeature } from '../feature'
+
+const kw = (keyword: string, help: string): SyntaxToken => ({ keyword, help })
+
+const EXIT_HELP: Partial<Record<IosMode, string>> = {
+  user: 'Exit from the EXEC',
+  exec: 'Exit from the EXEC',
+  config: 'Exit from configure mode',
+  'config-if': 'Exit from interface configuration mode',
+  'config-subif': 'Exit from subinterface configuration mode',
+  'config-line': 'Exit from line configuration mode',
+  'config-router': 'Exit from routing protocol configuration mode'
+}
+
+/** exit : remonte d'un niveau (sous-mode → configuration → privilégié → déconnexion). */
+function exit(ctx: IosRunContext): void {
+  const mode = ctx.session.mode
+  if (mode === 'user' || mode === 'exec') ctx.logout()
+  else if (mode === 'config') ctx.setMode('exec')
+  else ctx.setMode('config')
+}
+
+/** Entrée en configuration d'interface (crée la sous-interface Gi0/0.10 si besoin). */
+function enterInterface(ctx: IosRunContext, name: string): void {
+  const device = ctx.state.devices[ctx.deviceId]
+  if (!device) return
+  let target = device.interfaces.find((i) => i.name === name)
+  if (!target && name.includes('.')) {
+    const parent = device.interfaces.find((i) => i.name === name.split('.')[0])
+    if (!parent || !ctx.apply(createSubinterface(ctx.state, ctx.deviceId, parent.id, name))) return
+    target = ctx.state.devices[ctx.deviceId]?.interfaces.find((i) => i.name === name)
+  }
+  if (!target) {
+    // Interface VLAN (SVI) : prise en charge par la fonctionnalité VLAN
+    ctx.print("% Invalid input detected at '^' marker.")
+    return
+  }
+  ctx.setMode(target.subinterface ? 'config-subif' : 'config-if', { ifaces: [target.id] })
+}
+
+function enterConfig(ctx: IosRunContext): void {
+  ctx.print('Enter configuration commands, one per line.  End with CNTL/Z.')
+  ctx.setMode('config')
+}
+
+const CONFIG_MODES: readonly IosMode[] = ['config', ...CONFIG_SUBMODES]
+
+const commands: CliCommand[] = [
+  {
+    modes: ['user', 'exec'],
+    syntax: [kw('enable', 'Turn on privileged commands')],
+    run: (ctx) => ctx.setMode('exec'),
+    doAllowed: false
+  },
+  {
+    modes: ['exec'],
+    syntax: [kw('disable', 'Turn off privileged commands')],
+    run: (ctx) => ctx.setMode('user'),
+    doAllowed: false
+  },
+  {
+    modes: ['exec'],
+    syntax: [kw('configure', 'Enter configuration mode'), kw('terminal', 'Configure from the terminal')],
+    run: enterConfig,
+    doAllowed: false
+  },
+  {
+    // configure seul : IOS demande la source de la configuration (terminal par défaut)
+    modes: ['exec'],
+    syntax: [kw('configure', 'Enter configuration mode')],
+    run: (ctx) => {
+      const answer = ctx
+        .ask('Configuring from terminal, memory, or network [terminal]? ')
+        .trim()
+        .toLowerCase()
+      if (answer === '' || 'terminal'.startsWith(answer)) enterConfig(ctx)
+    },
+    doAllowed: false
+  },
+  ...(Object.entries(EXIT_HELP) as [IosMode, string][]).map(([mode, help]): CliCommand => ({
+    modes: [mode],
+    syntax: [kw('exit', help)],
+    run: exit,
+    doAllowed: false
+  })),
+  {
+    modes: CONFIG_MODES,
+    syntax: [kw('end', 'Exit from configure mode')],
+    run: (ctx) => ctx.setMode('exec'),
+    doAllowed: false
+  },
+  {
+    modes: ['config'],
+    syntax: [
+      kw('interface', 'Select an interface to configure'),
+      { arg: 'iface', type: iface({ subinterfaces: true }), help: 'Interface' }
+    ],
+    run: (ctx, args) => enterInterface(ctx, args.iface ?? ''),
+    // no interface Gi0/0.10 : supprime la sous-interface
+    no: {
+      run: (ctx, args) => {
+        const name = args.iface ?? ''
+        if (!name.includes('.')) {
+          ctx.print('% Removal of physical interfaces is not permitted')
+          return
+        }
+        ctx.apply(removeSubinterfaceByName(ctx.state, ctx.deviceId, name))
+      }
+    }
+  },
+  {
+    modes: ['config'],
+    syntax: [
+      kw('line', 'Configure a terminal line'),
+      kw('console', 'Primary terminal line'),
+      { arg: 'first', type: number(0, 0), help: 'First Line number' }
+    ],
+    run: (ctx) => ctx.setMode('config-line', { line: { type: 'console', first: 0, last: 0 } })
+  },
+  ...[false, true].map((range): CliCommand => ({
+    modes: ['config'],
+    syntax: [
+      kw('line', 'Configure a terminal line'),
+      kw('vty', 'Virtual terminal'),
+      { arg: 'first', type: number(0, 15), help: 'First Line number' },
+      ...(range ? [{ arg: 'last', type: number(1, 15), help: 'Last Line number' }] : [])
+    ],
+    run: (ctx, args) => {
+      const first = Number(args.first)
+      const last = args.last === undefined ? first : Number(args.last)
+      if (last < first) {
+        ctx.print('%Bad line range')
+        return
+      }
+      ctx.setMode('config-line', { line: { type: 'vty', first, last } })
+    }
+  })),
+  {
+    modes: ['config'],
+    syntax: [
+      kw('router', 'Enable a routing process'),
+      kw('ospf', 'Open Shortest Path First (OSPF)'),
+      { arg: 'process', type: number(1, 65535), help: 'Process ID' }
+    ],
+    run: (ctx, args) =>
+      ctx.setMode('config-router', { router: { protocol: 'ospf', process: Number(args.process) } })
+  }
+]
+
+export const navigation = defineIosFeature({ id: 'navigation', commands })
