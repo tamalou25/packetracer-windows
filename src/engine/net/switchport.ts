@@ -9,7 +9,8 @@ export const DEFAULT_SWITCHPORT: Switchport = {
   mode: 'access',
   accessVlan: 1,
   nativeVlan: 1,
-  allowedVlans: null
+  allowedVlans: null,
+  hoppedVlan: null
 }
 
 /** Configuration effective d'un port de switch (accès VLAN 1 si non configuré). */

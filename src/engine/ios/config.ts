@@ -33,7 +33,8 @@ export function defaultIosState(): IosState {
     passwordEncryption: false,
     dhcpSnooping: false,
     dhcpSnoopingVlans: [],
-    arpInspectionVlans: []
+    arpInspectionVlans: [],
+    syslog: []
   }
 }
 
@@ -56,6 +57,7 @@ export function snapshotOf(device: IosDevice): IosSnapshot {
     natTranslations: _nat,
     hsrpStates: _hsrp,
     aclCounters: _acl,
+    syslog: _syslog,
     ...running
   } = iosState(device)
   const config = clone(running)
@@ -75,7 +77,8 @@ export function snapshotOf(device: IosDevice): IosSnapshot {
       enabled: i.enabled,
       address: i.address,
       prefixLength: i.prefixLength,
-      ...(i.switchport ? { switchport: i.switchport } : {}),
+      // Le saut de VLAN est un état de fonctionnement, pas une configuration enregistrable
+      ...(i.switchport ? { switchport: { ...i.switchport, hoppedVlan: null } } : {}),
       ...(i.subinterface
         ? { subinterface: { parent: byId.get(i.subinterface.parent) ?? '', vlan: i.subinterface.vlan } }
         : {}),
@@ -125,7 +128,8 @@ export function applyStartup(device: Draft<IosDevice>, nextId: () => number): vo
     startup,
     natTranslations: [],
     hsrpStates: {},
-    aclCounters: {}
+    aclCounters: {},
+    syslog: []
   }
   if (!startup) return
   device.name = startup.hostname

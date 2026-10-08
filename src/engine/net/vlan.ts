@@ -114,7 +114,9 @@ export function setSwitchport(
       mode: input.mode,
       accessVlan,
       nativeVlan,
-      allowedVlans: allowed ? [...new Set(allowed)].sort((a, b) => a - b) : null
+      allowedVlans: allowed ? [...new Set(allowed)].sort((a, b) => a - b) : null,
+      // Reconfigurer le port met fin à un éventuel saut de VLAN
+      hoppedVlan: null
     }
     const isDefault =
       config.mode === 'access' &&

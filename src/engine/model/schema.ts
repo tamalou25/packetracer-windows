@@ -41,7 +41,12 @@ export const SwitchportSchema = z.object({
   /** VLAN natif d'un trunk : ses trames circulent sans étiquette. */
   nativeVlan: VlanIdSchema.default(1),
   /** VLAN autorisés sur le trunk (null : tous). */
-  allowedVlans: z.array(VlanIdSchema).nullable().default(null)
+  allowedVlans: z.array(VlanIdSchema).nullable().default(null),
+  /**
+   * VLAN atteint par un hôte après un saut de VLAN (scénario cyber, v2.6.1) : état simulé du port,
+   * la configuration (accessVlan) reste inchangée. null : aucun saut.
+   */
+  hoppedVlan: VlanIdSchema.nullable().default(null)
 })
 
 /**
@@ -800,7 +805,9 @@ export const IosStateSchema = IosConfigSchema.extend({
   /** Compteurs des entrées de listes d'accès (clé « liste|séquence »). */
   aclCounters: z.record(z.string(), z.number().int().nonnegative()).default({}),
   /** État HSRP par groupe (clé « Gi0/0|1 ») : Active, Standby, Listen, Init. */
-  hsrpStates: z.record(z.string(), z.enum(['Active', 'Standby', 'Listen', 'Init'])).default({})
+  hsrpStates: z.record(z.string(), z.enum(['Active', 'Standby', 'Listen', 'Init'])).default({}),
+  /** Tampon de journalisation (show logging), perdu au redémarrage. */
+  syslog: z.array(z.string()).default([])
 })
 
 const deviceBase = {
@@ -1106,7 +1113,16 @@ export const CyberConfigSchema = z.object({
   /** Nombre de tentatives de la série d'authentifications. */
   attempts: z.number().int().min(1).max(100).default(5),
   /** Âge (jours) du mot de passe d'un compte de service au-delà duquel il est jugé négligé. */
-  serviceMaxAgeDays: z.number().int().min(1).default(90)
+  serviceMaxAgeDays: z.number().int().min(1).default(90),
+  /** Usurpation ARP : noms des trois hôtes du segment (agresseur et deux victimes). */
+  arpSpoof: z
+    .object({ attacker: z.string(), victimA: z.string(), victimB: z.string() })
+    .nullable()
+    .default(null),
+  /** Saut de VLAN : nom de l'hôte et VLAN visé. */
+  vlanHop: z.object({ attacker: z.string(), toVlan: VlanIdSchema }).nullable().default(null),
+  /** Trafic marqué comme intercepté (identifiants d'équipements) : A ↔ B passe par `by`. */
+  intercepts: z.array(z.object({ a: z.string(), b: z.string(), by: z.string() })).default([])
 })
 
 export const LabStateSchema = z.object({
@@ -1119,7 +1135,7 @@ export const LabStateSchema = z.object({
   /** Domaines Active Directory (clé : nom DNS du domaine). */
   domains: z.record(z.string(), DomainSchema).default({}),
   /** Paramètres des scénarios de cybersécurité. */
-  cyber: CyberConfigSchema.default(() => ({ targetAccount: null, attempts: 5, serviceMaxAgeDays: 90 }))
+  cyber: CyberConfigSchema.default(() => CyberConfigSchema.parse({}))
 })
 
 export const DeviceKindSchema = z.enum(DEVICE_KINDS)

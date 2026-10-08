@@ -358,12 +358,28 @@ describe('migration 9 → 10 (cybersécurité défensive de la v2.6)', () => {
   })
 })
 
+describe('migration 11 → 12 (scénarios réseau de la v2.6.1)', () => {
+  it('change seulement la version ; ports et journal IOS prennent leurs valeurs par défaut', () => {
+    const doc = JSON.parse(readFixture(11)) as Record<string, unknown>
+    expect(migrations[11]!(doc)).toEqual({ ...doc, schemaVersion: 12 })
+    const lab = open(11).lab
+    expect(lab.cyber).toMatchObject({ arpSpoof: null, vlanHop: null, intercepts: [] })
+    const sw = Object.values(lab.devices).find((d) => d.name === 'CSW1')!
+    expect(sw.kind === 'switch' && sw.ios?.syslog).toEqual([])
+    expect(sw.interfaces.every((p) => (p.switchport?.hoppedVlan ?? null) === null)).toBe(true)
+  })
+
+  it('v12.slab : s’ouvre sans migration', () => {
+    expect(open(12).lab.cyber.intercepts).toEqual([])
+  })
+})
+
 describe('migration 10 → 11 (scénarios de cybersécurité de la v2.6.1)', () => {
   it('change seulement la version ; les défauts du schéma décrivent un lab sans faiblesse déclarée', () => {
     const doc = JSON.parse(readFixture(10)) as Record<string, unknown>
     expect(migrations[10]!(doc)).toEqual({ ...doc, schemaVersion: 11 })
     const lab = open(10).lab
-    expect(lab.cyber).toEqual({ targetAccount: null, attempts: 5, serviceMaxAgeDays: 90 })
+    expect(lab.cyber).toMatchObject({ targetAccount: null, attempts: 5, serviceMaxAgeDays: 90 })
     const user = Object.values(lab.domains)[0]!.users[0]!
     expect(user).toMatchObject({ spns: [], passwordLastSet: 0, compromised: false })
   })
