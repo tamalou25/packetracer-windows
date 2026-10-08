@@ -9,6 +9,7 @@ import { NeedInput, type OutputLine, type ShellResult, type ShellSession } from 
 import { parseLine, tokenize, type ParseOutcome } from './parser'
 import { iosPrompt, iosSessionOf } from './session'
 import { modeTree } from './tree'
+import { applyTraceEffects } from '../registry'
 import { iosState } from '../config'
 import { isIos } from '../device'
 import { CONFIG_SUBMODES, isConfigMode, type IosMode, type IosRunContext, type IosSession } from './types'
@@ -98,7 +99,7 @@ export function executeIos(
   const ctx = new RunContext(state, session.deviceId, iosSessionOf(session), answers)
   const prompt = iosPrompt(session, state)
   const done = (): ShellResult => ({
-    state: ctx.state,
+    state: applyTraceEffects(ctx.state, ctx.trace),
     session: { ...session, ios: ctx.session },
     output: ctx.output,
     trace: ctx.trace,

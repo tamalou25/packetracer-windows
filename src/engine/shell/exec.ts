@@ -10,6 +10,7 @@ import { CommandFailure } from './context'
 import { CmdContext, executePowerShell } from './ps/interpreter'
 import { executeIos, iosPrompt, IOS_BANNER } from '../ios/cli'
 import { isIosDevice } from '../ios/device'
+import { applyTraceEffects } from '../ios/registry'
 import { NeedInput, type ShellKind, type ShellResult, type ShellSession } from './types'
 
 function sessionUser(state: LabState, deviceId: string): string {
@@ -125,11 +126,13 @@ export function executeLine(
       throw e
     }
   }
+  const trace = ctx.mergedTrace(line.trim())
   return {
-    state: ctx.state,
+    // Effets durables des paquets échangés (traductions NAT, compteurs d'ACL des équipements IOS)
+    state: applyTraceEffects(ctx.state, trace),
     session: ctx.session,
     output: ctx.output,
-    trace: ctx.mergedTrace(line.trim()),
+    trace,
     clear: ctx.clear,
     prompt: null,
     exit: ctx.exit

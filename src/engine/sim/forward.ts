@@ -20,6 +20,7 @@ import {
   type PduLayer,
   type PduOutcome,
   type Protocol,
+  type TraceEffect,
   type TraceRecorder
 } from './trace'
 
@@ -31,10 +32,12 @@ export interface SimContext {
   arp: Map<string, Map<string, SegmentMember>>
   /** Traductions d'adresses (NAT) établies pendant l'opération. */
   nat: Map<string, string>
+  /** Effets durables de l'opération (traductions NAT, compteurs d'ACL…). */
+  effects: TraceEffect[]
 }
 
 export function createContext(state: LabState, rec: TraceRecorder): SimContext {
-  return { state, rec, arp: new Map(), nat: new Map() }
+  return { state, rec, arp: new Map(), nat: new Map(), effects: [] }
 }
 
 function deviceName(ctx: SimContext, id: string): string {

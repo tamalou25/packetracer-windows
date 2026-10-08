@@ -11,11 +11,16 @@ import {
   type Delivery,
   type SimContext
 } from '../sim/forward'
-import { createRecorder, type PacketTrace, type PduLayer } from '../sim/trace'
+import { createRecorder, type PacketTrace, type PduLayer, type TraceEffect } from '../sim/trace'
 import { effectiveIpv4 } from './addressing'
 import { INTERNET_REPLY_TTL, isInternetHost } from './internet'
 import { isIpv4, isLoopback } from './ipv4'
 import { initialTtl } from './routing'
+
+/** Trace complétée des effets durables de l'opération (NAT, compteurs d'ACL). */
+function withEffects(trace: PacketTrace, effects: TraceEffect[]): PacketTrace {
+  return effects.length > 0 ? { ...trace, effects } : trace
+}
 
 export type EchoOutcome =
   | { kind: 'reply'; from: string; ttl: number; time: number }
@@ -238,7 +243,7 @@ export function ping(
       target: dst,
       lines,
       outcomes,
-      trace: { title: `Ping ${src.name} → ${dst}`, events: rec.events },
+      trace: withEffects({ title: `Ping ${src.name} → ${dst}`, events: rec.events }, ctx.effects),
       success: outcomes.some((o) => o.kind === 'reply')
     }
   }
@@ -315,7 +320,12 @@ export function tracert(
   lines.push('Itinéraire déterminé.')
   return {
     ok: true,
-    value: { lines, trace: { title: `Tracert ${src.name} → ${dst}`, events: rec.events }, reached, hops }
+    value: {
+      lines,
+      trace: withEffects({ title: `Tracert ${src.name} → ${dst}`, events: rec.events }, ctx.effects),
+      reached,
+      hops
+    }
   }
 }
 

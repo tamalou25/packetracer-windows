@@ -4,7 +4,7 @@
  * dans un tunnel (VPN), sans que l'acheminement IP du cœur ne connaisse ce rôle.
  */
 import type { Device, LabState } from '../model/schema'
-import type { PduLayer } from './trace'
+import type { PduLayer, TraceEffect } from './trace'
 
 /** Paquet en transit, tel que vu par les crochets. */
 export interface TransitPacket {
@@ -35,6 +35,8 @@ export interface TransitContext {
   state: LabState
   /** Traductions NAT de l'opération : « équipement|adresse publique|hôte distant » → adresse privée. */
   nat: Map<string, string>
+  /** Effets durables de l'opération (traductions NAT, compteurs d'ACL…). */
+  effects: TraceEffect[]
 }
 
 export interface TransitHooks {

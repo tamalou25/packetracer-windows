@@ -47,6 +47,18 @@ export interface PduEvent {
 export interface PacketTrace {
   title: string
   events: PduEvent[]
+  /**
+   * Effets durables de l'échange, appliqués à l'état quand la commande est validée (traductions
+   * NAT, compteurs d'ACL…). Absent : aucun effet.
+   */
+  effects?: TraceEffect[]
+}
+
+/** Effet d'un échange de paquets sur un équipement (voir PacketTrace.effects). */
+export interface TraceEffect {
+  kind: string
+  deviceId: string
+  data: Record<string, string | number>
 }
 
 /** Contexte d'une simulation en cours (mutable le temps du calcul). */
@@ -117,5 +129,6 @@ export function concatTraces(title: string, traces: PacketTrace[]): PacketTrace 
     }
     offset += max
   }
-  return { title, events }
+  const effects = traces.flatMap((t) => t.effects ?? [])
+  return effects.length > 0 ? { title, events, effects } : { title, events }
 }
