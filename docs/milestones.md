@@ -425,11 +425,11 @@ README reformaté (Prettier), dans #135.
 
 | Issue | Sujet                                  | Branche                     | PR   | État     |
 | ----- | -------------------------------------- | --------------------------- | ---- | -------- |
-| 1/5   | Moteur de scénarios                    | `feat/1-moteur-scenarios`   | #139 | en cours |
-| 2/5   | Scénarios annuaire                     | `feat/2-scenarios-annuaire` | #140 | en cours |
-| 3/5   | Scénarios réseau                       | `feat/3-scenarios-reseau`   | #141 | en cours |
-| 4/5   | Mode Red / Blue                        | `feat/4-mode-red-blue`      | #142 | en cours |
-| 5/5   | Labs, format `.slab` 14, documentation | `feat/5-labs-cyber-docs`    |      | en cours |
+| 1/5   | Moteur de scénarios                    | `feat/1-moteur-scenarios`   | #139 | fusionné |
+| 2/5   | Scénarios annuaire                     | `feat/2-scenarios-annuaire` | #140 | fusionné |
+| 3/5   | Scénarios réseau                       | `feat/3-scenarios-reseau`   | #141 | fusionné |
+| 4/5   | Mode Red / Blue                        | `feat/4-mode-red-blue`      | #142 | fusionné |
+| 5/5   | Labs, format `.slab` 14, documentation | `feat/5-labs-cyber-docs`    | #143 | fusionné |
 
 Le guide des formats : 11 (SPN, compromission, accès administrateur, paramètres `cyber`), 12 (saut de
 VLAN, flux interceptés, tampon syslog IOS), 13 (réglages de partie Red / Blue), 14 (scénarios activés par
