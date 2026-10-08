@@ -110,7 +110,8 @@ export function ConfigTab({ device }: { device: Device }) {
           (isHostDevice(device) ? (
             <HostInterfaceForm device={device} iface={iface} />
           ) : (
-            <RouterInterfaceForm device={device} iface={iface} />
+            // Une instance par interface : aucun état de saisie ne passe d'une interface à l'autre
+            <RouterInterfaceForm key={iface.id} device={device} iface={iface} />
           ))}
         {page.kind === 'routes' && device.kind === 'router' && <RoutesPanel device={device} />}
         {page.kind === 'subifs' && device.kind === 'router' && <SubinterfacesPanel device={device} />}
