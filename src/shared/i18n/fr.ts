@@ -517,6 +517,8 @@ export const fr = {
   'detection.none': 'Aucune alerte : rien de suspect dans les journaux Sécurité.',
   'detection.rule.failuresThenSuccess': 'Échecs puis succès',
   'detection.rule.offHours': 'Activité hors horaires',
+  'audit.references': 'Références :',
+  'audit.unverified': 'numéro à vérifier',
   'audit.correction': 'Correction :',
   'audit.scoreDeSecurite': 'Score de sécurité',
   'audit.aucuneRecommandationToutesLes':

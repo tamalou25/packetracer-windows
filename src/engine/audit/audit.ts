@@ -4,6 +4,7 @@
  * indique les recommandations corrigées depuis.
  */
 import type { LabState } from '../model/schema'
+import type { AuditReferenceKey } from './references'
 import { auditRules } from './rules'
 import {
   AUDIT_SEVERITIES,
@@ -18,6 +19,7 @@ export interface AuditRecommendation {
   title: string
   severity: AuditSeverity
   fix: string
+  refs: AuditReferenceKey[]
   findings: AuditFinding[]
 }
 
@@ -45,6 +47,7 @@ export function auditLab(state: LabState, rules: AuditRule[] = auditRules()): Au
         title: rule.title,
         severity: rule.severity,
         fix: rule.fix,
+        refs: rule.refs ?? [],
         findings
       })
   }

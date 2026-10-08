@@ -14,6 +14,7 @@ export const filesAuditRules: AuditRule[] = [
     title: 'Protocole SMB 1.0 activé',
     severity: 'critique',
     fix: 'Désactivez SMB 1.0 : Set-SmbServerConfiguration -EnableSMB1Protocol $false -Force.',
+    refs: ['anssi-21', 'cis-4.8'],
     check: (state) =>
       hosts(state)
         .filter((h) => h.host.smb1)
@@ -27,6 +28,7 @@ export const filesAuditRules: AuditRule[] = [
     title: 'Partage « Tout le monde : Contrôle total »',
     severity: 'élevée',
     fix: 'Retirez Tout le monde des autorisations du partage et accordez Modifier ou Lecture à un groupe précis (Revoke-SmbShareAccess, Grant-SmbShareAccess).',
+    refs: ['anssi-9', 'cis-3.3'],
     check: (state) =>
       hosts(state).flatMap((h) =>
         (h.kind === 'server' ? h.storage.shares : [])
