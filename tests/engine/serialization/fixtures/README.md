@@ -4,14 +4,15 @@ Un fichier par version du format (`schemaVersion`), produit **par le code de cet
 même scénario (`../reference-lab.ts`) : contrôleur de domaine `lab.local` (DNS, DHCP autorisé),
 switch, routeur, poste en DHCP joint au domaine, poste statique, OU, utilisateur et groupe.
 
-| Fichier   | Format | Produit avec                                       |
-| --------- | ------ | -------------------------------------------------- |
-| `v1.slab` | 1      | commit `6da8368` (Bureau façon serveur, avant GPO) |
-| `v2.slab` | 2      | commit `4379438` (GPO + fichiers, avant les labs)  |
-| `v3.slab` | 3      | ServerLab 1.0.0 (`npm run fixture:slab`)           |
-| `v4.slab` | 4      | modules de rôles, données dans `roles` (issue #4)  |
-| `v5.slab` | 5      | ServerLab 2.1 : WSUS, stratégies Windows Update    |
-| `v9.slab` | 9      | ServerLab 2.5 : équipements Cisco IOS (CR1, CSW1)  |
+| Fichier    | Format | Produit avec                                                             |
+| ---------- | ------ | ------------------------------------------------------------------------ |
+| `v1.slab`  | 1      | commit `6da8368` (Bureau façon serveur, avant GPO)                       |
+| `v2.slab`  | 2      | commit `4379438` (GPO + fichiers, avant les labs)                        |
+| `v3.slab`  | 3      | ServerLab 1.0.0 (`npm run fixture:slab`)                                 |
+| `v4.slab`  | 4      | modules de rôles, données dans `roles` (issue #4)                        |
+| `v5.slab`  | 5      | ServerLab 2.1 : WSUS, stratégies Windows Update                          |
+| `v9.slab`  | 9      | ServerLab 2.5 : équipements Cisco IOS (CR1, CSW1)                        |
+| `v10.slab` | 10     | ServerLab 2.6 : sécurité L2 de CSW1 (DHCP snooping, inspection ARP, DTP) |
 
 Ces fichiers ne doivent **jamais** être modifiés ni régénérés : ils représentent les fichiers que
 des utilisateurs ont réellement enregistrés. `../migrations.test.ts` vérifie que chacun s'ouvre,

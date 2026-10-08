@@ -1,0 +1,194 @@
+{
+  "formatVersion": 1,
+  "id": "lab-30-durcissement-ad-complet",
+  "title": "Durcissement AD complet (ANSSI / CIS)",
+  "difficulty": "Avancé",
+  "duration": "50 min",
+  "summary": "Un domaine laissé sans règles : administrateurs en surnombre, mots de passe faibles, protocoles obsolètes, partage ouvert, pare-feu coupé. Atteignez 100 / 100 en suivant les référentiels.",
+  "statement": "# Contexte\n\nVous reprenez l’administration du domaine `lab.local` (**SRV1**, poste **PC1**). L’onglet **Audit** relie chaque recommandation au guide d’hygiène de l’ANSSI et aux CIS Controls v8.\n\nCompte d’administration : `LAB\\Administrateur` / `P@ssw0rd`.\n\n## Travail demandé\n\n1. Relevez le score de départ et exportez le rapport PDF (section **Référentiels**).\n2. Réduisez **Admins du domaine** : `jdupont` et `stagiaire` sont des utilisateurs ordinaires.\n3. Corrigez le compte de service `svc-sauvegarde` et neutralisez `ancien.employe` sans le supprimer.\n4. **Default Domain Policy** : mots de passe d’au moins 12 caractères avec complexité, verrouillage après **5** tentatives, audit des ouvertures de session réussies **et** échouées.\n5. **SRV1** : désactivez SMB 1.0 ; le partage `Commun` est réservé au groupe `GG_Personnel` (modification).\n6. **PC1** : réactivez le pare-feu sur tous les profils.\n7. Visez **100 / 100** et exportez de nouveau le rapport.",
+  "start": {
+    "devices": [
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 200,
+        "y": 150,
+        "ip": "192.168.10.1/24",
+        "dns": ["127.0.0.1"],
+        "smb1": true,
+        "shares": [
+          {
+            "name": "Commun",
+            "path": "C:\\Commun",
+            "full": ["Tout le monde"]
+          }
+        ]
+      },
+      {
+        "kind": "switch",
+        "name": "SW1",
+        "x": 200,
+        "y": 330
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 420,
+        "y": 330,
+        "ip": "192.168.10.10/24",
+        "dns": ["192.168.10.1"],
+        "firewallDisabled": ["Domain", "Private", "Public"]
+      }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/2"]
+    ],
+    "domain": {
+      "name": "lab.local",
+      "netbios": "LAB",
+      "dc": "SRV1",
+      "ous": ["Personnel"],
+      "users": [
+        {
+          "name": "Jean Dupont",
+          "sam": "jdupont",
+          "ou": "Personnel",
+          "password": "Azerty123!",
+          "memberOf": ["Admins du domaine"],
+          "lastLogonDaysAgo": 1
+        },
+        {
+          "name": "Stagiaire",
+          "sam": "stagiaire",
+          "ou": "Personnel",
+          "password": "Azerty123!",
+          "memberOf": ["Admins du domaine"],
+          "lastLogonDaysAgo": 3
+        },
+        {
+          "name": "Service sauvegarde",
+          "sam": "svc-sauvegarde",
+          "password": "Azerty123!Sauv",
+          "passwordNeverExpires": true,
+          "lastLogonDaysAgo": 0
+        },
+        {
+          "name": "Ancien employé",
+          "sam": "ancien.employe",
+          "ou": "Personnel",
+          "password": "Azerty123!",
+          "createdDaysAgo": 400,
+          "lastLogonDaysAgo": 200
+        }
+      ],
+      "passwordPolicy": {
+        "minLength": 6,
+        "complexity": false
+      },
+      "join": ["PC1"],
+      "groups": [
+        {
+          "name": "GG_Personnel",
+          "members": ["jdupont", "stagiaire"]
+        }
+      ]
+    }
+  },
+  "criteria": [
+    {
+      "id": "admins",
+      "label": "Le groupe Admins du domaine est réduit",
+      "hint": "Seuls les comptes qui administrent réellement le domaine y ont leur place (ANSSI 5, CIS 5.4).",
+      "check": {
+        "type": "auditRule",
+        "rule": "domainAdmins"
+      }
+    },
+    {
+      "id": "expire",
+      "label": "Aucun mot de passe sans expiration",
+      "hint": "Une case des propriétés du compte de service est en cause (ANSSI 10).",
+      "check": {
+        "type": "auditRule",
+        "rule": "passwordNeverExpires"
+      }
+    },
+    {
+      "id": "inactive",
+      "label": "Les comptes inactifs sont neutralisés",
+      "hint": "Un compte inutilisé se désactive sans être supprimé (CIS 5.3).",
+      "check": {
+        "type": "auditRule",
+        "rule": "inactiveAccounts"
+      }
+    },
+    {
+      "id": "policy",
+      "label": "La stratégie de mot de passe est conforme",
+      "hint": "Longueur minimale et complexité dans la GPO du domaine (ANSSI 10, CIS 5.2).",
+      "check": {
+        "type": "auditRule",
+        "rule": "weakPasswordPolicy"
+      }
+    },
+    {
+      "id": "lockout",
+      "label": "Les comptes se verrouillent après plusieurs échecs",
+      "hint": "Stratégie de verrouillage du compte, dans la configuration ordinateur de la GPO du domaine.",
+      "check": {
+        "type": "gpoSetting",
+        "gpo": "Default Domain Policy",
+        "setting": "lockoutThreshold",
+        "value": "5 tentative"
+      }
+    },
+    {
+      "id": "auditpol",
+      "label": "Les ouvertures de session sont auditées (succès et échecs)",
+      "hint": "Stratégie d’audit de la GPO du domaine : les échecs servent autant que les succès à l’analyse.",
+      "check": {
+        "type": "gpoSetting",
+        "gpo": "Default Domain Policy",
+        "setting": "auditLogon",
+        "value": "Succès, Échec"
+      }
+    },
+    {
+      "id": "smb1",
+      "label": "SMB 1.0 est désactivé",
+      "hint": "Protocole obsolète, à couper dans la configuration du serveur SMB (ANSSI 21, CIS 4.8).",
+      "check": {
+        "type": "auditRule",
+        "rule": "smb1"
+      }
+    },
+    {
+      "id": "share",
+      "label": "Le partage n’est plus ouvert à tous en contrôle total",
+      "hint": "Accordez les droits à un groupe du domaine plutôt qu’à tout le monde (CIS 3.3).",
+      "check": {
+        "type": "auditRule",
+        "rule": "everyoneFullControl"
+      }
+    },
+    {
+      "id": "firewall",
+      "label": "Le pare-feu du poste est actif",
+      "hint": "Les trois profils du pare-feu doivent être activés (ANSSI 17, CIS 4.5).",
+      "check": {
+        "type": "auditRule",
+        "rule": "firewallDisabled"
+      }
+    },
+    {
+      "id": "score",
+      "label": "Score d’audit de 100",
+      "hint": "Toutes les recommandations de l’onglet Audit doivent être corrigées ; la section Référentiels du rapport PDF doit être entièrement cochée.",
+      "check": {
+        "type": "auditScore",
+        "min": 100
+      }
+    }
+  ]
+}

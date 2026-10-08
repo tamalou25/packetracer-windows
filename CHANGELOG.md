@@ -6,6 +6,27 @@ La planification des versions suivantes est dans [ROADMAP.md](ROADMAP.md).
 
 ## [Non publié]
 
+## [2.6.0] — 2026-10-08
+
+Milestone « v2.6 — Cybersécurité défensive » de la roadmap. Format `.slab` 10 (les labs 2.5 s'ouvrent ;
+une version 2.5 refuse les labs 2.6). Le volet attaque (scénarios abstraits, mode Red / Blue) est reporté
+en v2.6.1.
+
+### Ajouté
+
+- Détection dans les journaux : compte inscrit sur les événements de sécurité, ticket de service 4769,
+  affichages personnalisés de l'Observateur, corrélations « échecs puis succès » et « hors horaires »,
+  critère de lab `detectionAlert` (#128).
+- Contre-mesures L2 des switchs Cisco : DHCP snooping, inspection ARP dynamique, `switchport nonegotiate` ;
+  règles d'audit IOS (DHCP snooping, inspection ARP, DTP, VLAN natif, port-security) (#129).
+- Audit adossé aux référentiels : références ANSSI et CIS Controls v8 par règle, section Référentiels
+  cochée dans le rapport PDF, badges dans l'onglet Audit (#130).
+- Labs 29 (durcissement L2 Cisco) et 30 (durcissement AD complet) ; format `.slab` 10 (#132).
+
+### Corrigé
+
+- README reformaté (Prettier).
+
 ## [2.5.0] — 2026-10-08
 
 Milestone « v2.5 — Équipements Cisco IOS » de la roadmap. Format `.slab` 9 (les labs 2.4 s'ouvrent ;

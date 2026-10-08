@@ -5,7 +5,7 @@
  */
 import { DEFAULT_DC_POLICY_ID, DEFAULT_DOMAIN_POLICY_ID, defaultDomainGpos } from '../roles/gpo/defaults'
 
-export const CURRENT_SCHEMA_VERSION = 9
+export const CURRENT_SCHEMA_VERSION = 10
 
 type RawDocument = Record<string, unknown>
 
@@ -115,6 +115,15 @@ function addV25Ios(doc: RawDocument): RawDocument {
   return { ...doc, schemaVersion: 9 }
 }
 
+/**
+ * Version 10 (ServerLab 2.6) : cybersécurité défensive (compte des événements de sécurité, DHCP
+ * snooping, inspection ARP et DTP des switchs IOS). Rien à transformer : champs facultatifs ou
+ * valeurs par défaut ; le numéro de version empêche une version 2.5 d'ouvrir (et de tronquer) ces labs.
+ */
+function addV26Cyber(doc: RawDocument): RawDocument {
+  return { ...doc, schemaVersion: 10 }
+}
+
 /** migrations[n] migre un document de la version n vers n + 1. */
 export const migrations: Record<number, (doc: RawDocument) => RawDocument> = {
   1: addDefaultGpos,
@@ -124,7 +133,8 @@ export const migrations: Record<number, (doc: RawDocument) => RawDocument> = {
   5: addV22Network,
   6: addV23Security,
   7: addV24Linux,
-  8: addV25Ios
+  8: addV25Ios,
+  9: addV26Cyber
 }
 
 export type MigrationResult = { ok: true; doc: RawDocument } | { ok: false; message: string }

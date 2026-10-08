@@ -4,6 +4,7 @@
  * Depuis la v6 : VLAN 20 sur le switch (port d'accès libre, trunk vers le routeur) et
  * sous-interface Gi0/0.20 du routeur.
  * Depuis la v9 : routeur Cisco CR1 (1921) et switch Cisco CSW1 (2960) configurés en IOS
+ * Depuis la v10 : sécurité L2 de CSW1 (DHCP snooping, inspection ARP, trunk sans DTP)
  * (VLAN 30, trunk, sous-interface, OSPF, DHCP, ACL, HSRP, enregistrement).
  * Le même scénario a servi à produire chaque fichier vN.slab avec le code de la version N.
  */
@@ -173,6 +174,15 @@ export function buildReferenceLab(): LabState {
     'switchport mode access',
     'switchport access vlan 30',
     'switchport port-security',
+    // v10 : sécurité de niveau 2
+    'exit',
+    'ip dhcp snooping',
+    'ip dhcp snooping vlan 30',
+    'ip arp inspection vlan 30',
+    'interface Gi0/1',
+    'switchport nonegotiate',
+    'ip dhcp snooping trust',
+    'ip arp inspection trust',
     'end',
     'write memory'
   ])

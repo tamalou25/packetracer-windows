@@ -322,3 +322,38 @@ describe('migration 8 → 9 (équipements Cisco IOS de la v2.5)', () => {
     ).toBe(true)
   })
 })
+
+describe('migration 9 → 10 (cybersécurité défensive de la v2.6)', () => {
+  it('change seulement la version ; un switch IOS de la v9 n’a aucune sécurité L2 active', () => {
+    const doc = JSON.parse(readFixture(9)) as Record<string, unknown>
+    expect(migrations[9]!(doc)).toEqual({ ...doc, schemaVersion: 10 })
+    const lab = open(9).lab
+    expect(
+      evaluateCheck(lab, {
+        type: 'iosRunning',
+        device: 'CSW1',
+        line: 'ip dhcp snooping',
+        match: 'exact',
+        present: true
+      })
+    ).toBe(false)
+  })
+
+  it('v10.slab : DHCP snooping, inspection ARP et nonegotiate restitués', () => {
+    const lab = open(10).lab
+    for (const line of [
+      'ip dhcp snooping',
+      'ip dhcp snooping vlan 30',
+      'ip arp inspection vlan 30',
+      'switchport nonegotiate',
+      'ip dhcp snooping trust'
+    ])
+      expect(
+        evaluateCheck(lab, { type: 'iosRunning', device: 'CSW1', line, match: 'exact', present: true }),
+        line
+      ).toBe(true)
+    expect(evaluateCheck(lab, { type: 'iosStartup', device: 'CSW1', line: 'ip arp inspection trust' })).toBe(
+      true
+    )
+  })
+})
