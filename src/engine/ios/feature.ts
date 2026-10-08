@@ -24,6 +24,13 @@ export interface IosFeature {
   transit?: TransitHooks
   /** Effet durable d'un échange de paquets (traduction NAT, compteur d'ACL) sur l'équipement. */
   onEffect?(device: Draft<IosDevice>, effect: TraceEffect): void
+  /**
+   * Stabilisation après toute modification du lab (élection HSRP…) : exécutée après chaque
+   * commande IOS et par les tâches de fond. Renvoie l'état inchangé s'il n'y a rien à faire.
+   */
+  settle?(state: LabState): LabState
+  /** Messages de la console d'un équipement après stabilisation (%HSRP-6-STATECHANGE…). */
+  settleMessages?(before: LabState, after: LabState, deviceId: string): string[]
   /** Routes apprises dynamiquement (OSPF), ajoutées à la table de routage du moteur. */
   routes?(state: LabState, device: IosDevice): Route[]
 }

@@ -12,7 +12,7 @@ import type { TransitPacket } from '../../sim/transit'
 import { addressSpec, aclPermits, formatSpec } from '../acl'
 import { IPV4, WORD, iface, number } from '../cli/args'
 import type { ArgContext, CliCommand, IosRunContext, SyntaxToken } from '../cli/types'
-import { draftIosState, iosState } from '../config'
+import { draftIfaceEntry, draftIosState, iosState } from '../config'
 import { isIos, type IosDevice } from '../device'
 import { defineIosFeature } from '../feature'
 import { ifaceLongName } from '../models'
@@ -44,7 +44,7 @@ function setNatRole(ctx: IosRunContext, role: 'inside' | 'outside' | null): void
   const names = currentIfaces(ctx).map((i) => i.name)
   update(ctx, (d) => {
     const ios = draftIosState(d)
-    for (const name of names) (ios.interfaces[name] ??= { description: null, nat: null }).nat = role
+    for (const name of names) draftIfaceEntry(ios, name).nat = role
   })
 }
 

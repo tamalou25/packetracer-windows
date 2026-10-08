@@ -594,10 +594,20 @@ export const RoleStatesSchema = z.record(z.string(), z.unknown())
 // ---------------------------------------------------------------------------
 
 /** Données IOS d'une interface (description). */
+/** Groupe HSRP d'une interface (standby 1 ip …, priority, preempt). */
+export const HsrpGroupSchema = z.object({
+  group: z.number().int().min(0).max(255),
+  ip: z.string().nullable().default(null),
+  priority: z.number().int().min(0).max(255).default(100),
+  preempt: z.boolean().default(false)
+})
+
 export const IosInterfaceSchema = z.object({
   description: z.string().nullable().default(null),
   /** Rôle NAT de l'interface (ip nat inside / outside). */
-  nat: z.enum(['inside', 'outside']).nullable().default(null)
+  nat: z.enum(['inside', 'outside']).nullable().default(null),
+  /** Groupes HSRP de l'interface (standby). */
+  hsrp: z.array(HsrpGroupSchema).default([])
 })
 
 /** Entrée d'une liste d'accès IOS (standard : source seule ; étendue : protocole, destination, port). */
@@ -709,7 +719,9 @@ export const IosStateSchema = IosConfigSchema.extend({
   /** startup-config (null : absente, « startup-config is not present »). */
   startup: IosSnapshotSchema.nullable().default(null),
   /** Traductions NAT dynamiques établies par le trafic (perdues au redémarrage). */
-  natTranslations: z.array(NatTranslationSchema).default([])
+  natTranslations: z.array(NatTranslationSchema).default([]),
+  /** État HSRP par groupe (clé « Gi0/0|1 ») : Active, Standby, Listen, Init. */
+  hsrpStates: z.record(z.string(), z.enum(['Active', 'Standby', 'Listen', 'Init'])).default({})
 })
 
 const deviceBase = {

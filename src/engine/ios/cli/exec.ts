@@ -9,7 +9,7 @@ import { NeedInput, type OutputLine, type ShellResult, type ShellSession } from 
 import { parseLine, tokenize, type ParseOutcome } from './parser'
 import { iosPrompt, iosSessionOf } from './session'
 import { modeTree } from './tree'
-import { applyTraceEffects } from '../registry'
+import { applyTraceEffects, settleIos, settleMessages } from '../registry'
 import { iosState } from '../config'
 import { isIos } from '../device'
 import { CONFIG_SUBMODES, isConfigMode, type IosMode, type IosRunContext, type IosSession } from './types'
@@ -98,15 +98,20 @@ export function executeIos(
 ): ShellResult {
   const ctx = new RunContext(state, session.deviceId, iosSessionOf(session), answers)
   const prompt = iosPrompt(session, state)
-  const done = (): ShellResult => ({
-    state: applyTraceEffects(ctx.state, ctx.trace),
-    session: { ...session, ios: ctx.session },
-    output: ctx.output,
-    trace: ctx.trace,
-    clear: false,
-    prompt: null,
-    exit: false
-  })
+  const done = (): ShellResult => {
+    // Effets des paquets échangés puis stabilisation (élection HSRP…), messages de la console
+    const after = settleIos(applyTraceEffects(ctx.state, ctx.trace))
+    for (const text of settleMessages(state, after, session.deviceId)) ctx.print(text)
+    return {
+      state: after,
+      session: { ...session, ios: ctx.session },
+      output: ctx.output,
+      trace: ctx.trace,
+      clear: false,
+      prompt: null,
+      exit: false
+    }
+  }
 
   if (line === IOS_CTRL_Z) {
     if (isConfigMode(ctx.session.mode)) ctx.setMode('exec')
