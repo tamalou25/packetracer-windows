@@ -1,0 +1,129 @@
+{
+  "formatVersion": 1,
+  "id": "lab-26-ios-hsrp",
+  "title": "Passerelle redondante HSRP",
+  "difficulty": "Avancé",
+  "duration": "30 min",
+  "summary": "Doubler la passerelle d’un LAN avec deux routeurs HSRP et choisir lequel est actif.",
+  "statement": "# Contexte\n\nLe LAN `192.168.1.0/24` n’a qu’une passerelle : si elle tombe, les postes sont isolés. **R1** (`192.168.1.1`) et **R2** (`192.168.1.2`) vont partager l’adresse virtuelle `192.168.1.254`, que PC1 utilise comme passerelle.\n\n## Travail demandé\n\n1. Sur R1 et R2, configurez le **groupe HSRP 1** sur `Gi0/0` avec l’adresse virtuelle.\n2. Faites de **R1** le routeur actif : priorité supérieure à la valeur par défaut, avec préemption.\n3. Contrôlez avec `show standby brief`.\n4. PC1 doit joindre l’adresse virtuelle.",
+  "start": {
+    "devices": [
+      {
+        "kind": "router",
+        "name": "R1",
+        "x": 150,
+        "y": 150,
+        "model": "c1921",
+        "ios": [
+          "enable",
+          "configure terminal",
+          "interface Gi0/0",
+          "ip address 192.168.1.1 255.255.255.0",
+          "no shutdown",
+          "end"
+        ]
+      },
+      {
+        "kind": "router",
+        "name": "R2",
+        "x": 450,
+        "y": 150,
+        "model": "c1921",
+        "ios": [
+          "enable",
+          "configure terminal",
+          "interface Gi0/0",
+          "ip address 192.168.1.2 255.255.255.0",
+          "no shutdown",
+          "end"
+        ]
+      },
+      {
+        "kind": "switch",
+        "name": "SW1",
+        "x": 300,
+        "y": 300,
+        "model": "c2960"
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 300,
+        "y": 450,
+        "ip": "192.168.1.10/24",
+        "gateway": "192.168.1.254"
+      }
+    ],
+    "links": [
+      ["R1:Gi0/0", "SW1:Fa0/1"],
+      ["R2:Gi0/0", "SW1:Fa0/2"],
+      ["PC1:Ethernet0", "SW1:Fa0/3"]
+    ]
+  },
+  "criteria": [
+    {
+      "id": "vip1",
+      "label": "R1 porte l’adresse virtuelle",
+      "hint": "Le groupe HSRP se configure sous l’interface, avec « standby <groupe> ip ».",
+      "check": {
+        "type": "iosRunning",
+        "device": "R1",
+        "line": "standby 1 ip 192.168.1.254"
+      }
+    },
+    {
+      "id": "vip2",
+      "label": "R2 porte la même adresse virtuelle",
+      "hint": "Les deux routeurs du groupe partagent le même numéro de groupe.",
+      "check": {
+        "type": "iosRunning",
+        "device": "R2",
+        "line": "standby 1 ip 192.168.1.254"
+      }
+    },
+    {
+      "id": "prio",
+      "label": "R1 a une priorité supérieure à celle de R2",
+      "hint": "La priorité par défaut vaut 100 ; la plus haute l’emporte.",
+      "check": {
+        "type": "iosRunning",
+        "device": "R1",
+        "line": "standby 1 priority 110"
+      }
+    },
+    {
+      "id": "active",
+      "label": "R1 est actif",
+      "hint": "Le routeur actif répond aux requêtes ARP de l’adresse virtuelle.",
+      "check": {
+        "type": "iosHsrp",
+        "device": "R1",
+        "interface": "Gi0/0",
+        "group": 1,
+        "state": "Active"
+      }
+    },
+    {
+      "id": "standby",
+      "label": "R2 est en veille",
+      "hint": "L’autre routeur du groupe prend le rôle de secours.",
+      "check": {
+        "type": "iosHsrp",
+        "device": "R2",
+        "interface": "Gi0/0",
+        "group": 1,
+        "state": "Standby"
+      }
+    },
+    {
+      "id": "ping",
+      "label": "PC1 joint son adresse de passerelle virtuelle",
+      "hint": "Le poste interroge l’adresse virtuelle, pas celle d’un routeur.",
+      "check": {
+        "type": "ping",
+        "from": "PC1",
+        "to": "192.168.1.254"
+      }
+    }
+  ]
+}

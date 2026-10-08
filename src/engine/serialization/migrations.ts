@@ -5,7 +5,7 @@
  */
 import { DEFAULT_DC_POLICY_ID, DEFAULT_DOMAIN_POLICY_ID, defaultDomainGpos } from '../roles/gpo/defaults'
 
-export const CURRENT_SCHEMA_VERSION = 8
+export const CURRENT_SCHEMA_VERSION = 9
 
 type RawDocument = Record<string, unknown>
 
@@ -105,6 +105,16 @@ function addV24Linux(doc: RawDocument): RawDocument {
   return { ...doc, schemaVersion: 8 }
 }
 
+/**
+ * Version 9 (ServerLab 2.5) : équipements Cisco IOS (modèle, état `ios` : configuration, VLAN,
+ * OSPF, DHCP, NAT, ACL, HSRP, sécurité). Rien à transformer : un routeur ou un switch sans modèle
+ * est un équipement générique ; le numéro de version empêche une version 2.4 d'ouvrir (et de
+ * tronquer) ces labs.
+ */
+function addV25Ios(doc: RawDocument): RawDocument {
+  return { ...doc, schemaVersion: 9 }
+}
+
 /** migrations[n] migre un document de la version n vers n + 1. */
 export const migrations: Record<number, (doc: RawDocument) => RawDocument> = {
   1: addDefaultGpos,
@@ -113,7 +123,8 @@ export const migrations: Record<number, (doc: RawDocument) => RawDocument> = {
   4: addV21Roles,
   5: addV22Network,
   6: addV23Security,
-  7: addV24Linux
+  7: addV24Linux,
+  8: addV25Ios
 }
 
 export type MigrationResult = { ok: true; doc: RawDocument } | { ok: false; message: string }

@@ -35,6 +35,17 @@ export interface CriterionTypeInfo {
 /** Libellés des champs, communs à tous les types (même clé = même sens). */
 const FIELD_LABELS: Record<string, string> = {
   min: 'Score minimal',
+  line: 'Ligne de configuration',
+  present: 'Présente',
+  state: 'État',
+  network: 'Réseau',
+  source: 'Origine',
+  via: 'Prochain saut',
+  violated: 'Violation constatée',
+  match: 'Comparaison de la ligne (exacte ou début de ligne)',
+  minNeighbors: 'Voisins OSPF (minimum)',
+  minTranslations: 'Traductions NAT (minimum)',
+  minBindings: 'Baux (minimum)',
   rule: 'Règle',
   passed: 'Respectée',
   device: 'Équipement',

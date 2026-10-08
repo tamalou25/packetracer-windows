@@ -3,6 +3,8 @@
  * domaine (DNS, DHCP autorisé), switch, routeur, poste en DHCP joint au domaine, poste statique.
  * Depuis la v6 : VLAN 20 sur le switch (port d'accès libre, trunk vers le routeur) et
  * sous-interface Gi0/0.20 du routeur.
+ * Depuis la v9 : routeur Cisco CR1 (1921) et switch Cisco CSW1 (2960) configurés en IOS
+ * (VLAN 30, trunk, sous-interface, OSPF, DHCP, ACL, HSRP, enregistrement).
  * Le même scénario a servi à produire chaque fichier vN.slab avec le code de la version N.
  */
 import {
@@ -23,11 +25,13 @@ import {
   installForest,
   joinDomain,
   restartComputer,
+  runIosScript,
   setDhcpOptions,
   setInterfaceIpv4,
   setSwitchport,
   unwrap,
   type DeviceKind,
+  type IosModel,
   type LabState
 } from '@engine/index'
 
@@ -141,5 +145,56 @@ export function buildReferenceLab(): LabState {
   const joined = joinDomain(s, id('PC1'), { domain: 'lab.local', user: 'LAB\\Administrateur', password })
   if (!joined.ok) throw new Error(joined.message)
   s = unwrap(restartComputer(joined.state, id('PC1'))).state
-  return autoConfigureDhcp(s).state
+  s = autoConfigureDhcp(s).state
+
+  // Équipements Cisco IOS (v9) : routeur CR1 relié au switch CSW1 par un trunk (sans poste)
+  const cisco = (kind: DeviceKind, model: IosModel, name: string, x: number, y: number) => {
+    const r = unwrap(addDevice(s, { kind, model, position: { x, y }, name }))
+    s = r.state
+    ids.set(name, r.value)
+  }
+  cisco('router', 'c1921', 'CR1', 0, 400)
+  cisco('switch', 'c2960', 'CSW1', 200, 400)
+  s = unwrap(
+    connect(
+      s,
+      { deviceId: id('CR1'), ifaceId: iface('CR1', 'Gi0/0') },
+      { deviceId: id('CSW1'), ifaceId: iface('CSW1', 'Gi0/1') }
+    )
+  ).state
+  s = runIosScript(s, id('CSW1'), [
+    'enable',
+    'configure terminal',
+    'vlan 30',
+    'name CISCO',
+    'interface Gi0/1',
+    'switchport mode trunk',
+    'interface Fa0/2',
+    'switchport mode access',
+    'switchport access vlan 30',
+    'switchport port-security',
+    'end',
+    'write memory'
+  ])
+  return runIosScript(s, id('CR1'), [
+    'enable',
+    'configure terminal',
+    'enable secret Cisco123',
+    'ip dhcp pool CISCO',
+    'network 192.168.30.0 255.255.255.0',
+    'default-router 192.168.30.1',
+    'exit',
+    'access-list 10 permit 192.168.30.0 0.0.0.255',
+    'interface Gi0/0',
+    'no shutdown',
+    'interface Gi0/0.30',
+    'encapsulation dot1Q 30',
+    'ip address 192.168.30.1 255.255.255.0',
+    'standby 1 ip 192.168.30.254',
+    'exit',
+    'router ospf 1',
+    'network 192.168.30.0 0.0.0.255 area 0',
+    'end',
+    'write memory'
+  ])
 }

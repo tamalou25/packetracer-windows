@@ -1,0 +1,349 @@
+{
+  "formatVersion": 1,
+  "id": "lab-28-ios-sujet-e6",
+  "title": "Sujet E6 : deux sites Cisco et Windows Server",
+  "difficulty": "Avancé",
+  "duration": "90 min",
+  "summary": "Sujet complet : VLAN, routage inter-VLAN, HSRP, OSPF entre deux sites, DHCP relayé, NAT vers Internet et filtrage par ACL.",
+  "statement": "# Contexte\n\nL’entreprise possède deux sites reliés par une liaison WAN.\n\n- **Paris** : commutateur **SW1** (2960), routeurs **R1** (sortie Internet, vers **ISP**) et **R2** (liaison WAN), serveur **SRV1** (Windows Server, DHCP) et poste **PC1**.\n- **Lyon** : routeur **R3** (2811) et poste **PC2**.\n\nPlan d’adressage :\n\n| Réseau | Adresses | Équipements |\n| --- | --- | --- |\n| VLAN 10 Utilisateurs | `192.168.10.0/24` | R1 `.1`, R2 `.2`, passerelle virtuelle `.254` |\n| VLAN 20 Serveurs | `192.168.20.0/24` | R1 `.1`, R2 `.2`, SRV1 `.10` |\n| WAN Paris–Lyon | `10.0.23.0/30` | R2 `.1`, R3 `.2` |\n| LAN Lyon | `192.168.30.0/24` | R3 `.1` |\n| Accès Internet | `203.0.113.0/30` | ISP `.1`, R1 `.2` |\n\nLes liaisons WAN et Internet sont déjà adressées. Câblage de SW1 : `Fa0/1` PC1, `Fa0/2` SRV1, `Gi0/1` R1, `Gi0/2` R2.\n\n## Travail demandé\n\n1. **VLAN** : créez les VLAN 10 et 20 sur SW1, affectez PC1 et SRV1, et configurez les deux liens vers R1 et R2 en trunk.\n2. **Inter-VLAN** : sous-interfaces `Gi0/0.10` et `Gi0/0.20` sur R1 et R2 (adresses du tableau).\n3. **HSRP** : sur le VLAN 10, passerelle virtuelle `.254`, R1 actif (priorité 110, préemption).\n4. **OSPF** (processus 1, aire 0) entre R1, R2 et R3 ; interfaces côté postes passives.\n5. **Internet** : route par défaut de R1 vers ISP et PAT du réseau utilisateurs.\n6. **DHCP** : sur SRV1, créez une étendue par réseau (VLAN 10 et Lyon, plage `.100` à `.200`, passerelle du réseau, DNS SRV1), puis configurez le **relais DHCP** (`ip helper-address`) là où il faut.\n7. **ACL** : les postes de Lyon ne doivent pas pouvoir faire de ping vers SRV1, le reste du trafic est autorisé.\n8. Enregistrez la configuration de R1, puis démontrez : PC1 ↔ PC2 et PC1 vers Internet.",
+  "start": {
+    "devices": [
+      {
+        "kind": "switch",
+        "name": "SW1",
+        "x": 300,
+        "y": 250,
+        "model": "c2960"
+      },
+      {
+        "kind": "router",
+        "name": "R1",
+        "x": 150,
+        "y": 100,
+        "model": "c1921",
+        "ios": [
+          "enable",
+          "configure terminal",
+          "interface Gi0/1",
+          "ip address 203.0.113.2 255.255.255.252",
+          "no shutdown",
+          "end"
+        ]
+      },
+      {
+        "kind": "router",
+        "name": "R2",
+        "x": 450,
+        "y": 100,
+        "model": "c1921",
+        "ios": [
+          "enable",
+          "configure terminal",
+          "interface Gi0/1",
+          "ip address 10.0.23.1 255.255.255.252",
+          "no shutdown",
+          "end"
+        ]
+      },
+      {
+        "kind": "router",
+        "name": "ISP",
+        "x": 150,
+        "y": -50,
+        "model": "c2811",
+        "ios": [
+          "enable",
+          "configure terminal",
+          "interface Fa0/0",
+          "ip address 203.0.113.1 255.255.255.252",
+          "no shutdown",
+          "end"
+        ]
+      },
+      {
+        "kind": "router",
+        "name": "R3",
+        "x": 700,
+        "y": 100,
+        "model": "c2811",
+        "ios": [
+          "enable",
+          "configure terminal",
+          "interface Fa0/0",
+          "ip address 10.0.23.2 255.255.255.252",
+          "no shutdown",
+          "interface Fa0/1",
+          "ip address 192.168.30.1 255.255.255.0",
+          "no shutdown",
+          "end"
+        ]
+      },
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 450,
+        "y": 400,
+        "ip": "192.168.20.10/24",
+        "gateway": "192.168.20.1",
+        "dns": ["127.0.0.1"],
+        "features": ["DHCP"]
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 150,
+        "y": 400,
+        "dhcp": true
+      },
+      {
+        "kind": "client",
+        "name": "PC2",
+        "x": 900,
+        "y": 100,
+        "dhcp": true
+      }
+    ],
+    "links": [
+      ["SW1:Gi0/1", "R1:Gi0/0"],
+      ["SW1:Gi0/2", "R2:Gi0/0"],
+      ["PC1:Ethernet0", "SW1:Fa0/1"],
+      ["SRV1:Ethernet0", "SW1:Fa0/2"],
+      ["R1:Gi0/1", "ISP:Fa0/0"],
+      ["R2:Gi0/1", "R3:Fa0/0"],
+      ["R3:Fa0/1", "PC2:Ethernet0"]
+    ]
+  },
+  "criteria": [
+    {
+      "id": "acc10",
+      "label": "PC1 est dans le VLAN des utilisateurs",
+      "hint": "Un VLAN doit exister avant qu’on y affecte un port d’accès.",
+      "check": {
+        "type": "switchport",
+        "device": "SW1",
+        "port": "Fa0/1",
+        "mode": "access",
+        "vlan": 10
+      }
+    },
+    {
+      "id": "acc20",
+      "label": "SRV1 est dans le VLAN des serveurs",
+      "hint": "Un VLAN doit exister avant qu’on y affecte un port d’accès.",
+      "check": {
+        "type": "switchport",
+        "device": "SW1",
+        "port": "Fa0/2",
+        "mode": "access",
+        "vlan": 20
+      }
+    },
+    {
+      "id": "trunk1",
+      "label": "Le lien vers R1 est un trunk",
+      "hint": "Un lien qui transporte plusieurs VLAN doit être en mode trunk.",
+      "check": {
+        "type": "switchport",
+        "device": "SW1",
+        "port": "Gi0/1",
+        "mode": "trunk"
+      }
+    },
+    {
+      "id": "trunk2",
+      "label": "Le lien vers R2 est un trunk",
+      "hint": "Les deux routeurs de Paris ont besoin des deux VLAN.",
+      "check": {
+        "type": "switchport",
+        "device": "SW1",
+        "port": "Gi0/2",
+        "mode": "trunk"
+      }
+    },
+    {
+      "id": "active",
+      "label": "R1 est le routeur HSRP actif du VLAN 10",
+      "hint": "Seul le routeur de plus haute priorité devient actif, à condition de préempter.",
+      "check": {
+        "type": "iosHsrp",
+        "device": "R1",
+        "interface": "Gi0/0.10",
+        "group": 1,
+        "state": "Active"
+      }
+    },
+    {
+      "id": "standby",
+      "label": "R2 est en veille HSRP",
+      "hint": "Les deux routeurs partagent le même groupe et la même adresse virtuelle.",
+      "check": {
+        "type": "iosHsrp",
+        "device": "R2",
+        "interface": "Gi0/0.10",
+        "group": 1,
+        "state": "Standby"
+      }
+    },
+    {
+      "id": "ospf2",
+      "label": "R2 est voisin OSPF de R1 et de R3",
+      "hint": "Les voisins se forment sur les réseaux annoncés dans la même aire.",
+      "check": {
+        "type": "iosOspfNeighbors",
+        "device": "R2",
+        "minNeighbors": 2
+      }
+    },
+    {
+      "id": "route-lyon",
+      "label": "R1 connaît le LAN de Lyon par OSPF",
+      "hint": "Les routes apprises par OSPF portent la lettre O.",
+      "check": {
+        "type": "iosRoute",
+        "device": "R1",
+        "network": "192.168.30.0",
+        "prefixLength": 24,
+        "source": "ospf"
+      }
+    },
+    {
+      "id": "route-paris",
+      "label": "R3 connaît le VLAN des utilisateurs par OSPF",
+      "hint": "Les routes apprises par OSPF portent la lettre O.",
+      "check": {
+        "type": "iosRoute",
+        "device": "R3",
+        "network": "192.168.10.0",
+        "prefixLength": 24,
+        "source": "ospf"
+      }
+    },
+    {
+      "id": "default",
+      "label": "R1 a une route par défaut vers le fournisseur",
+      "hint": "Une route qui couvre toutes les destinations envoie le reste du trafic vers le routeur du fournisseur.",
+      "check": {
+        "type": "iosRoute",
+        "device": "R1",
+        "network": "0.0.0.0",
+        "prefixLength": 0,
+        "source": "default"
+      }
+    },
+    {
+      "id": "nat",
+      "label": "R1 traduit les adresses privées",
+      "hint": "La traduction part d’une liste d’accès qui désigne les sources autorisées.",
+      "check": {
+        "type": "iosRunning",
+        "device": "R1",
+        "line": "ip nat inside source list",
+        "match": "prefix"
+      }
+    },
+    {
+      "id": "scope10",
+      "label": "Étendue DHCP du VLAN des utilisateurs",
+      "hint": "Une étendue par réseau : plage et option Routeur appartiennent à ce réseau.",
+      "check": {
+        "type": "dhcpScope",
+        "server": "SRV1",
+        "start": "192.168.10.100",
+        "end": "192.168.10.200",
+        "router": "192.168.10.254"
+      }
+    },
+    {
+      "id": "scope30",
+      "label": "Étendue DHCP de Lyon",
+      "hint": "Une étendue par réseau : plage et option Routeur appartiennent à ce réseau.",
+      "check": {
+        "type": "dhcpScope",
+        "server": "SRV1",
+        "start": "192.168.30.100",
+        "end": "192.168.30.200",
+        "router": "192.168.30.1"
+      }
+    },
+    {
+      "id": "relay",
+      "label": "Lyon relaie les requêtes DHCP",
+      "hint": "Une diffusion DHCP ne traverse pas un routeur.",
+      "check": {
+        "type": "iosRunning",
+        "device": "R3",
+        "line": "ip helper-address 192.168.20.10"
+      }
+    },
+    {
+      "id": "lease1",
+      "label": "PC1 obtient un bail du serveur",
+      "hint": "Le relais doit exister sur le routeur qui reçoit la diffusion.",
+      "check": {
+        "type": "dhcpLease",
+        "client": "PC1",
+        "server": "SRV1"
+      }
+    },
+    {
+      "id": "lease2",
+      "label": "PC2 obtient un bail du serveur",
+      "hint": "Le relais doit exister sur le routeur qui reçoit la diffusion.",
+      "check": {
+        "type": "dhcpLease",
+        "client": "PC2",
+        "server": "SRV1"
+      }
+    },
+    {
+      "id": "ping-sites",
+      "label": "PC1 joint PC2",
+      "hint": "Le trajet doit exister dans les deux sens.",
+      "check": {
+        "type": "ping",
+        "from": "PC1",
+        "to": "PC2"
+      }
+    },
+    {
+      "id": "internet",
+      "label": "PC1 joint le fournisseur",
+      "hint": "Le fournisseur ne connaît pas les réseaux privés.",
+      "check": {
+        "type": "ping",
+        "from": "PC1",
+        "to": "ISP"
+      }
+    },
+    {
+      "id": "acl-block",
+      "label": "Le ping de Lyon vers le serveur est bloqué",
+      "hint": "Une liste d’accès se place près de la source et dans le sens entrant.",
+      "check": {
+        "type": "ping",
+        "success": false,
+        "from": "PC2",
+        "to": "SRV1"
+      }
+    },
+    {
+      "id": "acl-ok",
+      "label": "Les utilisateurs de Paris joignent toujours le serveur",
+      "hint": "Le filtre ne doit viser que Lyon.",
+      "check": {
+        "type": "ping",
+        "from": "PC1",
+        "to": "SRV1"
+      }
+    },
+    {
+      "id": "saved",
+      "label": "La configuration de R1 est enregistrée",
+      "hint": "La startup-config doit refléter la configuration en cours.",
+      "check": {
+        "type": "iosStartup",
+        "device": "R1"
+      }
+    }
+  ]
+}

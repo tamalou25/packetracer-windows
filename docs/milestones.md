@@ -1,4 +1,4 @@
-# Journal des milestones v2.1 → v2.4
+# Journal des milestones v2.1 → v2.5
 
 Suivi de la réalisation de la roadmap (`ROADMAP.md`), une issue = une branche `feat/<num>-<slug>` = une PR.
 Ce journal permet à une nouvelle session de reprendre le travail là où il s'est arrêté.
@@ -8,7 +8,8 @@ Ce journal permet à une nouvelle session de reprendre le travail là où il s'e
 - **Format .slab** : une seule version de format par milestone. La première issue qui modifie le format
   incrémente `CURRENT_SCHEMA_VERSION` et écrit `fixtures/vN.slab` ; les issues suivantes du même milestone
   ajoutent des champs avec valeurs par défaut (le fichier de référence de la version reste valable).
-  v2.1 → format 5 ; v2.2 → format 6 ; v2.3 → format 7.
+  v2.1 → format 5 ; v2.2 → format 6 ; v2.3 → format 7 ; v2.4 → format 8 ; v2.5 → format 9
+  (migration écrite dans la dernière issue : champs IOS facultatifs avec valeurs par défaut).
 - **Fidélité** : un comportement de Windows Server non sourcé est noté dans `docs/fidelite.md` (« à vérifier »).
 - **Fin de milestone** : `CHANGELOG.md`, version de `package.json`, tag `vX.Y.0` poussé par Gary.
 
@@ -381,3 +382,29 @@ Milestone terminé : `CHANGELOG.md` [2.3.0], `package.json` 2.3.0 ; tag `v2.3.0`
   reconstruite (l'état vit dans les stores).
 - Hors champ, en français : système simulé (Bureau, consoles, messages du moteur, libellés des commandes du
   journal), contenu des labs, rapport PDF et résultat d'examen exportés.
+
+## v2.5 — Équipements Cisco IOS
+
+| Issue | Sujet                                 | Branche                 | PR   | État     |
+| ----- | ------------------------------------- | ----------------------- | ---- | -------- |
+| #103  | Nœuds Cisco (1921, 2811, 2960, 9200)  | `feat/103-ios-noeuds`   | #113 | fusionné |
+| #105  | Moteur de CLI IOS                     | `feat/105-ios-cli`      | #115 | fusionné |
+| #106  | Configuration de base                 | `feat/106-ios-base`     | #117 | fusionné |
+| #107  | Switching et VLAN                     | `feat/107-ios-vlan`     | #118 | fusionné |
+| #108  | Routage statique et OSPF              | `feat/108-ios-routage`  | #119 | fusionné |
+| #109  | Services IP (DHCP, NAT / PAT)         | `feat/109-ios-services` | #120 | fusionné |
+| #110  | HSRP                                  | `feat/110-ios-hsrp`     | #121 | fusionné |
+| #111  | Sécurité (ACL, port-security, SSH)    | `feat/111-ios-securite` | #122 | en revue |
+| #112  | Labs, format `.slab` 9, documentation | `feat/112-ios-labs`     |      | en cours |
+
+Correction en cours de route : #114 (formulaire d'interface de routeur, PR #116).
+
+### #112 Labs, format .slab 9, documentation
+
+- Format : `CURRENT_SCHEMA_VERSION` 9, `migrations[8]` (version seule), `fixtures/v9.slab` (routeur CR1 et
+  switch CSW1 configurés en IOS), test de migration et de restitution de la configuration.
+- Labs : `LabDevice.model` et `LabDevice.ios` (script de console exécuté à la construction du départ,
+  `runIosScript`) ; critères `iosRunning`, `iosStartup`, `iosInterface`, `iosRoute`, `iosOspfNeighbors`,
+  `iosHsrp`, `iosNat`, `iosDhcpBindings`, `iosPortSecurity` (`src/engine/ios/criteria.ts`) ; labs 22 à 28
+  testés par `tests/engine/ios/labs.test.ts` (solution saisie en commandes IOS, 100 %).
+- Documentation : `docs/fidelite.md` (I36 à I38), README (section Cisco), CHANGELOG [2.5.0].

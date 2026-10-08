@@ -5,6 +5,8 @@
 import { z } from 'zod'
 import { command, type Command, type CommandType, type CommandValue } from '../commands/catalog'
 import { dispatch } from '../commands/dispatch'
+import { runIosScript } from '../ios/cli'
+import { IOS_MODELS } from '../ios/models'
 import { createLab } from '../model/factory'
 import { DEVICE_KINDS } from '../model/kinds'
 import type { LabState } from '../model/schema'
@@ -19,6 +21,13 @@ export const LAB_FORMAT_VERSION = 1
 export const LabDeviceSchema = z.object({
   kind: z.enum(DEVICE_KINDS),
   name: z.string(),
+  /** Routeur ou switch Cisco IOS (1921, 2811, 2960, 9200) : console IOS à la place de la configuration graphique. */
+  model: z.enum(IOS_MODELS).optional(),
+  /**
+   * Configuration IOS de départ : lignes saisies dans la console, comme à la main (« enable »,
+   * « configure terminal », « interface Gi0/0 »… « end »).
+   */
+  ios: z.array(z.string()).optional(),
   x: z.number(),
   y: z.number(),
   powered: z.boolean().default(true),
@@ -200,7 +209,12 @@ function buildDeclarativeStart(start: LabDeclarativeStart): LabState {
   }
   for (const d of start.devices) {
     const id = apply(
-      command('topology.addDevice', { kind: d.kind, position: { x: d.x, y: d.y }, name: d.name })
+      command('topology.addDevice', {
+        kind: d.kind,
+        position: { x: d.x, y: d.y },
+        name: d.name,
+        ...(d.model ? { model: d.model } : {})
+      })
     )
     ids.set(d.name.toLowerCase(), id)
     if (d.kind === 'server')
@@ -272,6 +286,7 @@ function buildDeclarativeStart(start: LabDeclarativeStart): LabState {
           localToken(d.name, 'Administrateur')
         )
       )
+    if (d.ios?.length) state = runIosScript(state, id, d.ios)
   }
   const domain = start.domain
   if (domain) {

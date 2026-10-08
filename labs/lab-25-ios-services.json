@@ -1,0 +1,144 @@
+{
+  "formatVersion": 1,
+  "id": "lab-25-ios-services",
+  "title": "DHCP, NAT et route par défaut sur Cisco",
+  "difficulty": "Intermédiaire",
+  "duration": "35 min",
+  "summary": "Faire de R1 le serveur DHCP du LAN et sa passerelle Internet : pool, exclusions, PAT et route par défaut.",
+  "statement": "# Contexte\n\n**R1** (Cisco 1921) dessert le LAN `192.168.1.0/24` (`Gi0/0`) et se raccorde au fournisseur d’accès **ISP** par `Gi0/1` (`203.0.113.2/30`, passerelle `203.0.113.1`). Un serveur public SRV-WEB (`198.51.100.10`) est joignable derrière ISP. Les adresses des interfaces sont en place.\n\n## Travail demandé\n\n1. Excluez les dix premières adresses du LAN, puis créez le **pool DHCP** `LAN` (réseau, passerelle par défaut, DNS `8.8.8.8`).\n2. Désignez les interfaces `inside` / `outside` et configurez la **traduction PAT** (surcharge) de tout le LAN sur l’adresse de `Gi0/1`.\n3. Ajoutez la route par défaut vers ISP.\n4. Sur PC1, renouvelez le bail (`ipconfig /renew`), puis joignez SRV-WEB et contrôlez `show ip nat translations` et `show ip dhcp binding`.",
+  "start": {
+    "devices": [
+      {
+        "kind": "router",
+        "name": "R1",
+        "x": 250,
+        "y": 200,
+        "model": "c1921",
+        "ios": [
+          "enable",
+          "configure terminal",
+          "interface Gi0/0",
+          "ip address 192.168.1.1 255.255.255.0",
+          "no shutdown",
+          "interface Gi0/1",
+          "ip address 203.0.113.2 255.255.255.252",
+          "no shutdown",
+          "end"
+        ]
+      },
+      {
+        "kind": "router",
+        "name": "ISP",
+        "x": 500,
+        "y": 200,
+        "model": "c2811",
+        "ios": [
+          "enable",
+          "configure terminal",
+          "interface Fa0/0",
+          "ip address 203.0.113.1 255.255.255.252",
+          "no shutdown",
+          "interface Fa0/1",
+          "ip address 198.51.100.1 255.255.255.0",
+          "no shutdown",
+          "end"
+        ]
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 250,
+        "y": 380,
+        "dhcp": true
+      },
+      {
+        "kind": "server",
+        "name": "SRV-WEB",
+        "x": 500,
+        "y": 380,
+        "ip": "198.51.100.10/24",
+        "gateway": "198.51.100.1"
+      }
+    ],
+    "links": [
+      ["PC1:Ethernet0", "R1:Gi0/0"],
+      ["R1:Gi0/1", "ISP:Fa0/0"],
+      ["ISP:Fa0/1", "SRV-WEB:Ethernet0"]
+    ]
+  },
+  "criteria": [
+    {
+      "id": "pool",
+      "label": "R1 distribue le réseau du LAN en DHCP",
+      "hint": "Un pool DHCP IOS se définit par un nom, puis un réseau avec son masque.",
+      "check": {
+        "type": "iosRunning",
+        "device": "R1",
+        "line": "network 192.168.1.0 255.255.255.0"
+      }
+    },
+    {
+      "id": "excl",
+      "label": "Les dix premières adresses sont exclues",
+      "hint": "Les exclusions se déclarent en configuration globale, avant le pool.",
+      "check": {
+        "type": "iosRunning",
+        "device": "R1",
+        "line": "ip dhcp excluded-address 192.168.1.1 192.168.1.10"
+      }
+    },
+    {
+      "id": "nat",
+      "label": "Le LAN est traduit en surcharge",
+      "hint": "La commande nat part d’une liste d’accès qui désigne les sources et d’une interface de sortie.",
+      "check": {
+        "type": "iosRunning",
+        "device": "R1",
+        "line": "ip nat inside source list",
+        "match": "prefix"
+      }
+    },
+    {
+      "id": "def",
+      "label": "R1 a une route par défaut",
+      "hint": "Une route qui couvre toutes les destinations envoie le reste du trafic vers le routeur du fournisseur.",
+      "check": {
+        "type": "iosRoute",
+        "device": "R1",
+        "network": "0.0.0.0",
+        "prefixLength": 0,
+        "source": "default"
+      }
+    },
+    {
+      "id": "bind",
+      "label": "PC1 a obtenu un bail du pool de R1",
+      "hint": "Le poste doit relancer sa demande une fois le pool créé.",
+      "check": {
+        "type": "iosDhcpBindings",
+        "device": "R1",
+        "minBindings": 1
+      }
+    },
+    {
+      "id": "ping",
+      "label": "PC1 joint SRV-WEB",
+      "hint": "La traduction doit exister dans les deux sens : l’adresse privée n’est pas routée par ISP.",
+      "check": {
+        "type": "ping",
+        "from": "PC1",
+        "to": "SRV-WEB"
+      }
+    },
+    {
+      "id": "xlate",
+      "label": "Une traduction NAT est active",
+      "hint": "Une traduction naît du premier paquet sortant : générez du trafic.",
+      "check": {
+        "type": "iosNat",
+        "device": "R1",
+        "minTranslations": 1
+      }
+    }
+  ]
+}

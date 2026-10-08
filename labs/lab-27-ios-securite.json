@@ -1,0 +1,141 @@
+{
+  "formatVersion": 1,
+  "id": "lab-27-ios-securite",
+  "title": "Durcir un équipement Cisco",
+  "difficulty": "Avancé",
+  "duration": "40 min",
+  "summary": "Filtrer avec une ACL étendue, limiter les adresses MAC d’un port, remplacer Telnet par SSH et chiffrer les mots de passe.",
+  "statement": "# Contexte\n\nLe LAN utilisateurs `192.168.1.0/24` (PC1, **SW1** 2960) accède au réseau serveurs `10.0.0.0/24` (SRV1) par **R1**. L’audit demande un durcissement.\n\n## Travail demandé\n\n1. **ACL** : sur R1, interdisez l’ICMP du LAN vers SRV1 (`10.0.0.10`) mais laissez passer tout le reste ; appliquez-la en entrée de `Gi0/0`.\n2. **Port-security** : sur `Fa0/1` de SW1 (PC1), activez la sécurité de port (1 adresse maximum, apprise dynamiquement et conservée, violation `shutdown`).\n3. **SSH** : sur R1, nom de domaine, clé RSA 1024 bits, SSH version 2, un utilisateur local, accès VTY en SSH uniquement avec authentification locale.\n4. **Mots de passe** : chiffrez les mots de passe de la configuration.\n5. Enregistrez la configuration de R1.",
+  "start": {
+    "devices": [
+      {
+        "kind": "router",
+        "name": "R1",
+        "x": 300,
+        "y": 150,
+        "model": "c1921",
+        "ios": [
+          "enable",
+          "configure terminal",
+          "interface Gi0/0",
+          "ip address 192.168.1.1 255.255.255.0",
+          "no shutdown",
+          "interface Gi0/1",
+          "ip address 10.0.0.1 255.255.255.0",
+          "no shutdown",
+          "end"
+        ]
+      },
+      {
+        "kind": "switch",
+        "name": "SW1",
+        "x": 300,
+        "y": 300,
+        "model": "c2960"
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 150,
+        "y": 450,
+        "ip": "192.168.1.10/24",
+        "gateway": "192.168.1.1"
+      },
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 450,
+        "y": 150,
+        "ip": "10.0.0.10/24",
+        "gateway": "10.0.0.1"
+      }
+    ],
+    "links": [
+      ["R1:Gi0/0", "SW1:Gi0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/1"],
+      ["R1:Gi0/1", "SRV1:Ethernet0"]
+    ]
+  },
+  "criteria": [
+    {
+      "id": "icmp",
+      "label": "Le ping de PC1 vers SRV1 est bloqué",
+      "hint": "Un filtre IOS se compose d’une liste d’accès et de son application sur une interface, dans un sens.",
+      "check": {
+        "type": "ping",
+        "success": false,
+        "from": "PC1",
+        "to": "SRV1"
+      }
+    },
+    {
+      "id": "implicit",
+      "label": "La liste laisse passer le reste du trafic",
+      "hint": "Toute liste se termine par un « deny any » implicite.",
+      "check": {
+        "type": "iosRunning",
+        "device": "R1",
+        "line": "permit ip any any"
+      }
+    },
+    {
+      "id": "psec",
+      "label": "La sécurité de port est active sur Fa0/1",
+      "hint": "Le mode par défaut d’un port est « accès » ; la sécurité de port ne s’y active qu’explicitement.",
+      "check": {
+        "type": "iosRunning",
+        "device": "SW1",
+        "line": "switchport port-security"
+      }
+    },
+    {
+      "id": "sticky",
+      "label": "Les adresses sont apprises et conservées",
+      "hint": "Les adresses « collantes » sont écrites dans la configuration.",
+      "check": {
+        "type": "iosRunning",
+        "device": "SW1",
+        "line": "switchport port-security mac-address sticky"
+      }
+    },
+    {
+      "id": "ssh",
+      "label": "SSH version 2 est exigé",
+      "hint": "Telnet transmet tout en clair.",
+      "check": {
+        "type": "iosRunning",
+        "device": "R1",
+        "line": "ip ssh version 2"
+      }
+    },
+    {
+      "id": "vty",
+      "label": "Les lignes VTY n’acceptent que SSH",
+      "hint": "Le transport autorisé se restreint sous les lignes virtuelles.",
+      "check": {
+        "type": "iosRunning",
+        "device": "R1",
+        "line": "transport input ssh"
+      }
+    },
+    {
+      "id": "enc",
+      "label": "Les mots de passe sont chiffrés",
+      "hint": "Un service global masque les mots de passe de type 7 dans la configuration.",
+      "check": {
+        "type": "iosRunning",
+        "device": "R1",
+        "line": "service password-encryption"
+      }
+    },
+    {
+      "id": "saved",
+      "label": "La configuration de R1 est enregistrée",
+      "hint": "La startup-config doit refléter la configuration en cours.",
+      "check": {
+        "type": "iosStartup",
+        "device": "R1"
+      }
+    }
+  ]
+}

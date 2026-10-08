@@ -161,11 +161,12 @@ et se relance par **Aide > Tutoriel interactif**.
 
 ## Labs pédagogiques
 
-L'accueil et **Fichier > Ouvrir un lab…** (`Ctrl+L`) proposent vingt et un labs prêts à l'emploi, du plus simple au
+L'accueil et **Fichier > Ouvrir un lab…** (`Ctrl+L`) proposent vingt-huit labs prêts à l'emploi, du plus simple au
 plus complet : adressage et routage, DHCP, DNS, Active Directory + GPO, partages et NTFS, puis un lab par rôle de la
 2.1 (WSUS, IIS, Bureau à distance, Hyper-V, AD CS, DFS, sauvegarde et Corbeille AD), par fonctionnalité réseau
 de la 2.2 (VLAN, relais DHCP, pare-feu, NAT et VPN, NPS/RADIUS, multi-sites AD) et trois labs de durcissement
-de la 2.3 (Active Directory, partages, pare-feu). Chaque lab
+de la 2.3 (Active Directory, partages, pare-feu) et sept labs Cisco de la 2.5 (base, VLAN, OSPF, DHCP / NAT, HSRP, sécurité,
+sujet E6 complet à deux sites). Chaque lab
 construit sa topologie de départ ; l'onglet **Lab** affiche l'énoncé et les objectifs, et
 **Vérifier** valide chaque critère (✅ / ❌) avec un indice qui oriente sans donner la solution.
 Le lab en cours est conservé dans le fichier `.slab` enregistré.
@@ -193,6 +194,18 @@ La palette propose un **Poste Linux** (Ubuntu simulé) avec une console bash : `
 `dig`, `realm join` pour rejoindre le domaine Active Directory, `mount -t cifs` ou `smbclient` pour accéder
 aux partages selon les autorisations NTFS du compte. Les sorties reprennent le format d'origine des outils
 (en anglais).
+
+## Équipements Cisco
+
+La palette propose des routeurs **Cisco 1921** et **2811** et des switchs **Catalyst 2960** et **9200**. Un
+double-clic ouvre la console IOS (modes utilisateur, privilégié, configuration ; abréviations, `?`, Tab,
+`no`, `do`, `show`, `copy running-config startup-config`, `reload`). Ils partagent le moteur réseau des
+autres équipements : un poste Windows, un serveur DHCP Windows et un routeur Cisco se câblent ensemble.
+
+Pris en charge : VLAN et trunk 802.1Q, router-on-a-stick et SVI, routes statiques et OSPF monozone, relais
+DHCP et serveur DHCP IOS, NAT / PAT, HSRP, ACL standard et étendues, port-security, SSH, chiffrement des mots de
+passe. Hors périmètre (v2.6) : STP, EtherChannel, EIGRP, BGP, IPv6, QoS, VTP. Les écarts connus avec le
+vrai IOS sont listés dans [`docs/fidelite.md`](docs/fidelite.md) (I1 à I38).
 
 ## Langue
 

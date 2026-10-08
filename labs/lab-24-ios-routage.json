@@ -1,0 +1,155 @@
+{
+  "formatVersion": 1,
+  "id": "lab-24-ios-routage",
+  "title": "Routage OSPF entre trois routeurs Cisco",
+  "difficulty": "Intermédiaire",
+  "duration": "35 min",
+  "summary": "Faire apprendre dynamiquement les réseaux distants à trois routeurs avec OSPF, sans annoncer les LAN aux postes.",
+  "statement": "# Contexte\n\nTrois routeurs en ligne : **R1** (LAN `192.168.1.0/24`), **R2** (cœur) et **R3** (LAN `192.168.3.0/24`). Les interfaces sont déjà adressées et activées ; liens inter-routeurs en `10.0.12.0/30` et `10.0.23.0/30`.\n\nAucune route statique : les routeurs doivent échanger leurs réseaux avec **OSPF** (processus 1, aire 0).\n\n## Travail demandé\n\n1. Sur chaque routeur, activez OSPF et annoncez les réseaux directement connectés (`network … area 0`, masque générique).\n2. Les interfaces côté postes n’ont pas de voisin OSPF : rendez-les **passives** sur R1 et R3.\n3. Contrôlez avec `show ip ospf neighbor` et `show ip route`.\n4. PC1 doit joindre PC3.",
+  "start": {
+    "devices": [
+      {
+        "kind": "router",
+        "name": "R1",
+        "x": 100,
+        "y": 200,
+        "model": "c1921",
+        "ios": [
+          "enable",
+          "configure terminal",
+          "interface Gi0/0",
+          "ip address 192.168.1.1 255.255.255.0",
+          "no shutdown",
+          "interface Gi0/1",
+          "ip address 10.0.12.1 255.255.255.252",
+          "no shutdown",
+          "end"
+        ]
+      },
+      {
+        "kind": "router",
+        "name": "R2",
+        "x": 350,
+        "y": 200,
+        "model": "c2811",
+        "ios": [
+          "enable",
+          "configure terminal",
+          "interface Fa0/0",
+          "ip address 10.0.12.2 255.255.255.252",
+          "no shutdown",
+          "interface Fa0/1",
+          "ip address 10.0.23.1 255.255.255.252",
+          "no shutdown",
+          "end"
+        ]
+      },
+      {
+        "kind": "router",
+        "name": "R3",
+        "x": 600,
+        "y": 200,
+        "model": "c1921",
+        "ios": [
+          "enable",
+          "configure terminal",
+          "interface Gi0/0",
+          "ip address 10.0.23.2 255.255.255.252",
+          "no shutdown",
+          "interface Gi0/1",
+          "ip address 192.168.3.1 255.255.255.0",
+          "no shutdown",
+          "end"
+        ]
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 100,
+        "y": 380,
+        "ip": "192.168.1.10/24",
+        "gateway": "192.168.1.1"
+      },
+      {
+        "kind": "client",
+        "name": "PC3",
+        "x": 600,
+        "y": 380,
+        "ip": "192.168.3.10/24",
+        "gateway": "192.168.3.1"
+      }
+    ],
+    "links": [
+      ["PC1:Ethernet0", "R1:Gi0/0"],
+      ["R1:Gi0/1", "R2:Fa0/0"],
+      ["R2:Fa0/1", "R3:Gi0/0"],
+      ["R3:Gi0/1", "PC3:Ethernet0"]
+    ]
+  },
+  "criteria": [
+    {
+      "id": "nb",
+      "label": "R2 a deux voisins OSPF",
+      "hint": "Un voisinage ne se forme que si les deux extrémités annoncent leur réseau commun dans la même aire.",
+      "check": {
+        "type": "iosOspfNeighbors",
+        "device": "R2",
+        "minNeighbors": 2
+      }
+    },
+    {
+      "id": "r1",
+      "label": "R1 connaît le LAN de R3 par OSPF",
+      "hint": "Les routes apprises par OSPF portent la lettre O dans la table de routage.",
+      "check": {
+        "type": "iosRoute",
+        "device": "R1",
+        "network": "192.168.3.0",
+        "prefixLength": 24,
+        "source": "ospf"
+      }
+    },
+    {
+      "id": "r3",
+      "label": "R3 connaît le LAN de R1 par OSPF",
+      "hint": "Les routes apprises par OSPF portent la lettre O dans la table de routage.",
+      "check": {
+        "type": "iosRoute",
+        "device": "R3",
+        "network": "192.168.1.0",
+        "prefixLength": 24,
+        "source": "ospf"
+      }
+    },
+    {
+      "id": "passive1",
+      "label": "R1 n’émet pas d’OSPF vers ses postes",
+      "hint": "Une interface passive annonce son réseau mais n’envoie plus de messages OSPF.",
+      "check": {
+        "type": "iosRunning",
+        "device": "R1",
+        "line": "passive-interface GigabitEthernet0/0"
+      }
+    },
+    {
+      "id": "passive3",
+      "label": "R3 n’émet pas d’OSPF vers ses postes",
+      "hint": "Une interface passive annonce son réseau mais n’envoie plus de messages OSPF.",
+      "check": {
+        "type": "iosRunning",
+        "device": "R3",
+        "line": "passive-interface GigabitEthernet0/1"
+      }
+    },
+    {
+      "id": "ping",
+      "label": "PC1 joint PC3",
+      "hint": "Vérifiez que la route de retour existe aussi.",
+      "check": {
+        "type": "ping",
+        "from": "PC1",
+        "to": "PC3"
+      }
+    }
+  ]
+}
