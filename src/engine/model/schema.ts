@@ -95,7 +95,9 @@ export const EventLogEntrySchema = z.object({
   log: z.enum(['Système', 'Application', 'Sécurité', 'Service d’annuaire', 'Serveur DNS']).default('Système'),
   source: z.string(),
   eventId: z.number().int(),
-  message: z.string()
+  message: z.string(),
+  /** Compte concerné (DOMAINE\\nom), pour les filtres et la corrélation des événements de sécurité. */
+  account: z.string().optional()
 })
 
 /** Route statique d'un routeur. */

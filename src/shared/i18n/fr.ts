@@ -513,6 +513,10 @@ export const fr = {
   'lab.laBibliothequeNeContient': 'La bibliothèque ne contient encore aucun lab.',
   'lab.chargementDeLaBibliotheque': 'Chargement de la bibliothèque…',
   'audit.exporterLeRapportDaudit': 'Exporter le rapport d’audit en PDF',
+  'detection.title': 'Détection dans les journaux',
+  'detection.none': 'Aucune alerte : rien de suspect dans les journaux Sécurité.',
+  'detection.rule.failuresThenSuccess': 'Échecs puis succès',
+  'detection.rule.offHours': 'Activité hors horaires',
   'audit.correction': 'Correction :',
   'audit.scoreDeSecurite': 'Score de sécurité',
   'audit.aucuneRecommandationToutesLes':
