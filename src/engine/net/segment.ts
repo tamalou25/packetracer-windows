@@ -154,16 +154,42 @@ function egressTag(port: NetInterface, vlan: number): number | null | undefined 
  */
 export function l2Segment(state: LabState, origin: PortRef): SegmentMember[] {
   if (!portActive(state, origin)) return []
-  const { port: physical, vlan: originTag } = physicalPort(state, origin)
-  const first = linkAt(state, physical)
-  if (!first) return []
   const members: SegmentMember[] = []
   // Switch traversé une fois par VLAN (commutateur virtuel : par étiquette transportée)
   const visited = new Set<string>()
-  const startPeer = peerOf(first, physical)
-  const queue: Frame[] = [
-    { port: startPeer, path: extend([], first, physical, startPeer, originTag), tag: originTag }
-  ]
+  const queue: Frame[] = []
+
+  /** Trame du VLAN `vlan` dans un switch physique : interfaces VLAN (SVI) puis ports de sortie. */
+  const flood = (sw: Device, vlan: number, enteredBy: string | null, path: Hop[]) => {
+    for (const svi of sw.interfaces)
+      if (svi.svi?.vlan === vlan && svi.enabled && !(sw.id === origin.deviceId && svi.id === origin.ifaceId))
+        members.push({ port: { deviceId: sw.id, ifaceId: svi.id }, path })
+    for (const port of sw.interfaces) {
+      if (port.id === enteredBy || !port.enabled || port.svi) continue
+      const tag = egressTag(port, vlan)
+      if (tag === undefined) continue
+      const out: PortRef = { deviceId: sw.id, ifaceId: port.id }
+      const link = linkAt(state, out)
+      if (!link) continue
+      const next = peerOf(link, out)
+      queue.push({ port: next, path: extend(path, link, out, next, tag), tag })
+    }
+  }
+
+  // Interface VLAN d'un switch : la trame part dans son VLAN, depuis le switch lui-même
+  const originDevice = state.devices[origin.deviceId]
+  const originSvi = originDevice?.interfaces.find((i) => i.id === origin.ifaceId)?.svi
+  if (originDevice && originSvi) {
+    if (originDevice.kind !== 'switch' || !originDevice.vlans.some((v) => v.id === originSvi.vlan)) return []
+    visited.add(`${originDevice.id}:${originSvi.vlan}`)
+    flood(originDevice, originSvi.vlan, null, [])
+  } else {
+    const { port: physical, vlan: originTag } = physicalPort(state, origin)
+    const first = linkAt(state, physical)
+    if (!first) return []
+    const startPeer = peerOf(first, physical)
+    queue.push({ port: startPeer, path: extend([], first, physical, startPeer, originTag), tag: originTag })
+  }
   while (queue.length > 0) {
     const current = queue.shift() as Frame
     const resolved = resolvePort(state, current.port)
@@ -196,6 +222,10 @@ export function l2Segment(state: LabState, origin: PortRef): SegmentMember[] {
     if (visited.has(key)) continue
     visited.add(key)
     const enteredBy = fromUplink ? null : current.port.ifaceId
+    if (!virtual && !fromUplink) {
+      flood(sw, vlan as number, enteredBy, current.path)
+      continue
+    }
     for (const port of sw.interfaces) {
       if (port.id === enteredBy || !port.enabled) continue
       const tag = virtual ? current.tag : egressTag(port, vlan as number)

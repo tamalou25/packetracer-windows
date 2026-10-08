@@ -19,7 +19,7 @@ export interface Route {
 
 /** TTL initial selon le type d'équipement. */
 export function initialTtl(device: Device): number {
-  if (device.kind === 'router' || device.kind === 'cloud') return 255
+  if (device.kind === 'router' || device.kind === 'switch' || device.kind === 'cloud') return 255
   // Linux : net.ipv4.ip_default_ttl = 64 ; Windows : 128
   return device.kind === 'client' && device.host.os === 'linux' ? 64 : 128
 }

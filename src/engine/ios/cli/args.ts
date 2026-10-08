@@ -120,3 +120,35 @@ export function iface(options: IfaceArgOptions = {}): ArgType {
         .filter((w) => w.toLowerCase().startsWith(partial.toLowerCase()))
   }
 }
+
+/** Liste de VLAN « 10,20,30-35 » développée (null si invalide). */
+export function parseVlanList(text: string): number[] | null {
+  const ids = new Set<number>()
+  for (const part of text.split(',')) {
+    const m = /^(\d+)(?:-(\d+))?$/.exec(part)
+    if (!m) return null
+    const from = Number(m[1])
+    const to = m[2] === undefined ? from : Number(m[2])
+    if (from < 1 || to > 4094 || from > to) return null
+    for (let id = from; id <= to; id++) ids.add(id)
+  }
+  return [...ids].sort((a, b) => a - b)
+}
+
+/** Liste de VLAN (vlan 10,20 ; switchport trunk allowed vlan 10,20,30-35). */
+export function vlanList(label = 'WORD'): ArgType {
+  return { label, match: single((t) => parseVlanList(t) !== null) }
+}
+
+/** Liste compacte « 1,10,20-25 » d'identifiants triés. */
+export function formatVlanList(ids: readonly number[]): string {
+  const parts: string[] = []
+  let i = 0
+  while (i < ids.length) {
+    let j = i
+    while (j + 1 < ids.length && (ids[j + 1] as number) === (ids[j] as number) + 1) j++
+    parts.push(j > i ? `${ids[i]}-${ids[j]}` : String(ids[i]))
+    i = j + 1
+  }
+  return parts.join(',')
+}

@@ -13,7 +13,8 @@ const MODE_PROMPT: Record<IosMode, string> = {
   'config-if': '(config-if)#',
   'config-subif': '(config-subif)#',
   'config-line': '(config-line)#',
-  'config-router': '(config-router)#'
+  'config-router': '(config-router)#',
+  'config-vlan': '(config-vlan)#'
 }
 
 /** État IOS de la session (mode utilisateur à l'ouverture). */

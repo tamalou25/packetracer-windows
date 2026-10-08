@@ -12,7 +12,8 @@ export const IOS_MODES = [
   'config-if',
   'config-subif',
   'config-line',
-  'config-router'
+  'config-router',
+  'config-vlan'
 ] as const
 export type IosMode = (typeof IOS_MODES)[number]
 
@@ -21,7 +22,8 @@ export const CONFIG_SUBMODES: readonly IosMode[] = [
   'config-if',
   'config-subif',
   'config-line',
-  'config-router'
+  'config-router',
+  'config-vlan'
 ]
 
 /** Modes de configuration (Ctrl+Z, end et do y sont disponibles). */
@@ -43,6 +45,8 @@ export interface IosSession {
   ifaces?: string[]
   /** Lignes en cours de configuration, en config-line. */
   line?: IosLineRef
+  /** VLAN en cours de configuration, en config-vlan. */
+  vlans?: number[]
   /** Processus de routage en cours de configuration, en config-router. */
   router?: { protocol: 'ospf'; process: number }
 }

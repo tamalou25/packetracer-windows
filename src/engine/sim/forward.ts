@@ -8,6 +8,7 @@ import { isInternetHost } from '../net/internet'
 import { initialTtl, lookupRoute, routingTable } from '../net/routing'
 import { evaluateFirewall, PROFILE_LABELS, type FirewallTransport } from '../services/firewall'
 import { roleModules } from '../roles/registry'
+import { iosTransitHooks } from '../ios/registry'
 import type { TransitHooks } from './transit'
 import { l2Segment, reversePath, type PortRef, type SegmentMember } from '../net/segment'
 import {
@@ -337,9 +338,9 @@ function hopLatency(device: Device): number {
   return 0
 }
 
-/** Crochets de transit déclarés par les modules de rôles (routage, NAT, tunnels). */
+/** Crochets de transit déclarés par les modules de rôles et les fonctionnalités IOS (routage, NAT, tunnels). */
 function transitHooks(): TransitHooks[] {
-  return roleModules().flatMap((m) => (m.transit ? [m.transit] : []))
+  return [...roleModules().flatMap((m) => (m.transit ? [m.transit] : [])), ...iosTransitHooks()]
 }
 
 /**
@@ -401,6 +402,15 @@ export function sendIp(ctx: SimContext, fromDeviceId: string, original: IpPacket
           ctx,
           'dropped',
           `${device.name} n’est pas un routeur : le paquet destiné à ${packet.dst} est ignoré.`
+        )
+        return { kind: 'dropped', deviceId: current, latency }
+      }
+      // Switch : routage seulement s'il est de niveau 3 et configuré pour (ip routing)
+      if (device.kind === 'switch' && !routes) {
+        setLastOutcome(
+          ctx,
+          'dropped',
+          `${device.name} ne route pas (ip routing désactivé) : le paquet destiné à ${packet.dst} est ignoré.`
         )
         return { kind: 'dropped', deviceId: current, latency }
       }
