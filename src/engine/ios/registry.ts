@@ -13,16 +13,18 @@ import { produce, type Draft } from 'immer'
 import type { PacketTrace } from '../sim/trace'
 import { isIos, type IosDevice } from './device'
 import type { IosFeature } from './feature'
+import { acl } from './features/acl'
 import { base } from './features/base'
 import { hsrp } from './features/hsrp'
 import { navigation } from './features/navigation'
 import { routing } from './features/routing'
+import { security } from './features/security'
 import { services } from './features/services'
 import { vlan } from './features/vlan'
 
 /** Fonctionnalités, dans l'ordre d'enregistrement. */
 export function iosFeatures(): readonly IosFeature[] {
-  return [navigation, base, vlan, routing, services, hsrp]
+  return [navigation, base, vlan, routing, services, hsrp, acl, security]
 }
 
 /** Crochets d'acheminement des fonctionnalités (routage d'un switch, NAT, ACL…). */
@@ -75,6 +77,12 @@ export const IOS_BACKGROUND_TASK: BackgroundTask = {
   // Réseau seulement : déplacer ou renommer un équipement ne relance pas la tâche
   deps: (state) => [state.links, ...Object.values(state.devices).flatMap(networkDeps)],
   run: (state) => ({ state: settleIos(state), traces: [] })
+}
+
+/** Le port d'un switch IOS accepte-t-il les trames de cette adresse MAC (port-security) ? */
+export function iosPortAdmits(state: LabState, device: Device, iface: NetInterface, mac: string): boolean {
+  if (!isIos(device)) return true
+  return iosFeatures().every((f) => f.admits?.(state, device, iface, mac) ?? true)
 }
 
 /** Toutes les commandes déclarées. */

@@ -7,6 +7,7 @@
  */
 import type { LabState, Link, NetInterface, Device } from '../model/schema'
 import { switchportOf, trunkAllows } from './switchport'
+import { iosPortAdmits } from '../ios/registry'
 
 export interface PortRef {
   deviceId: string
@@ -190,11 +191,14 @@ export function l2Segment(state: LabState, origin: PortRef): SegmentMember[] {
     const startPeer = peerOf(first, physical)
     queue.push({ port: startPeer, path: extend([], first, physical, startPeer, originTag), tag: originTag })
   }
+  // Adresse MAC source des trames (port-security des switchs IOS)
+  const originMac = originDevice?.interfaces.find((i) => i.id === origin.ifaceId)?.mac ?? ''
   while (queue.length > 0) {
     const current = queue.shift() as Frame
     const resolved = resolvePort(state, current.port)
     if (!resolved || !resolved.device.powered || !resolved.iface.enabled) continue
     const { device, iface } = resolved
+    if (device.kind === 'switch' && !iosPortAdmits(state, device, iface, originMac)) continue
     // Switch, ou carte physique d'un hôte liée à un commutateur virtuel externe Hyper-V (pont)
     let sw: Device | undefined
     let fromUplink = false

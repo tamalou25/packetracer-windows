@@ -1,7 +1,6 @@
 /**
  * Services IP IOS : relais DHCP (ip helper-address, interopérable avec le DHCP Windows Server),
- * serveur DHCP (ip dhcp pool, excluded-address, show ip dhcp binding), listes d'accès standard
- * numérotées et NAT/PAT (ip nat inside / outside, ip nat inside source list … overload, NAT
+ * serveur DHCP (ip dhcp pool, excluded-address, show ip dhcp binding) et NAT/PAT (ip nat inside / outside, ip nat inside source list … overload, NAT
  * statique, show ip nat translations). Le NAT s'applique par les crochets de transit du moteur.
  */
 import type { Draft } from 'immer'
@@ -9,7 +8,7 @@ import type { DhcpScope } from '../../model/dhcp'
 import type { IosState, NatRule, NetInterface } from '../../model/schema'
 import { formatIpv4, maskToPrefix, networkAddress, parseIpv4, prefixToMaskInt } from '../../net/ipv4'
 import type { TransitPacket } from '../../sim/transit'
-import { addressSpec, aclPermits, formatSpec } from '../acl'
+import { aclPermits } from '../acl'
 import { IPV4, WORD, iface, number } from '../cli/args'
 import type { ArgContext, CliCommand, IosRunContext, SyntaxToken } from '../cli/types'
 import { draftIfaceEntry, draftIosState, iosState } from '../config'
@@ -142,37 +141,6 @@ function showDhcpBinding(ctx: IosRunContext): void {
 }
 
 // ---------------------------------------------------------------------------
-// Listes d'accès standard numérotées
-// ---------------------------------------------------------------------------
-
-function addStandardEntry(
-  ctx: IosRunContext,
-  number: string,
-  action: 'permit' | 'deny',
-  spec: [string, string]
-): void {
-  update(ctx, (d) => {
-    const ios = draftIosState(d)
-    let acl = ios.acls.find((a) => a.name === number)
-    if (!acl) {
-      acl = { name: number, type: 'standard', entries: [] }
-      ios.acls.push(acl)
-    }
-    const seq = (acl.entries[acl.entries.length - 1]?.seq ?? 0) + 10
-    acl.entries.push({
-      action,
-      protocol: 'ip',
-      src: spec[0],
-      srcWildcard: spec[1],
-      dst: '0.0.0.0',
-      dstWildcard: '255.255.255.255',
-      dstPort: null,
-      seq
-    })
-  })
-}
-
-// ---------------------------------------------------------------------------
 // NAT
 // ---------------------------------------------------------------------------
 
@@ -244,7 +212,6 @@ const NAT_SOURCE = [
   kw('inside', 'Inside address translation'),
   kw('source', 'Source address translation')
 ]
-const ACL_NUMBER = { arg: 'acl', type: number(1, 99), help: 'IP standard access list' }
 
 const commands: CliCommand[] = [
   // --- relais DHCP et rôle NAT des interfaces ---
@@ -397,52 +364,6 @@ const commands: CliCommand[] = [
     run: showDhcpBinding
   },
 
-  // --- listes d'accès standard ---
-  ...(['permit', 'deny'] as const).flatMap((action): CliCommand[] => {
-    const head = [
-      kw('access-list', 'Add an access list entry'),
-      ACL_NUMBER,
-      kw(action, action === 'permit' ? 'Specify packets to forward' : 'Specify packets to reject')
-    ]
-    return [
-      {
-        modes: ['config'],
-        syntax: [...head, kw('any', 'Any source host')],
-        run: (ctx, args) => addStandardEntry(ctx, args.acl ?? '', action, addressSpec('any'))
-      },
-      {
-        modes: ['config'],
-        syntax: [
-          ...head,
-          kw('host', 'A single host address'),
-          { arg: 'host', type: IPV4, help: 'Host address' }
-        ],
-        run: (ctx, args) => addStandardEntry(ctx, args.acl ?? '', action, addressSpec('host', args.host))
-      },
-      {
-        modes: ['config'],
-        syntax: [
-          ...head,
-          { arg: 'src', type: IPV4, help: 'Address to match' },
-          { arg: 'wildcard', type: IPV4, help: 'Wildcard bits' }
-        ],
-        run: (ctx, args) =>
-          addStandardEntry(ctx, args.acl ?? '', action, addressSpec('net', args.src, args.wildcard))
-      }
-    ]
-  }),
-  {
-    modes: ['config'],
-    syntax: [kw('access-list', 'Add an access list entry'), ACL_NUMBER],
-    no: {
-      run: (ctx, args) =>
-        update(ctx, (d) => {
-          const ios = draftIosState(d)
-          ios.acls = ios.acls.filter((a) => a.name !== args.acl)
-        })
-    }
-  },
-
   // --- NAT ---
   ...[false, true].map((overload): CliCommand => ({
     modes: ['config'],
@@ -524,12 +445,6 @@ function config(device: IosDevice): ConfigBlock[] {
       : `ip nat inside source list ${r.acl} interface ${ifaceLongName(r.iface)}${r.overload ? ' overload' : ''}`
   )
   if (nat.length) blocks.push({ order: 115, lines: nat })
-  const acls = ios.acls
-    .filter((a) => a.type === 'standard' && /^\d+$/.test(a.name))
-    .flatMap((a) =>
-      a.entries.map((e) => `access-list ${a.name} ${e.action} ${formatSpec(e.src, e.srcWildcard)}`)
-    )
-  if (acls.length) blocks.push({ order: 125, lines: acls })
   return blocks
 }
 

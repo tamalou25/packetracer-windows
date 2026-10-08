@@ -13,6 +13,13 @@ export interface TransitPacket {
   summary: string
 }
 
+/** Paquet évalué par un filtre (liste d'accès) : transport et port de destination. */
+export interface FilterPacket extends TransitPacket {
+  protocol: 'icmp' | 'tcp' | 'udp' | 'other'
+  /** Port de destination TCP / UDP (absent pour une réponse ou un autre protocole). */
+  dstPort?: number
+}
+
 /** Tunnel : le paquet est encapsulé jusqu'à `endpointId`. */
 export interface Tunnel {
   /** Adresses du paquet externe (encapsulant). */
@@ -60,6 +67,17 @@ export interface TransitHooks {
     egressIfaceId: string,
     packet: TransitPacket
   ): { src: string; note: string } | null
+  /**
+   * Filtrage du paquet à l'entrée (`ingressIfaceId`) ou à la sortie (`egressIfaceId`) d'une
+   * interface (listes d'accès) : explication du refus, ou null s'il passe.
+   */
+  filter?(
+    ctx: TransitContext,
+    device: Device,
+    ingressIfaceId: string | null,
+    egressIfaceId: string | null,
+    packet: FilterPacket
+  ): string | null
   /** Tunnel à emprunter depuis cet équipement pour ce paquet (VPN), ou null. */
   tunnel?(state: LabState, device: Device, packet: TransitPacket): Tunnel | null
 }

@@ -15,7 +15,9 @@ const MODE_PROMPT: Record<IosMode, string> = {
   'config-line': '(config-line)#',
   'config-router': '(config-router)#',
   'config-vlan': '(config-vlan)#',
-  'dhcp-config': '(dhcp-config)#'
+  'dhcp-config': '(dhcp-config)#',
+  'config-std-nacl': '(config-std-nacl)#',
+  'config-ext-nacl': '(config-ext-nacl)#'
 }
 
 /** État IOS de la session (mode utilisateur à l'ouverture). */

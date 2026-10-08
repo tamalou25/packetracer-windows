@@ -73,8 +73,19 @@ function setShutdown(ctx: IosRunContext, shut: boolean): void {
   const device = deviceOf(ctx)
   const before = new Map(ifaces.map((i) => [i.id, ifaceStatus(ctx.state, device, i).status]))
   const ids = new Set(ifaces.map((i) => i.id))
-  if (!update(ctx, (d) => d.interfaces.filter((i) => ids.has(i.id)).forEach((i) => (i.enabled = !shut))))
-    return
+  const ok = update(ctx, (d) => {
+    for (const i of d.interfaces.filter((x) => ids.has(x.id))) {
+      i.enabled = !shut
+      // shutdown / no shutdown rétablit un port en err-disabled
+      const entry = d.ios?.interfaces[i.name]
+      if (entry) {
+        entry.errDisabled = false
+        // Le même poste provoquera une nouvelle violation à la remise en service
+        if (entry.portSecurity) entry.portSecurity.lastViolation = null
+      }
+    }
+  })
+  if (!ok) return
   linkMessages(ctx, ifaces, before)
 }
 
@@ -213,7 +224,9 @@ function showInterface(ctx: IosRunContext, device: IosDevice, i: NetInterface): 
   const s = ifaceStatus(ctx.state, device, i)
   const { hw, bw } = hardwareName(device, i)
   const mac = iosMac(i.mac)
-  ctx.print(`${ifaceLongName(i.name)} is ${s.status}, line protocol is ${s.protocol}`)
+  ctx.print(
+    `${ifaceLongName(i.name)} is ${s.status}, line protocol is ${s.protocol}${s.errDisabled ? ' (err-disabled)' : ''}`
+  )
   ctx.print(`  Hardware is ${hw}, address is ${mac} (bia ${mac})`)
   const description = iosState(device).interfaces[i.name]?.description
   if (description) ctx.print(`  Description: ${description}`)
@@ -615,7 +628,7 @@ function config(device: IosDevice): ConfigBlock[] {
       lines: [
         'service timestamps debug datetime msec',
         'service timestamps log datetime msec',
-        'no service password-encryption'
+        ios.passwordEncryption ? 'service password-encryption' : 'no service password-encryption'
       ]
     },
     { order: 10, lines: [`hostname ${device.name}`] },
@@ -627,16 +640,6 @@ function config(device: IosDevice): ConfigBlock[] {
     {
       order: 150,
       lines: ios.bannerMotd !== null ? [`banner motd ^C${ios.bannerMotd}^C`] : []
-    },
-    {
-      order: 160,
-      lines: [
-        'line con 0',
-        ...(device.kind === 'router' ? ['line aux 0'] : []),
-        'line vty 0 4',
-        ' login',
-        ...(device.kind === 'switch' ? ['line vty 5 15', ' login'] : [])
-      ]
     }
   ]
 }
@@ -654,7 +657,8 @@ function interfaceConfig(device: IosDevice, i: NetInterface): ConfigBlock[] {
           : 'no ip address'
       ]
     })
-  if (!i.enabled) blocks.push({ order: 90, lines: ['shutdown'] })
+  if (!i.enabled && !iosState(device).interfaces[i.name]?.errDisabled)
+    blocks.push({ order: 90, lines: ['shutdown'] })
   if (device.kind === 'router' && !i.subinterface)
     blocks.push({ order: 95, lines: ['duplex auto', 'speed auto'] })
   return blocks

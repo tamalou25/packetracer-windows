@@ -9,7 +9,7 @@ import { initialTtl, lookupRoute, routingTable } from '../net/routing'
 import { evaluateFirewall, PROFILE_LABELS, type FirewallTransport } from '../services/firewall'
 import { roleModules } from '../roles/registry'
 import { iosTransitHooks } from '../ios/registry'
-import type { TransitHooks } from './transit'
+import type { FilterPacket, TransitHooks } from './transit'
 import { l2Segment, reversePath, type PortRef, type SegmentMember } from '../net/segment'
 import {
   BROADCAST_MAC,
@@ -339,6 +339,39 @@ export type Delivery =
   | { kind: 'ttl-expired'; deviceId: string; ingress: PortRef | null; latency: number }
   | { kind: 'dropped'; deviceId: string; latency: number }
 
+/** Vue d'un paquet pour les filtres (listes d'accès) : transport et port de destination. */
+function filterView(packet: IpPacket): FilterPacket {
+  const defaults = DEFAULT_PORTS[packet.protocol] ?? { transport: 'TCP' as const, port: null }
+  const transport = packet.transport ?? defaults.transport
+  const protocol =
+    transport === 'ICMPv4' ? 'icmp' : transport === 'TCP' ? 'tcp' : transport === 'UDP' ? 'udp' : 'other'
+  const port = packet.reply ? null : (packet.port ?? defaults.port)
+  return {
+    src: packet.src,
+    dst: packet.dst,
+    summary: packet.summary,
+    protocol,
+    ...(port !== null ? { dstPort: port } : {})
+  }
+}
+
+/** Refus d'un filtre (liste d'accès) à l'entrée ou à la sortie d'une interface, ou null. */
+function filtered(
+  ctx: SimContext,
+  hooks: TransitHooks[],
+  device: Device,
+  ingressIfaceId: string | null,
+  egressIfaceId: string | null,
+  packet: IpPacket
+): string | null {
+  const view = filterView(packet)
+  for (const hook of hooks) {
+    const note = hook.filter?.(ctx, device, ingressIfaceId, egressIfaceId, view)
+    if (note) return note
+  }
+  return null
+}
+
 /** Latence ajoutée par la traversée d'un équipement (ms, aller simple). */
 function hopLatency(device: Device): number {
   if (device.kind === 'cloud') return 7
@@ -370,6 +403,15 @@ export function sendIp(ctx: SimContext, fromDeviceId: string, original: IpPacket
   for (let guard = 0; guard < 64; guard++) {
     const device = ctx.state.devices[current]
     if (!device || !device.powered) return { kind: 'dropped', deviceId: current, latency }
+
+    // Liste d'accès en entrée de l'interface de réception
+    if (transit && ingress) {
+      const refused = filtered(ctx, hooks, device, ingress.ifaceId, null, packet)
+      if (refused) {
+        setLastOutcome(ctx, 'dropped', refused)
+        return { kind: 'dropped', deviceId: current, latency }
+      }
+    }
 
     // Retraduction NAT d'une réponse adressée à l'adresse publique
     if (transit)
@@ -502,6 +544,12 @@ export function sendIp(ctx: SimContext, fromDeviceId: string, original: IpPacket
           translated = ` ${nat.note}`
           break
         }
+      }
+      // Liste d'accès en sortie (après la traduction d'adresse)
+      const refused = filtered(ctx, hooks, device, null, route.ifaceId, packet)
+      if (refused) {
+        setLastOutcome(ctx, 'dropped', arrival + refused)
+        return { kind: 'dropped', deviceId: current, latency }
       }
       setLastOutcome(
         ctx,

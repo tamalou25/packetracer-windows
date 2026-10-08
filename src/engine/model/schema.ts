@@ -594,6 +594,46 @@ export const RoleStatesSchema = z.record(z.string(), z.unknown())
 // ---------------------------------------------------------------------------
 
 /** Données IOS d'une interface (description). */
+/** Port-security d'un port de switch (switchport port-security). */
+export const PortSecuritySchema = z.object({
+  /** switchport port-security (les sous-commandes peuvent être saisies avant). */
+  enabled: z.boolean().default(false),
+  maximum: z.number().int().min(1).max(132).default(1),
+  violation: z.enum(['shutdown', 'restrict', 'protect']).default('shutdown'),
+  sticky: z.boolean().default(false),
+  /** Adresses MAC configurées (switchport port-security mac-address H.H.H). */
+  staticMacs: z.array(z.string()).default([]),
+  /** Adresses apprises et collées dans la configuration (mac-address sticky). */
+  stickyMacs: z.array(z.string()).default([]),
+  /** Adresses apprises dynamiquement (perdues au redémarrage). */
+  dynamicMacs: z.array(z.string()).default([]),
+  violations: z.number().int().nonnegative().default(0),
+  /** Dernière adresse source en violation (évite de compter deux fois la même). */
+  lastViolation: z.string().nullable().default(null)
+})
+
+/** Compte local (username … secret). */
+export const IosUserSchema = z.object({
+  name: z.string(),
+  privilege: z.number().int().min(0).max(15).default(1),
+  secret: z.string()
+})
+
+/** Lignes d'accès (line con 0, line vty 0 4) : mot de passe, authentification, transport. */
+export const IosLineSchema = z.object({
+  type: z.enum(['console', 'vty']),
+  first: z.number().int().min(0),
+  last: z.number().int().min(0),
+  password: z.string().nullable().default(null),
+  /** none : pas d'authentification ; line : mot de passe de la ligne ; local : comptes locaux. */
+  login: z.enum(['none', 'line', 'local']).default('none'),
+  /** Protocoles autorisés (transport input) ; null : valeur d'usine. */
+  transport: z
+    .array(z.enum(['ssh', 'telnet']))
+    .nullable()
+    .default(null)
+})
+
 /** Groupe HSRP d'une interface (standby 1 ip …, priority, preempt). */
 export const HsrpGroupSchema = z.object({
   group: z.number().int().min(0).max(255),
@@ -607,7 +647,14 @@ export const IosInterfaceSchema = z.object({
   /** Rôle NAT de l'interface (ip nat inside / outside). */
   nat: z.enum(['inside', 'outside']).nullable().default(null),
   /** Groupes HSRP de l'interface (standby). */
-  hsrp: z.array(HsrpGroupSchema).default([])
+  hsrp: z.array(HsrpGroupSchema).default([]),
+  /** Listes d'accès appliquées (ip access-group … in / out). */
+  aclIn: z.string().nullable().default(null),
+  aclOut: z.string().nullable().default(null),
+  /** Port-security d'un port de switch (null : désactivée). */
+  portSecurity: PortSecuritySchema.nullable().default(null),
+  /** Port désactivé sur violation (err-disabled) : rétabli par shutdown puis no shutdown. */
+  errDisabled: z.boolean().default(false)
 })
 
 /** Entrée d'une liste d'accès IOS (standard : source seule ; étendue : protocole, destination, port). */
@@ -686,6 +733,18 @@ export const IosConfigSchema = z.object({
   acls: z.array(AclSchema).default([]),
   /** Règles NAT (ip nat inside source …). */
   natRules: z.array(NatRuleSchema).default([]),
+  /** Nom de domaine (ip domain-name), nécessaire aux clés RSA. */
+  domainName: z.string().nullable().default(null),
+  /** Clés RSA générées (crypto key generate rsa) : taille du module, null : aucune. */
+  rsaBits: z.number().int().nullable().default(null),
+  /** Version SSH imposée (ip ssh version 2) ; null : 1.99 (compatibilité). */
+  sshVersion: z.number().int().nullable().default(null),
+  /** Comptes locaux. */
+  users: z.array(IosUserSchema).default([]),
+  /** Lignes configurées. */
+  lines: z.array(IosLineSchema).default([]),
+  /** Chiffrement des mots de passe affichés (service password-encryption). */
+  passwordEncryption: z.boolean().default(false),
   /** Données IOS par interface (clé : nom court Gi0/0). */
   interfaces: z.record(z.string(), IosInterfaceSchema).default({})
 })
@@ -720,6 +779,8 @@ export const IosStateSchema = IosConfigSchema.extend({
   startup: IosSnapshotSchema.nullable().default(null),
   /** Traductions NAT dynamiques établies par le trafic (perdues au redémarrage). */
   natTranslations: z.array(NatTranslationSchema).default([]),
+  /** Compteurs des entrées de listes d'accès (clé « liste|séquence »). */
+  aclCounters: z.record(z.string(), z.number().int().nonnegative()).default({}),
   /** État HSRP par groupe (clé « Gi0/0|1 ») : Active, Standby, Listen, Init. */
   hsrpStates: z.record(z.string(), z.enum(['Active', 'Standby', 'Listen', 'Init'])).default({})
 })

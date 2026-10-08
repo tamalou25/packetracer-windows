@@ -13,6 +13,8 @@ export interface IosIfaceStatus {
   status: IosLinkState
   /** Protocole de ligne (Protocol). */
   protocol: 'up' | 'down'
+  /** Port en err-disabled (violation de port-security). */
+  errDisabled?: boolean
 }
 
 /** Porteuse sur le câble d'une interface physique : câble branché, l'autre extrémité active. */
@@ -27,6 +29,9 @@ function carrier(state: LabState, device: IosDevice, iface: NetInterface): boole
 
 /** État IOS d'une interface (sous-interface : selon sa carte parente). */
 export function ifaceStatus(state: LabState, device: IosDevice, iface: NetInterface): IosIfaceStatus {
+  // Port désactivé sur violation de port-security : down/down (err-disabled)
+  if (device.ios?.interfaces[iface.name]?.errDisabled)
+    return { status: 'down', protocol: 'down', errDisabled: true }
   if (!iface.enabled) return { status: 'administratively down', protocol: 'down' }
   if (iface.svi) {
     // Interface VLAN : up si le VLAN existe et qu'un port actif le transporte
