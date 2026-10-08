@@ -11,6 +11,18 @@ import type { CliCommand } from './cli/types'
 import type { IosDevice } from './device'
 import type { ConfigBlock } from './running-config'
 
+/** Trame examinée par la sécurité de niveau 2 d'un switch (DHCP snooping, inspection ARP). */
+export type L2Frame =
+  | { kind: 'dhcp-server' }
+  | {
+      kind: 'arp'
+      /** Adresses IP et MAC annoncées par l'émetteur. */
+      ip: string
+      mac: string
+      /** L'adresse IP de l'émetteur est un bail DHCP (entrée de la base du DHCP snooping). */
+      leased: boolean
+    }
+
 export interface IosFeature {
   /** Identifiant court (fichier `features/<id>.ts`). */
   id: string
@@ -33,6 +45,17 @@ export interface IosFeature {
   settleMessages?(before: LabState, after: LabState, deviceId: string): string[]
   /** Le port de switch accepte-t-il les trames de cette adresse MAC source (port-security) ? */
   admits?(state: LabState, device: IosDevice, iface: NetInterface, mac: string): boolean
+  /**
+   * Trame reçue sur un port de switch dans le VLAN `vlan` (DHCP snooping, inspection ARP) :
+   * explication du refus, ou null si elle passe.
+   */
+  inspect?(
+    state: LabState,
+    device: IosDevice,
+    iface: NetInterface,
+    vlan: number,
+    frame: L2Frame
+  ): string | null
   /** Routes apprises dynamiquement (OSPF), ajoutées à la table de routage du moteur. */
   routes?(state: LabState, device: IosDevice): Route[]
 }

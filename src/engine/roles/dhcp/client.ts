@@ -8,6 +8,7 @@ import type { Device, HostDevice, LabState } from '../../model/schema'
 import type { DhcpScope } from './schema'
 import { effectiveIpv4 } from '../../net/addressing'
 import { formatIpv4, inNetwork, parseIpv4, prefixToMask } from '../../net/ipv4'
+import { iosL2Inspect } from '../../ios/registry'
 import { carrierUp, l2Segment, reversePath, type PortRef, type SegmentMember } from '../../net/segment'
 import {
   createContext,
@@ -319,6 +320,9 @@ export function dhcpAcquire(
               : `${name} n’a aucune étendue active pour ce réseau : la requête est ignorée.`
         }
       }
+      // DHCP snooping : l'offre du serveur est rejetée par un switch si elle arrive sur un port non fiable
+      const snooped = iosL2Inspect(state, reversePath(member.path), { kind: 'dhcp-server' })
+      if (snooped) return { outcome: 'dropped', note: `${name} répond par une offre, mais ${snooped.reason}` }
       if (selection.chosen)
         return {
           outcome: 'delivered',
@@ -404,6 +408,15 @@ export function dhcpAcquire(
             fields: [['Transaction', xid], ...offerFields(dev, scope, pick.ip, serverIp)]
           })
         : null
+      // DHCP snooping : l'agent de relais retransmet l'offre au client par un port de switch non fiable
+      const relayed =
+        offer?.kind === 'delivered'
+          ? iosL2Inspect(state, reversePath(relay.member.path), { kind: 'dhcp-server' })
+          : null
+      if (relayed) {
+        setLastOutcome(ctx, 'dropped', `L’offre relayée vers ${client.name} est rejetée : ${relayed.reason}`)
+        continue
+      }
       if (!serverIp || offer?.kind !== 'delivered') {
         if (!serverIp)
           setLastOutcome(
@@ -640,7 +653,9 @@ export function dhcpRenew(state: LabState, clientId: string, ifaceId: string): D
     !scope ||
     !dhcpAuthorized(server) ||
     !server.powered ||
-    scope.state !== 'Active'
+    scope.state !== 'Active' ||
+    // DHCP snooping : la réponse du serveur du bail serait rejetée (port non fiable)
+    iosL2Inspect(state, reversePath(member.path), { kind: 'dhcp-server' })
   )
     return dhcpAcquire(state, clientId, ifaceId, { log: true })
 

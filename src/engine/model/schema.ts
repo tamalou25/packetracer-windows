@@ -656,7 +656,13 @@ export const IosInterfaceSchema = z.object({
   /** Port-security d'un port de switch (null : désactivée). */
   portSecurity: PortSecuritySchema.nullable().default(null),
   /** Port désactivé sur violation (err-disabled) : rétabli par shutdown puis no shutdown. */
-  errDisabled: z.boolean().default(false)
+  errDisabled: z.boolean().default(false),
+  /** Port de confiance du DHCP snooping (ip dhcp snooping trust). */
+  dhcpSnoopingTrust: z.boolean().default(false),
+  /** Port de confiance de l'inspection ARP (ip arp inspection trust). */
+  arpInspectionTrust: z.boolean().default(false),
+  /** Négociation DTP désactivée (switchport nonegotiate). */
+  nonegotiate: z.boolean().default(false)
 })
 
 /** Entrée d'une liste d'accès IOS (standard : source seule ; étendue : protocole, destination, port). */
@@ -747,6 +753,12 @@ export const IosConfigSchema = z.object({
   lines: z.array(IosLineSchema).default([]),
   /** Chiffrement des mots de passe affichés (service password-encryption). */
   passwordEncryption: z.boolean().default(false),
+  /** DHCP snooping activé globalement (ip dhcp snooping). */
+  dhcpSnooping: z.boolean().default(false),
+  /** VLAN surveillés par le DHCP snooping (ip dhcp snooping vlan). */
+  dhcpSnoopingVlans: z.array(z.number().int().min(1).max(4094)).default([]),
+  /** VLAN soumis à l'inspection ARP dynamique (ip arp inspection vlan). */
+  arpInspectionVlans: z.array(z.number().int().min(1).max(4094)).default([]),
   /** Données IOS par interface (clé : nom court Gi0/0). */
   interfaces: z.record(z.string(), IosInterfaceSchema).default({})
 })

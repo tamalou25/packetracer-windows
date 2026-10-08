@@ -4,6 +4,7 @@
  */
 import type { HostDevice, LabState } from '../model/schema'
 import { FIREWALL_PROFILES } from '../model/schema'
+import { IOS_AUDIT_RULES } from '../ios/audit'
 import { roleModules } from '../roles/registry'
 import { PROFILE_LABELS, profileEnabled } from '../services/firewall'
 import type { AuditRule } from './types'
@@ -33,7 +34,7 @@ export const CORE_AUDIT_RULES: AuditRule[] = [
   }
 ]
 
-/** Toutes les règles : système de base puis rôles, dans l'ordre du registre. */
+/** Toutes les règles : système de base, rôles (dans l'ordre du registre), puis équipements IOS. */
 export function auditRules(): AuditRule[] {
-  return [...CORE_AUDIT_RULES, ...roleModules().flatMap((m) => m.auditRules ?? [])]
+  return [...CORE_AUDIT_RULES, ...roleModules().flatMap((m) => m.auditRules ?? []), ...IOS_AUDIT_RULES]
 }

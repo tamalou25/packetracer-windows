@@ -8,6 +8,7 @@ import {
   command,
   DEFAULT_DOMAIN_POLICY_ID,
   dispatch,
+  runIosScript,
   type LabState
 } from '@engine/index'
 import { buildReferenceLab } from '../serialization/reference-lab'
@@ -28,9 +29,22 @@ function policy(s: LabState, minPasswordLength: number): LabState {
   return r.state
 }
 
+/** Trunk du switch Cisco CSW1 durci (DTP coupé, VLAN natif dédié) : aucune règle IOS enfreinte. */
+function hardenCisco(s: LabState): LabState {
+  return runIosScript(s, id(s, 'CSW1'), [
+    'enable',
+    'configure terminal',
+    'vlan 999',
+    'interface Gi0/1',
+    'switchport nonegotiate',
+    'switchport trunk native vlan 999',
+    'end'
+  ])
+}
+
 /** Référence : SMB 1.0 activé (critique) et pare-feu désactivé (élevée), mot de passe conforme. */
 function baselineLab(): LabState {
-  let s = policy(buildReferenceLab(), 12)
+  let s = policy(hardenCisco(buildReferenceLab()), 12)
   s = ps(s, 'Set-SmbServerConfiguration -EnableSMB1Protocol $true -Force')
   return ps(s, 'Set-NetFirewallProfile -All -Enabled False')
 }

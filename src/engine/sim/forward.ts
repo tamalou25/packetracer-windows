@@ -2,13 +2,13 @@
  * Moteur d'acheminement : résolution ARP et transfert IP saut par saut.
  * Chaque trame produite est enregistrée dans la trace (mode Simulation).
  */
-import type { Device, LabState } from '../model/schema'
+import type { Device, LabState, NetInterface } from '../model/schema'
 import { effectiveIpv4 } from '../net/addressing'
 import { isInternetHost } from '../net/internet'
 import { initialTtl, lookupRoute, routingTable } from '../net/routing'
 import { evaluateFirewall, PROFILE_LABELS, type FirewallTransport } from '../services/firewall'
 import { roleModules } from '../roles/registry'
-import { iosTransitHooks } from '../ios/registry'
+import { iosL2Inspect, iosTransitHooks } from '../ios/registry'
 import type { FilterPacket, TransitHooks } from './transit'
 import { l2Segment, reversePath, type PortRef, type SegmentMember } from '../net/segment'
 import {
@@ -160,6 +160,11 @@ export function recordBroadcast(
   return members
 }
 
+/** L'adresse IP de la carte est-elle un bail DHCP (entrée de la base du DHCP snooping) ? */
+function leasedAddress(iface: NetInterface | undefined, ip: string): boolean {
+  return !!iface && iface.addressing === 'dhcp' && iface.dhcpLease?.address === ip
+}
+
 /**
  * Résolution ARP de `targetIp` depuis un port. Renvoie le membre du segment qui répond,
  * ou null si personne ne répond.
@@ -216,6 +221,14 @@ export function arpResolve(ctx: SimContext, origin: PortRef, targetIp: string): 
     (member) => {
       const name = deviceName(ctx, member.port.deviceId)
       if (!responder && owns(member)) {
+        // Inspection ARP dynamique : requête d'un émetteur absent de la base du DHCP snooping
+        const refused = iosL2Inspect(ctx.state, member.path, {
+          kind: 'arp',
+          ip: srcIp,
+          mac: srcMac,
+          leased: leasedAddress(srcIface, srcIp)
+        })
+        if (refused) return { outcome: 'dropped', note: refused.reason }
         responder = member
         return {
           outcome: 'delivered',
@@ -234,6 +247,37 @@ export function arpResolve(ctx: SimContext, origin: PortRef, targetIp: string): 
   const targetIface = ifaceOf(ctx, found.port)
   const targetMac = targetIface?.mac ?? ''
   const back = reversePath(found.path)
+  // Inspection ARP dynamique : la réponse est rejetée par un switch si son couple IP / MAC n'est pas un bail
+  const replyLayers = [
+    ethernetLayer(targetMac, srcMac, 'ARP'),
+    {
+      layer: 3 as const,
+      name: 'ARP',
+      fields: [
+        ['Opération', '2 (réponse)'],
+        ['MAC émetteur', targetMac],
+        ['IP émetteur', targetIp],
+        ['MAC cible', srcMac],
+        ['IP cible', srcIp]
+      ] as [string, string][]
+    }
+  ]
+  const denied = iosL2Inspect(ctx.state, back, {
+    kind: 'arp',
+    ip: targetIp,
+    mac: targetMac,
+    leased: leasedAddress(targetIface, targetIp)
+  })
+  if (denied) {
+    recordUnicast(
+      ctx,
+      back.slice(0, denied.hopIndex + 1),
+      { protocol: 'ARP', summary: `ARP : ${targetIp} est à ${targetMac}`, layers: replyLayers },
+      'dropped',
+      denied.reason
+    )
+    return null
+  }
   recordUnicast(
     ctx,
     back,
