@@ -13,7 +13,11 @@ export type { IosMode, IosSession } from './types'
 
 /** Aide `?` pour la saisie en cours (affichée sans valider la ligne). */
 export function iosHelp(state: LabState, session: ShellSession, input: string): string[] {
-  return helpLines(modeTree(iosSessionOf(session).mode), input, { state, deviceId: session.deviceId })
+  return helpLines(modeTree(iosSessionOf(session).mode), input, {
+    state,
+    deviceId: session.deviceId,
+    session: iosSessionOf(session)
+  })
 }
 
 /** Complétion Tab du dernier mot (null : ligne inchangée). */
@@ -22,5 +26,9 @@ export function iosComplete(
   session: ShellSession,
   input: string
 ): { start: number; word: string } | null {
-  return completeWord(modeTree(iosSessionOf(session).mode), input, { state, deviceId: session.deviceId })
+  return completeWord(modeTree(iosSessionOf(session).mode), input, {
+    state,
+    deviceId: session.deviceId,
+    session: iosSessionOf(session)
+  })
 }

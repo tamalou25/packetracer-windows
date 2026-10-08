@@ -4,11 +4,12 @@
  */
 import type { CliCommand } from './cli/types'
 import type { IosFeature } from './feature'
+import { base } from './features/base'
 import { navigation } from './features/navigation'
 
 /** Fonctionnalités, dans l'ordre d'enregistrement. */
 export function iosFeatures(): readonly IosFeature[] {
-  return [navigation]
+  return [navigation, base]
 }
 
 /** Toutes les commandes déclarées. */

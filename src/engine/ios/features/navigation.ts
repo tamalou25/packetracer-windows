@@ -7,6 +7,8 @@ import type { CliCommand, IosMode, IosRunContext, SyntaxToken } from '../cli/typ
 import { CONFIG_SUBMODES } from '../cli/types'
 import { createSubinterface, removeSubinterfaceByName } from '../actions'
 import { defineIosFeature } from '../feature'
+import { iosState } from '../config'
+import { isIos } from '../device'
 
 const kw = (keyword: string, help: string): SyntaxToken => ({ keyword, help })
 
@@ -51,13 +53,31 @@ function enterConfig(ctx: IosRunContext): void {
   ctx.setMode('config')
 }
 
+/** enable : mot de passe demandé si enable secret est configuré (3 essais). */
+function enable(ctx: IosRunContext): void {
+  const device = ctx.state.devices[ctx.deviceId]
+  const secret = isIos(device) ? iosState(device).enableSecret : null
+  if (ctx.session.mode === 'exec' || secret === null) {
+    ctx.setMode('exec')
+    return
+  }
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (ctx.ask('Password: ', true) === secret) {
+      ctx.setMode('exec')
+      return
+    }
+  }
+  ctx.print('% Bad secrets')
+  ctx.print('')
+}
+
 const CONFIG_MODES: readonly IosMode[] = ['config', ...CONFIG_SUBMODES]
 
 const commands: CliCommand[] = [
   {
     modes: ['user', 'exec'],
     syntax: [kw('enable', 'Turn on privileged commands')],
-    run: (ctx) => ctx.setMode('exec'),
+    run: enable,
     doAllowed: false
   },
   {

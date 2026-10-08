@@ -1,0 +1,131 @@
+/**
+ * Configuration IOS : valeurs d'usine, instantané (startup-config) et rechargement.
+ */
+import type { Draft } from 'immer'
+import type { IosSnapshot, IosState, NetInterface } from '../model/schema'
+import type { IosDevice } from './device'
+
+/** Copie profonde de données sérialisables. */
+const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
+
+/** Configuration IOS d'usine. */
+export function defaultIosState(): IosState {
+  return { enableSecret: null, bannerMotd: null, domainLookup: true, interfaces: {}, startup: null }
+}
+
+/** Configuration IOS de l'équipement (valeurs d'usine si jamais configuré). */
+export function iosState(device: IosDevice): IosState {
+  return device.ios ?? defaultIosState()
+}
+
+/** Configuration IOS modifiable (créée à la première modification). */
+export function draftIosState(device: Draft<IosDevice>): Draft<IosState> {
+  device.ios ??= defaultIosState()
+  return device.ios
+}
+
+/** Instantané de la running-config (copy running-config startup-config). */
+export function snapshotOf(device: IosDevice): IosSnapshot {
+  const { startup: _startup, ...config } = iosState(device)
+  const byId = new Map(device.interfaces.map((i) => [i.id, i.name]))
+  return clone({
+    hostname: device.name,
+    config,
+    interfaces: device.interfaces.map((i) => ({
+      name: i.name,
+      enabled: i.enabled,
+      address: i.address,
+      prefixLength: i.prefixLength,
+      ...(i.switchport ? { switchport: i.switchport } : {}),
+      ...(i.subinterface
+        ? { subinterface: { parent: byId.get(i.subinterface.parent) ?? '', vlan: i.subinterface.vlan } }
+        : {}),
+      ...(i.helperAddresses ? { helperAddresses: i.helperAddresses } : {})
+    })),
+    ...(device.kind === 'router' ? { routes: device.routes } : { vlans: device.vlans })
+  })
+}
+
+/** Vrai si la running-config diffère de la startup-config (question « Save? » de reload). */
+export function configModified(device: IosDevice): boolean {
+  const startup = iosState(device).startup
+  return JSON.stringify(startup) !== JSON.stringify(snapshotOf(device))
+}
+
+/** Interface physique d'usine : routeur administrativement coupé, port de switch actif. */
+function factoryInterface(iface: Draft<NetInterface>, router: boolean): void {
+  iface.enabled = !router
+  iface.addressing = 'static'
+  iface.address = null
+  iface.prefixLength = null
+  iface.gateway = null
+  iface.dhcpLease = null
+  iface.dhcpReleased = false
+  delete iface.switchport
+  delete iface.helperAddresses
+}
+
+/**
+ * Redémarrage (reload) : la running-config repart de la startup-config, ou des valeurs d'usine si
+ * elle est absente. Le nom de l'équipement est conservé sans startup-config (nœud de la topologie).
+ * `nextId` fournit les identifiants des sous-interfaces recréées.
+ */
+export function applyStartup(device: Draft<IosDevice>, nextId: () => number): void {
+  const startup = iosState(device as IosDevice).startup
+  const router = device.kind === 'router'
+  // Interfaces physiques d'usine ; les sous-interfaces disparaissent
+  device.interfaces = device.interfaces.filter((i) => !i.subinterface)
+  for (const iface of device.interfaces) factoryInterface(iface, router)
+  if (device.kind === 'router') device.routes = []
+  else device.vlans = [{ id: 1, name: 'default' }]
+  device.ios = { ...clone(startup?.config ?? defaultIosState()), startup }
+  if (!startup) return
+  device.name = startup.hostname
+  for (const saved of startup.interfaces) {
+    let iface = device.interfaces.find((i) => i.name === saved.name)
+    if (!iface && saved.subinterface) {
+      const parent = device.interfaces.find((i) => i.name === saved.subinterface?.parent)
+      if (!parent) continue
+      insertSubinterface(device.interfaces, createSubinterfaceDraft(parent, saved.name, nextId()))
+      iface = device.interfaces.find((i) => i.name === saved.name)
+    }
+    if (!iface) continue
+    iface.enabled = saved.enabled
+    iface.address = saved.address
+    iface.prefixLength = saved.prefixLength
+    if (saved.switchport) iface.switchport = { ...saved.switchport }
+    if (saved.helperAddresses) iface.helperAddresses = [...saved.helperAddresses]
+    if (saved.subinterface && iface.subinterface) iface.subinterface.vlan = saved.subinterface.vlan
+  }
+  if (device.kind === 'router' && startup.routes) device.routes = clone(startup.routes)
+  if (device.kind === 'switch' && startup.vlans) device.vlans = clone(startup.vlans)
+}
+
+/** Sous-interface IOS sans encapsulation (partage la MAC de sa carte parente). */
+export function createSubinterfaceDraft(parent: NetInterface, name: string, seq: number): NetInterface {
+  return {
+    id: `if${seq}`,
+    name,
+    mac: parent.mac,
+    enabled: true,
+    l3: true,
+    addressing: 'static',
+    address: null,
+    prefixLength: null,
+    gateway: null,
+    dnsMode: 'static',
+    dnsServers: [],
+    dhcpLease: null,
+    dhcpReleased: false,
+    bridge: null,
+    subinterface: { parent: parent.id, vlan: null }
+  }
+}
+
+/** Insère une sous-interface après sa carte parente et les sous-interfaces existantes. */
+export function insertSubinterface(interfaces: NetInterface[], sub: NetInterface): void {
+  const parentId = sub.subinterface?.parent
+  let at = interfaces.findIndex((i) => i.id === parentId) + 1
+  while (interfaces[at]?.subinterface?.parent === parentId) at++
+  interfaces.splice(at, 0, sub)
+}
