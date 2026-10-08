@@ -5,7 +5,7 @@
 import { iface, number } from '../cli/args'
 import type { CliCommand, IosMode, IosRunContext, SyntaxToken } from '../cli/types'
 import { CONFIG_SUBMODES } from '../cli/types'
-import { createSubinterface, removeSubinterfaceByName } from '../actions'
+import { createSubinterface, createSvi, removeSubinterfaceByName } from '../actions'
 import { defineIosFeature } from '../feature'
 import { iosState } from '../config'
 import { isIos } from '../device'
@@ -19,7 +19,8 @@ const EXIT_HELP: Partial<Record<IosMode, string>> = {
   'config-if': 'Exit from interface configuration mode',
   'config-subif': 'Exit from subinterface configuration mode',
   'config-line': 'Exit from line configuration mode',
-  'config-router': 'Exit from routing protocol configuration mode'
+  'config-router': 'Exit from routing protocol configuration mode',
+  'config-vlan': 'Apply changes, bump revision number, and exit mode'
 }
 
 /** exit : remonte d'un niveau (sous-mode → configuration → privilégié → déconnexion). */
@@ -40,11 +41,12 @@ function enterInterface(ctx: IosRunContext, name: string): void {
     if (!parent || !ctx.apply(createSubinterface(ctx.state, ctx.deviceId, parent.id, name))) return
     target = ctx.state.devices[ctx.deviceId]?.interfaces.find((i) => i.name === name)
   }
-  if (!target) {
-    // Interface VLAN (SVI) : prise en charge par la fonctionnalité VLAN
-    ctx.print("% Invalid input detected at '^' marker.")
-    return
+  if (!target && name.startsWith('Vl')) {
+    // Interface VLAN (SVI) d'un switch
+    if (!ctx.apply(createSvi(ctx.state, ctx.deviceId, Number(name.slice(2))))) return
+    target = ctx.state.devices[ctx.deviceId]?.interfaces.find((i) => i.name === name)
   }
+  if (!target) return
   ctx.setMode(target.subinterface ? 'config-subif' : 'config-if', { ifaces: [target.id] })
 }
 
@@ -121,13 +123,17 @@ const commands: CliCommand[] = [
     modes: ['config'],
     syntax: [
       kw('interface', 'Select an interface to configure'),
-      { arg: 'iface', type: iface({ subinterfaces: true }), help: 'Interface' }
+      { arg: 'iface', type: iface({ subinterfaces: true, vlans: true }), help: 'Interface' }
     ],
     run: (ctx, args) => enterInterface(ctx, args.iface ?? ''),
     // no interface Gi0/0.10 : supprime la sous-interface
     no: {
       run: (ctx, args) => {
         const name = args.iface ?? ''
+        if (name.startsWith('Vl')) {
+          ctx.apply(removeSubinterfaceByName(ctx.state, ctx.deviceId, name))
+          return
+        }
         if (!name.includes('.')) {
           ctx.print('% Removal of physical interfaces is not permitted')
           return

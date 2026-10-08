@@ -81,7 +81,9 @@ export const NetInterfaceSchema = z.object({
   /** Sous-interface de routeur (sans câble propre : elle utilise celui de sa carte parente). */
   subinterface: SubinterfaceSchema.optional(),
   /** Interface de routeur : serveurs DHCP vers lesquels relayer les diffusions (ip helper-address). */
-  helperAddresses: z.array(z.string()).optional()
+  helperAddresses: z.array(z.string()).optional(),
+  /** Interface VLAN d'un switch IOS (SVI, interface vlan 10) : membre du domaine de diffusion du VLAN. */
+  svi: z.object({ vlan: VlanIdSchema }).optional()
 })
 
 /** Entrée du journal d'événements (Observateur d'événements simplifié). */
@@ -603,6 +605,8 @@ export const IosConfigSchema = z.object({
   bannerMotd: z.string().nullable().default(null),
   /** Résolution DNS des mots inconnus (ip domain-lookup, actif par défaut). */
   domainLookup: z.boolean().default(true),
+  /** Routage IP d'un switch de niveau 3 (ip routing ; toujours actif sur un routeur). */
+  ipRouting: z.boolean().default(false),
   /** Données IOS par interface (clé : nom court Gi0/0). */
   interfaces: z.record(z.string(), IosInterfaceSchema).default({})
 })
@@ -618,7 +622,9 @@ export const SnapshotInterfaceSchema = z.object({
   subinterface: z
     .object({ parent: z.string(), vlan: z.number().int().min(1).max(4094).nullable() })
     .optional(),
-  helperAddresses: z.array(z.string()).optional()
+  helperAddresses: z.array(z.string()).optional(),
+  /** Interface VLAN (SVI) d'un switch. */
+  svi: z.object({ vlan: z.number().int().min(1).max(4094) }).optional()
 })
 
 /** Configuration enregistrée (startup-config) : de quoi reconstruire la running-config. */
@@ -626,8 +632,7 @@ export const IosSnapshotSchema = z.object({
   hostname: z.string(),
   config: IosConfigSchema,
   interfaces: z.array(SnapshotInterfaceSchema),
-  routes: z.array(StaticRouteSchema).optional(),
-  vlans: z.array(VlanSchema).optional()
+  routes: z.array(StaticRouteSchema).optional()
 })
 
 /** État IOS d'un équipement : running-config (hors interfaces) et startup-config. */

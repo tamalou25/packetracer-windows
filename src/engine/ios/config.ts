@@ -10,7 +10,14 @@ const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 
 /** Configuration IOS d'usine. */
 export function defaultIosState(): IosState {
-  return { enableSecret: null, bannerMotd: null, domainLookup: true, interfaces: {}, startup: null }
+  return {
+    enableSecret: null,
+    bannerMotd: null,
+    domainLookup: true,
+    ipRouting: false,
+    interfaces: {},
+    startup: null
+  }
 }
 
 /** Configuration IOS de l'équipement (valeurs d'usine si jamais configuré). */
@@ -40,9 +47,10 @@ export function snapshotOf(device: IosDevice): IosSnapshot {
       ...(i.subinterface
         ? { subinterface: { parent: byId.get(i.subinterface.parent) ?? '', vlan: i.subinterface.vlan } }
         : {}),
-      ...(i.helperAddresses ? { helperAddresses: i.helperAddresses } : {})
+      ...(i.helperAddresses ? { helperAddresses: i.helperAddresses } : {}),
+      ...(i.svi ? { svi: i.svi } : {})
     })),
-    ...(device.kind === 'router' ? { routes: device.routes } : { vlans: device.vlans })
+    ...(device.kind === 'router' ? { routes: device.routes } : {})
   })
 }
 
@@ -67,22 +75,31 @@ function factoryInterface(iface: Draft<NetInterface>, router: boolean): void {
 
 /**
  * Redémarrage (reload) : la running-config repart de la startup-config, ou des valeurs d'usine si
- * elle est absente. Le nom de l'équipement est conservé sans startup-config (nœud de la topologie).
- * `nextId` fournit les identifiants des sous-interfaces recréées.
+ * elle est absente. Le nom de l'équipement est conservé sans startup-config (nœud de la topologie) ;
+ * la base des VLAN d'un switch (vlan.dat) survit au redémarrage. `nextId` fournit les identifiants
+ * des sous-interfaces et interfaces VLAN recréées.
  */
 export function applyStartup(device: Draft<IosDevice>, nextId: () => number): void {
   const startup = iosState(device as IosDevice).startup
   const router = device.kind === 'router'
   // Interfaces physiques d'usine ; les sous-interfaces disparaissent
-  device.interfaces = device.interfaces.filter((i) => !i.subinterface)
+  const svis = new Map(device.interfaces.filter((i) => i.svi).map((i) => [i.name, clone(i as NetInterface)]))
+  device.interfaces = device.interfaces.filter((i) => !i.subinterface && !i.svi)
   for (const iface of device.interfaces) factoryInterface(iface, router)
   if (device.kind === 'router') device.routes = []
-  else device.vlans = [{ id: 1, name: 'default' }]
   device.ios = { ...clone(startup?.config ?? defaultIosState()), startup }
   if (!startup) return
   device.name = startup.hostname
   for (const saved of startup.interfaces) {
     let iface = device.interfaces.find((i) => i.name === saved.name)
+    if (!iface && saved.svi) {
+      // Interface VLAN : même carte qu'avant le redémarrage si elle existait (identifiant conservé)
+      const created = svis.get(saved.name) ?? createSviDraft(device as IosDevice, saved.svi.vlan, nextId())
+      factoryInterface(created, false)
+      created.svi = { vlan: saved.svi.vlan }
+      device.interfaces.push(created)
+      iface = device.interfaces[device.interfaces.length - 1]
+    }
     if (!iface && saved.subinterface) {
       const parent = device.interfaces.find((i) => i.name === saved.subinterface?.parent)
       if (!parent) continue
@@ -98,7 +115,6 @@ export function applyStartup(device: Draft<IosDevice>, nextId: () => number): vo
     if (saved.subinterface && iface.subinterface) iface.subinterface.vlan = saved.subinterface.vlan
   }
   if (device.kind === 'router' && startup.routes) device.routes = clone(startup.routes)
-  if (device.kind === 'switch' && startup.vlans) device.vlans = clone(startup.vlans)
 }
 
 /** Sous-interface IOS sans encapsulation (partage la MAC de sa carte parente). */
@@ -128,4 +144,25 @@ export function insertSubinterface(interfaces: NetInterface[], sub: NetInterface
   let at = interfaces.findIndex((i) => i.id === parentId) + 1
   while (interfaces[at]?.subinterface?.parent === parentId) at++
   interfaces.splice(at, 0, sub)
+}
+
+/** Interface VLAN (SVI) d'un switch (même adresse MAC que le switch). */
+export function createSviDraft(device: IosDevice, vlan: number, seq: number): NetInterface {
+  return {
+    id: `if${seq}`,
+    name: `Vl${vlan}`,
+    mac: device.interfaces[0]?.mac ?? '02-53-4C-00-00-00',
+    enabled: true,
+    l3: true,
+    addressing: 'static',
+    address: null,
+    prefixLength: null,
+    gateway: null,
+    dnsMode: 'static',
+    dnsServers: [],
+    dhcpLease: null,
+    dhcpReleased: false,
+    bridge: null,
+    svi: { vlan }
+  }
 }

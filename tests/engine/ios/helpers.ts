@@ -19,14 +19,26 @@ export function addIos(state: LabState, model: IosModel, name?: string): { state
   return { state: r.state, id: r.value }
 }
 
+/** Lab partagé par plusieurs consoles (chaque commande voit l'état laissé par la précédente). */
+export interface SharedLab {
+  state: LabState
+}
+
 /** Console IOS : run('conf t') renvoie les lignes affichées ; state et prompt suivent. */
 export class IosConsole {
   session: ShellSession
-  constructor(
-    public state: LabState,
-    deviceId: string
-  ) {
-    this.session = createShellSession(state, deviceId, 'ios')
+  private readonly lab: SharedLab
+  constructor(state: LabState | SharedLab, deviceId: string) {
+    this.lab = 'devices' in state ? { state } : state
+    this.session = createShellSession(this.lab.state, deviceId, 'ios')
+  }
+
+  get state(): LabState {
+    return this.lab.state
+  }
+
+  set state(value: LabState) {
+    this.lab.state = value
   }
 
   get prompt(): string {
