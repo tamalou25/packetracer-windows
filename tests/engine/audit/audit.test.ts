@@ -10,6 +10,7 @@ import {
   compareAudits,
   DEFAULT_DOMAIN_POLICY_ID,
   dispatch,
+  runIosScript,
   type AnyCommand,
   type LabState
 } from '@engine/index'
@@ -30,10 +31,23 @@ function exec(state: LabState, ...cmds: AnyCommand[]): LabState {
   return s
 }
 
+/** Trunk du switch Cisco CSW1 durci (DTP coupé, VLAN natif dédié) : aucune règle IOS enfreinte. */
+function hardenCisco(s: LabState): LabState {
+  return runIosScript(s, id(s, 'CSW1'), [
+    'enable',
+    'configure terminal',
+    'vlan 999',
+    'interface Gi0/1',
+    'switchport nonegotiate',
+    'switchport trunk native vlan 999',
+    'end'
+  ])
+}
+
 /** Lab de référence avec une stratégie de mot de passe conforme (12 caractères, complexité). */
 function hardened(): LabState {
   return exec(
-    buildReferenceLab(),
+    hardenCisco(buildReferenceLab()),
     command('gpo.updateSettings', D, DEFAULT_DOMAIN_POLICY_ID, {
       computer: { minPasswordLength: 12, passwordComplexity: true }
     })
@@ -139,7 +153,10 @@ describe('Audit de sécurité : règles', () => {
 
 describe('Audit de sécurité : rapport', () => {
   it('score, tri par gravité, objets et corrections', () => {
-    let s = ps(buildReferenceLab(), 'Set-SmbServerConfiguration -EnableSMB1Protocol $true -Force')
+    let s = ps(
+      hardenCisco(buildReferenceLab()),
+      'Set-SmbServerConfiguration -EnableSMB1Protocol $true -Force'
+    )
     s = ps(s, 'Set-ADUser jdupont -PasswordNeverExpires $true')
     const report = auditLab(s)
     expect(report.recommendations.map((r) => [r.rule, r.severity])).toEqual([
@@ -152,7 +169,10 @@ describe('Audit de sécurité : rapport', () => {
   })
 
   it('comparaison : recommandations corrigées depuis l’audit de référence', () => {
-    let s = ps(buildReferenceLab(), 'Set-SmbServerConfiguration -EnableSMB1Protocol $true -Force')
+    let s = ps(
+      hardenCisco(buildReferenceLab()),
+      'Set-SmbServerConfiguration -EnableSMB1Protocol $true -Force'
+    )
     const before = auditLab(s)
     s = ps(s, 'Set-SmbServerConfiguration -EnableSMB1Protocol $false -Force')
     s = ps(s, 'Set-ADUser jdupont -PasswordNeverExpires $true')

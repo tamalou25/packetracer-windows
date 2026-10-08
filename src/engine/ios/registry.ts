@@ -7,15 +7,18 @@ import type { Device, LabState, NetInterface } from '../model/schema'
 import { ifaceStatus } from './status'
 import type { Route } from '../net/routing'
 import { networkDeps } from '../net/network-key'
+import type { Hop } from '../net/segment'
+import { switchportOf } from '../net/switchport'
 import type { BackgroundTask } from '../roles/types'
 import type { TransitHooks } from '../sim/transit'
 import { produce, type Draft } from 'immer'
 import type { PacketTrace } from '../sim/trace'
 import { isIos, type IosDevice } from './device'
-import type { IosFeature } from './feature'
+import type { IosFeature, L2Frame } from './feature'
 import { acl } from './features/acl'
 import { base } from './features/base'
 import { hsrp } from './features/hsrp'
+import { l2sec } from './features/l2sec'
 import { navigation } from './features/navigation'
 import { routing } from './features/routing'
 import { security } from './features/security'
@@ -24,7 +27,7 @@ import { vlan } from './features/vlan'
 
 /** Fonctionnalités, dans l'ordre d'enregistrement. */
 export function iosFeatures(): readonly IosFeature[] {
-  return [navigation, base, vlan, routing, services, hsrp, acl, security]
+  return [navigation, base, vlan, routing, services, hsrp, acl, security, l2sec]
 }
 
 /** Crochets d'acheminement des fonctionnalités (routage d'un switch, NAT, ACL…). */
@@ -83,6 +86,30 @@ export const IOS_BACKGROUND_TASK: BackgroundTask = {
 export function iosPortAdmits(state: LabState, device: Device, iface: NetInterface, mac: string): boolean {
   if (!isIos(device)) return true
   return iosFeatures().every((f) => f.admits?.(state, device, iface, mac) ?? true)
+}
+
+/**
+ * Sécurité de niveau 2 le long d'un chemin de trames : premier switch IOS qui refuse la trame
+ * (port d'arrivée, VLAN de la trame), avec l'explication ; null si elle traverse tout le chemin.
+ */
+export function iosL2Inspect(
+  state: LabState,
+  path: readonly Hop[],
+  frame: L2Frame
+): { deviceId: string; hopIndex: number; reason: string } | null {
+  for (const [index, hop] of path.entries()) {
+    const device = state.devices[hop.to]
+    if (!device || device.kind !== 'switch' || !isIos(device)) continue
+    const port = device.interfaces.find((i) => i.id === hop.toIfaceId)
+    if (!port) continue
+    const sp = switchportOf(port)
+    const vlan = hop.vlan ?? (sp.mode === 'access' ? sp.accessVlan : sp.nativeVlan)
+    for (const f of iosFeatures()) {
+      const reason = f.inspect?.(state, device, port, vlan, frame)
+      if (reason) return { deviceId: device.id, hopIndex: index, reason }
+    }
+  }
+  return null
 }
 
 /** Toutes les commandes déclarées. */

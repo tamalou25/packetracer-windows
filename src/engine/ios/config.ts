@@ -30,7 +30,10 @@ export function defaultIosState(): IosState {
     sshVersion: null,
     users: [],
     lines: [],
-    passwordEncryption: false
+    passwordEncryption: false,
+    dhcpSnooping: false,
+    dhcpSnoopingVlans: [],
+    arpInspectionVlans: []
   }
 }
 
@@ -213,6 +216,9 @@ export function draftIfaceEntry(ios: Draft<IosState>, name: string): Draft<IosSt
     aclIn: null,
     aclOut: null,
     portSecurity: null,
-    errDisabled: false
+    errDisabled: false,
+    dhcpSnoopingTrust: false,
+    arpInspectionTrust: false,
+    nonegotiate: false
   })
 }
