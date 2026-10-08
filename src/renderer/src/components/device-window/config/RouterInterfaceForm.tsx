@@ -11,10 +11,12 @@ import { t } from '../../../lib/i18n'
 export function RouterInterfaceForm({ device, iface }: { device: Device; iface: NetInterface }) {
   const [address, setAddress] = useState(iface.address ?? '')
   const [mask, setMask] = useState(iface.prefixLength !== null ? prefixToMask(iface.prefixLength) : '')
+  // Réinitialisé quand l'adresse enregistrée change, pas à chaque mise à jour de l'interface
+  // (activation, relais…) : la saisie en cours est conservée
   useEffect(() => {
     setAddress(iface.address ?? '')
     setMask(iface.prefixLength !== null ? prefixToMask(iface.prefixLength) : '')
-  }, [iface])
+  }, [iface.address, iface.prefixLength])
 
   const apply = (clear = false) => {
     const result = runCommand(
@@ -42,6 +44,7 @@ export function RouterInterfaceForm({ device, iface }: { device: Device; iface: 
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
+            data-testid="if-enabled"
             checked={iface.enabled}
             onChange={(e) =>
               runCommand(command('net.setInterfaceEnabled', device.id, iface.id, e.target.checked))

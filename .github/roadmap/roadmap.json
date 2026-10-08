@@ -44,6 +44,11 @@
       "name": "pedagogy",
       "color": "f9a8d4",
       "description": "Labs, guidage, évaluation"
+    },
+    {
+      "name": "ios",
+      "color": "005cc5",
+      "description": "Équipements Cisco IOS simulés (routeurs, switchs, CLI)"
     }
   ],
   "milestones": [
@@ -66,6 +71,10 @@
     {
       "title": "v2.4",
       "description": "Pédagogie et communauté : éditeur de labs, mode examen, bibliothèque communautaire, client Linux, FR/EN."
+    },
+    {
+      "title": "v2.5",
+      "description": "Équipements Cisco IOS : routeurs 1921/2811, switchs 2960/9200, CLI IOS simulée branchée sur le moteur réseau."
     }
   ],
   "issues": [
@@ -278,6 +287,60 @@
       "milestone": "v2.4",
       "labels": ["feature", "pedagogy", "security"],
       "body": "## Objectif\n\nDocumenter la signature pour supprimer l'avertissement SmartScreen.\n\n## Critères d'acceptation\n\n- [ ] Documentation : types de certificats, coûts, secrets GitHub nécessaires, configuration electron-builder\n- [ ] Aucune automatisation sans accord explicite, aucun secret dans le dépôt\n- [ ] Documentation relue, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "IOS : nœuds Cisco (1921, 2811, 2960, 9200)",
+      "milestone": "v2.5",
+      "labels": ["feature", "ios", "ui", "network"],
+      "body": "## Objectif\n\nAjouter les routeurs Cisco 1921 (Gi0/0, Gi0/1) et 2811 (Fa0/0, Fa0/1), les switchs Catalyst 2960 (Fa0/1-24, Gi0/1-2) et 9200 (Gi1/0/1-24).\n\n## Critères d'acceptation\n\n- [ ] Icônes dans la palette, ports visibles au survol\n- [ ] Console IOS au double-clic\n- [ ] Les nœuds se posent, se câblent, s'enregistrent et s'ouvrent dans un `.slab`\n- [ ] Tests Vitest du moteur et test de bout en bout, CI verte\n\n## Notes\n\nRéutilise les types `router` et `switch` du moteur (champ `model`).\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "IOS : moteur CLI (modes, abréviations, aide)",
+      "milestone": "v2.5",
+      "labels": ["feature", "ios", "engine"],
+      "body": "## Objectif\n\nParseur IOS dédié : arbre de commandes déclaratif, indépendant de PowerShell et bash.\n\n## Critères d'acceptation\n\n- [ ] Modes `>`, `#`, `(config)`, `(config-if)`, `(config-line)`, `(config-router)`, `(config-subif)`\n- [ ] `enable`, `disable`, `configure terminal`, `exit`, `end`, Ctrl+Z ; prompt selon le hostname\n- [ ] Abréviations non ambiguës, `?`, Tab, historique\n- [ ] Erreurs `% Invalid input detected at '^' marker.`, `% Incomplete command.`, `% Ambiguous command:`\n- [ ] Préfixe `no`, `do` depuis la configuration\n- [ ] Tests Vitest du moteur et test de bout en bout, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "IOS : configuration de base",
+      "milestone": "v2.5",
+      "labels": ["feature", "ios", "engine", "network"],
+      "body": "## Objectif\n\nConfiguration de base des équipements et sauvegarde.\n\n## Critères d'acceptation\n\n- [ ] `hostname`, `enable secret`, `banner motd`, `no ip domain-lookup`\n- [ ] `interface`, `ip address`, `description`, `shutdown` / `no shutdown`\n- [ ] `show running-config` (généré depuis l'état), `show startup-config`, `show ip interface brief`, `show interfaces`, `show version`\n- [ ] `copy running-config startup-config`, `write memory`, `reload`, `erase startup-config`\n- [ ] `ping` et `traceroute` (sortie IOS)\n- [ ] Une interface `no shut` câblée passe up/up ; `reload` sans sauvegarde perd la configuration\n- [ ] Tests Vitest du moteur et test de bout en bout, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "IOS : switching et VLAN",
+      "milestone": "v2.5",
+      "labels": ["feature", "ios", "engine", "network"],
+      "body": "## Objectif\n\nVLAN, trunk, router-on-a-stick et inter-VLAN niveau 3.\n\n## Critères d'acceptation\n\n- [ ] `vlan`, `name`, `show vlan brief`\n- [ ] `switchport mode access/trunk`, `access vlan`, `trunk allowed vlan`, `trunk native vlan`, `show interfaces trunk`\n- [ ] Sous-interfaces `encapsulation dot1Q`\n- [ ] `ip routing` et SVI `interface vlan` sur le 9200\n- [ ] Deux postes de VLAN différents se pinguent via router-on-a-stick puis via les SVI\n- [ ] Tests Vitest du moteur et test de bout en bout, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "IOS : routage statique et OSPF",
+      "milestone": "v2.5",
+      "labels": ["feature", "ios", "engine", "network"],
+      "body": "## Objectif\n\nRoutage statique et OSPF monozone sur le moteur de routage existant.\n\n## Critères d'acceptation\n\n- [ ] `ip route` (statique, par défaut)\n- [ ] `router ospf`, `network … area 0`, `router-id`, `passive-interface`\n- [ ] `show ip route` (codes C, L, S, O, S*), `show ip ospf neighbor`\n- [ ] Trois routeurs OSPF convergent ; couper un lien recalcule les routes\n- [ ] Tests Vitest du moteur et test de bout en bout, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "IOS : services IP (relais, DHCP, NAT)",
+      "milestone": "v2.5",
+      "labels": ["feature", "ios", "engine", "network"],
+      "body": "## Objectif\n\nServices IP des routeurs.\n\n## Critères d'acceptation\n\n- [ ] `ip helper-address` interopérable avec le DHCP Windows Server\n- [ ] `ip dhcp pool`, `network`, `default-router`, `dns-server`, `ip dhcp excluded-address`, `show ip dhcp binding`\n- [ ] NAT/PAT : `ip nat inside/outside`, `access-list` + `overload`, NAT statique, `show ip nat translations`\n- [ ] Un client obtient une IP via le relais ; un client interne sort en PAT, visible en mode Simulation\n- [ ] Tests Vitest du moteur et test de bout en bout, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "IOS : HSRP",
+      "milestone": "v2.5",
+      "labels": ["feature", "ios", "engine", "network"],
+      "body": "## Objectif\n\nRedondance de passerelle HSRP.\n\n## Critères d'acceptation\n\n- [ ] `standby <grp> ip`, `priority`, `preempt`, `show standby brief`\n- [ ] La passerelle virtuelle répond ; bascule vers le standby à la coupure, retour avec `preempt`\n- [ ] Tests Vitest du moteur et test de bout en bout, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "IOS : sécurité (ACL, port-security, SSH)",
+      "milestone": "v2.5",
+      "labels": ["feature", "ios", "engine", "network", "security"],
+      "body": "## Objectif\n\nSécuriser les équipements IOS.\n\n## Critères d'acceptation\n\n- [ ] ACL standard et étendues, numérotées et nommées, `ip access-group in/out`, `show access-lists` avec compteurs\n- [ ] Port-security : `maximum`, `mac-address sticky`, `violation shutdown/restrict/protect`, état err-disabled\n- [ ] SSH : `ip domain-name`, `crypto key generate rsa`, `username … secret`, `line vty 0 4`, `transport input ssh`, `login local`\n- [ ] `service password-encryption`\n- [ ] Une ACL bloque le flux visé (visible en Simulation) ; une violation met le port en err-disabled\n- [ ] Tests Vitest du moteur et test de bout en bout, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "IOS : labs, format .slab v9 et documentation",
+      "milestone": "v2.5",
+      "labels": ["feature", "ios", "pedagogy"],
+      "body": "## Objectif\n\nLabs notés IOS, migration du format et documentation.\n\n## Critères d'acceptation\n\n- [ ] Migration `.slab` v8 → v9, fichier de référence v9 et test\n- [ ] Un lab par thème (base, VLAN, routage, services, HSRP, sécurité) et un sujet type E6 complet\n- [ ] Labs disponibles dans le mode examen et l'éditeur de labs (critères fondés sur l'état IOS)\n- [ ] `docs/fidelite.md` (écarts avec IOS), CHANGELOG, ROADMAP, `docs/milestones.md`, README section Cisco\n- [ ] Tests Vitest du moteur et test de bout en bout, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
     }
   ]
 }

@@ -12,6 +12,7 @@ avec GitHub par le workflow **Roadmap sync** (ne crée que ce qui manque).
 | v2.2    | Réseau avancé                                                 | [v2.2](https://github.com/tamalou25/packetracer-windows/milestone/3) |
 | v2.3    | Cybersécurité défensive                                       | [v2.3](https://github.com/tamalou25/packetracer-windows/milestone/4) |
 | v2.4    | Pédagogie et communauté                                       | [v2.4](https://github.com/tamalou25/packetracer-windows/milestone/5) |
+| v2.5    | Équipements Cisco IOS                                         | [v2.5](https://github.com/tamalou25/packetracer-windows/milestone/6) |
 
 > Le milestone v1.1 est sorti sous le numéro de version **2.0.0** (choix de Gary), suivi de la 2.0.1
 > (stabilisation). Les milestones suivants ajoutent des fonctionnalités sans casser les fichiers
@@ -92,6 +93,26 @@ branche `feat/<num>-<slug>` = une PR (`Closes #N`) ; fin de milestone = CHANGELO
 | Client Linux               | Poste Ubuntu simulé : `ip a`, `realm join`, accès SMB                       |
 | Interface FR / EN          | i18n complète, aucune clé manquante                                         |
 | Signature de code          | Procédure documentée, rien d'automatisé sans accord                         |
+
+## v2.5 — Équipements Cisco IOS
+
+Routeurs (1921, 2811) et switchs (Catalyst 2960, 9200) dotés d'une CLI IOS simulée, branchés sur le
+moteur réseau existant (pas de second moteur de routage).
+
+| Fonctionnalité        | Critère d'acceptation                                                    |
+| --------------------- | ------------------------------------------------------------------------ |
+| Nœuds Cisco           | Se posent, se câblent, s'enregistrent ; console IOS au double-clic       |
+| Moteur CLI            | Modes, abréviations, `?`, Tab, `no`, `do`, erreurs IOS fidèles           |
+| Configuration de base | `no shut` → up/up ; `reload` sans sauvegarde perd la configuration       |
+| Switching et VLAN     | Ping inter-VLAN via router-on-a-stick puis via SVI                       |
+| Routage               | Statique et OSPF monozone ; couper un lien recalcule les routes          |
+| Services IP           | Relais DHCP vers Windows Server, DHCP IOS, NAT/PAT visible en Simulation |
+| HSRP                  | La passerelle virtuelle bascule puis revient avec `preempt`              |
+| Sécurité              | ACL (visible en Simulation), port-security err-disabled, SSH             |
+| Labs et format        | `.slab` v9, un lab par thème, sujet E6 complet, mode examen              |
+
+Hors périmètre : STP/RSTP détaillé, EtherChannel, OSPF multizone, EIGRP/BGP, IPv6, QoS, VTP,
+attaques L2 (v2.6).
 
 ## Points d'attention (audit v1.0)
 
