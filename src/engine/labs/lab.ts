@@ -3,7 +3,6 @@
  * l'état de départ avec les actions du moteur (déterministe : même lab = même état).
  */
 import { z } from 'zod'
-import { LAB_EPOCH_MS } from '../core/clock'
 import { command, type Command, type CommandType, type CommandValue } from '../commands/catalog'
 import { dispatch } from '../commands/dispatch'
 import { runIosScript } from '../ios/cli'
@@ -111,22 +110,7 @@ export const LabDeclarativeStartSchema = z.object({
   devices: z.array(LabDeviceSchema),
   /** Câbles entre ports : ["PC1:Ethernet0", "SW1:Fa0/1"]. */
   links: z.array(z.tuple([z.string(), z.string()])).default([]),
-  domain: LabDomainSchema.optional(),
-  /**
-   * Ouvertures de session rejouées au départ (journaux de sécurité des labs de détection), dans
-   * l'ordre : compte « DOMAINE\\nom » ou local, mot de passe saisi ; `hour` avance l'horloge du lab
-   * jusqu'à cette heure (0-23) avant la tentative. Une session ouverte est refermée aussitôt.
-   */
-  logons: z
-    .array(
-      z.object({
-        device: z.string(),
-        user: z.string(),
-        password: z.string(),
-        hour: z.number().int().min(0).max(23).optional()
-      })
-    )
-    .default([])
+  domain: LabDomainSchema.optional()
 })
 
 /**
@@ -380,26 +364,7 @@ function buildDeclarativeStart(start: LabDeclarativeStart): LabState {
       apply(command('system.restartComputer', id))
     }
   }
-  for (const attempt of start.logons) {
-    const id = idOf(attempt.device)
-    if (attempt.hour !== undefined) state = advanceClockToHour(state, attempt.hour)
-    const [domainName, sam] = attempt.user.includes('\\') ? attempt.user.split('\\') : [null, attempt.user]
-    const outcome = apply(
-      command('adds.logon', id, { user: sam ?? '', password: attempt.password, domain: domainName ?? null })
-    )
-    if (outcome.success) apply(command('adds.logoff', id))
-  }
   return state
-}
-
-/** Avance l'horloge du lab jusqu'à la prochaine occurrence de l'heure `hour` (heure du lab). */
-export function advanceClockToHour(state: LabState, hour: number): LabState {
-  const HOUR = 3_600_000
-  const now = new Date(LAB_EPOCH_MS + state.clock)
-  const elapsed = now.getUTCHours() * HOUR + now.getUTCMinutes() * 60_000 + now.getUTCSeconds() * 1000
-  let delta = hour * HOUR - elapsed
-  if (delta <= 0) delta += 24 * HOUR
-  return { ...state, clock: state.clock + delta }
 }
 
 export interface LabProgress {
