@@ -202,3 +202,12 @@ compromis, accès accordé, événement journalisé), jamais l'exploit lui-même
 - tout se passe dans l'état simulé (`LabState`) : rien ne sort du simulateur.
 
 Écarts avec la réalité : relevés au fil des issues de la v2.6 et de la v2.6.1 (série C).
+
+### Écarts (série C)
+
+| #   | Comportement simulé                                                                                               | Réalité                                                   | Source                                                       |
+| --- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------ |
+| C1  | 4769 inscrit seulement pour le ticket du poste à l'ouverture de session de domaine (pas pour l'accès SMB, RDP…)   | un 4769 par ticket de service demandé (cifs/, termsrv/…)  | Learn, _4769(S, F): A Kerberos service ticket was requested_ |
+| C2  | Corrélations calculées par ServerLab (onglet Audit) ; Windows n'en fait aucune                                    | corrélation assurée par un SIEM ou un outil tiers         | —                                                            |
+| C3  | « Hors horaires » : avant 8 h, à partir de 19 h, samedi et dimanche (heure du lab)                                | plages définies par l'organisation                        | —                                                            |
+| C4  | Une tentative = un 4625 sur le poste ; le 4771 du contrôleur pour le même mot de passe n'est pas compté deux fois | les deux événements existent, sur deux journaux distincts | Learn, _4771(F): Kerberos pre-authentication failed_         |

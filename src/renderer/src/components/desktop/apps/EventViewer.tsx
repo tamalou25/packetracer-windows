@@ -1,11 +1,19 @@
 /**
  * Observateur d'événements : journaux système (Application, Sécurité, Système) et journaux des
  * applications et des services (Service d'annuaire, Serveur DNS), filtre du journal actuel (ID,
- * niveau, source, période), détail de l'événement, effacement.
+ * niveau, source, période), affichages personnalisés (vues prédéfinies du journal Sécurité),
+ * détail de l'événement, effacement.
  */
 import { useState } from 'react'
-import { BookOpen, CircleAlert, FolderClosed, Info, ScrollText, TriangleAlert } from 'lucide-react'
-import { type EventFilter, type EventLogEntry, type HostDevice, command, filterEvents } from '@engine/index'
+import { BookOpen, CircleAlert, Filter, FolderClosed, Info, ScrollText, TriangleAlert } from 'lucide-react'
+import {
+  DETECTION_VIEWS,
+  type EventFilter,
+  type EventLogEntry,
+  type HostDevice,
+  command,
+  filterEvents
+} from '@engine/index'
 import { FormDialog } from '../../common/FormDialog'
 import { formatSimTime } from '../../../lib/format'
 import { runCommand } from '../../../lib/run'
@@ -40,9 +48,14 @@ export function EventViewer({ device }: { device: HostDevice }) {
   const [confirmClear, setConfirmClear] = useState(false)
   const [filter, setFilter] = useState<EventFilter | null>(null)
   const [filterDialog, setFilterDialog] = useState(false)
-  const log = selected.startsWith('log:') ? (selected.slice(4) as LogName) : null
+  // Affichage personnalisé : filtre prédéfini sur le journal Sécurité
+  const view = selected.startsWith('view:')
+    ? DETECTION_VIEWS.find((v) => `view:${v.id}` === selected)
+    : undefined
+  const log = view ? 'Sécurité' : selected.startsWith('log:') ? (selected.slice(4) as LogName) : null
   const all = log ? device.host.eventLog.filter((e) => e.log === log) : []
-  const entries = (filter ? filterEvents(all, filter) : all).reverse()
+  const active = view?.filter ?? filter
+  const entries = (active ? filterEvents(all, active) : all).reverse()
   const current = entries.find((e) => e.id === eventId) ?? entries[0]
   const fqdn = device.host.domain ? `${device.name}.${device.host.domain}` : device.name
 
@@ -59,6 +72,18 @@ export function EventViewer({ device }: { device: HostDevice }) {
       icon: BookOpen,
       iconClass: 'text-amber-600',
       children: [
+        {
+          id: 'views',
+          label: 'Affichages personnalisés',
+          icon: FolderClosed,
+          iconClass: 'text-amber-500',
+          children: DETECTION_VIEWS.map((v) => ({
+            id: `view:${v.id}`,
+            label: v.title,
+            icon: Filter,
+            iconClass: 'text-slate-500'
+          }))
+        },
         {
           id: 'system',
           label: 'Journaux système',
@@ -89,7 +114,7 @@ export function EventViewer({ device }: { device: HostDevice }) {
         }}
         testId="eventvwr"
         actions={
-          log ? (
+          log && !view ? (
             <>
               <MmcAction onClick={() => setFilterDialog(true)} testId="eventvwr-filter">
                 Filtrer le journal actuel…
@@ -136,9 +161,9 @@ export function EventViewer({ device }: { device: HostDevice }) {
         ) : (
           <div className="flex h-full flex-col text-xs text-black">
             <div className="border-b border-slate-200 bg-[#f7f7f7] px-2 py-1">
-              <span className="font-semibold">{log}</span>
+              <span className="font-semibold">{view?.title ?? log}</span>
               <span className="ml-2 text-[#555]" data-testid="eventvwr-count">
-                {filter
+                {active
                   ? `Filtré : journal : ${log} ; nombre d’événements : ${entries.length} sur ${all.length}`
                   : `Nombre d’événements : ${entries.length}`}
               </span>
