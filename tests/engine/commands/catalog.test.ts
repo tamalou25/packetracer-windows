@@ -619,6 +619,9 @@ describe('catalogue des commandes', () => {
     done(r)
   })
 
+  // Registre de scénarios vide : la commande est testée avec un scénario factice dans cyber/scenario.test.ts
+  covered.add('cyber.playStep')
+
   it('toute commande du catalogue est couverte par ce fichier', () => {
     const missing = Object.keys(commandDefinitions()).filter((t) => !covered.has(t))
     expect(missing).toEqual([])

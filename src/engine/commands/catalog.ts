@@ -8,7 +8,9 @@
  * (`roles/<rôle>/commands.ts`) et rassemblées par le registre.
  */
 import { clearEventLog } from '../core/eventlog'
-import type { EngineResult } from '../core/result'
+import { playStep, type StepRecord } from '../cyber/scenario'
+import { getScenario } from '../cyber/registry'
+import { fail, type EngineResult } from '../core/result'
 import { nextDeviceName } from '../model/factory'
 import type { LabState, Position } from '../model/schema'
 import { addStaticRoute, removeStaticRoute, setHelperAddresses, setInterfaceIpv4 } from '../net/config'
@@ -103,10 +105,22 @@ function shellExec(
   return { ok: true, state: next, value: outcome }
 }
 
+/** Joue une étape d'un scénario enregistré (cyber) : « une étape = un tour ». */
+function playScenarioStep(state: LabState, scenarioId: string, index: number): EngineResult<StepRecord> {
+  const scenario = getScenario(scenarioId)
+  if (!scenario) return fail('ScenarioNotFound', `Scénario introuvable : ${scenarioId}.`)
+  return playStep(state, scenario, index)
+}
+
 // --- Catalogue ----------------------------------------------------------------------------------
 
 /** Commandes du système de base (topologie, réseau, système, consoles, lots). */
 const CORE_COMMANDS = {
+  // Cybersécurité : un tour d'un scénario (le déroulé vit dans l'interface, l'effet dans l'état)
+  'cyber.playStep': def(playScenarioStep, (_s, id, index) => {
+    const step = getScenario(id)?.steps[index]
+    return `Scénario ${getScenario(id)?.name ?? id} : ${step?.label ?? `étape ${index + 1}`}`
+  }),
   // Topologie
   // Sans nom imposé : le nom que l'équipement recevra (SRV1, PC2…)
   'topology.addDevice': def(addDevice, (s, p) => `Ajouter ${p.name?.trim() || nextDeviceName(s, p.kind)}`),
