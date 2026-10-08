@@ -1,0 +1,125 @@
+{
+  "formatVersion": 1,
+  "id": "lab-23-ios-vlan",
+  "title": "VLAN et routage inter-VLAN sur Cisco",
+  "difficulty": "Intermédiaire",
+  "duration": "30 min",
+  "summary": "Créer deux VLAN sur un Catalyst 2960, relier un trunk 802.1Q à un routeur et router entre les VLAN (router-on-a-stick).",
+  "statement": "# Contexte\n\nDeux services partagent le commutateur **SW1** (Catalyst 2960) : PC1 (VLAN 10, `192.168.10.0/24`) et PC2 (VLAN 20, `192.168.20.0/24`). Le routeur **R1** assure le routage entre les deux VLAN sur une seule liaison (`Gi0/0` ↔ `Gi0/1` de SW1).\n\n## Travail demandé\n\n1. Sur SW1, créez les VLAN 10 (`COMPTA`) et 20 (`RH`) et affectez `Fa0/1` et `Fa0/2` en mode accès.\n2. Configurez `Gi0/1` de SW1 en **trunk**.\n3. Sur R1, créez les sous-interfaces `Gi0/0.10` et `Gi0/0.20` (encapsulation 802.1Q) avec la passerelle de chaque VLAN (`.254`), puis activez `Gi0/0`.\n4. Vérifiez avec `show vlan brief`, `show interfaces trunk` et `show ip route`.\n5. PC1 doit joindre PC2.",
+  "start": {
+    "devices": [
+      {
+        "kind": "switch",
+        "name": "SW1",
+        "x": 300,
+        "y": 200,
+        "model": "c2960"
+      },
+      {
+        "kind": "router",
+        "name": "R1",
+        "x": 300,
+        "y": 50,
+        "model": "c1921"
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 150,
+        "y": 380,
+        "ip": "192.168.10.10/24",
+        "gateway": "192.168.10.254"
+      },
+      {
+        "kind": "client",
+        "name": "PC2",
+        "x": 450,
+        "y": 380,
+        "ip": "192.168.20.10/24",
+        "gateway": "192.168.20.254"
+      }
+    ],
+    "links": [
+      ["R1:Gi0/0", "SW1:Gi0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/1"],
+      ["PC2:Ethernet0", "SW1:Fa0/2"]
+    ]
+  },
+  "criteria": [
+    {
+      "id": "acc10",
+      "label": "Fa0/1 est un port d’accès du VLAN 10",
+      "hint": "Un VLAN doit exister avant qu’on y affecte un port d’accès.",
+      "check": {
+        "type": "switchport",
+        "device": "SW1",
+        "port": "Fa0/1",
+        "mode": "access",
+        "vlan": 10
+      }
+    },
+    {
+      "id": "acc20",
+      "label": "Fa0/2 est un port d’accès du VLAN 20",
+      "hint": "Un VLAN doit exister avant qu’on y affecte un port d’accès.",
+      "check": {
+        "type": "switchport",
+        "device": "SW1",
+        "port": "Fa0/2",
+        "mode": "access",
+        "vlan": 20
+      }
+    },
+    {
+      "id": "trunk",
+      "label": "Le lien vers R1 est un trunk",
+      "hint": "Un port qui transporte plusieurs VLAN ne doit pas rester en mode accès.",
+      "check": {
+        "type": "iosRunning",
+        "device": "SW1",
+        "line": "switchport mode trunk"
+      }
+    },
+    {
+      "id": "sub10",
+      "label": "Sous-interface du VLAN 10 sur R1",
+      "hint": "Une sous-interface porte l’étiquette 802.1Q de son VLAN.",
+      "check": {
+        "type": "iosRunning",
+        "device": "R1",
+        "line": "encapsulation dot1Q 10"
+      }
+    },
+    {
+      "id": "sub20",
+      "label": "Sous-interface du VLAN 20 sur R1",
+      "hint": "Une sous-interface porte l’étiquette 802.1Q de son VLAN.",
+      "check": {
+        "type": "iosRunning",
+        "device": "R1",
+        "line": "encapsulation dot1Q 20"
+      }
+    },
+    {
+      "id": "up",
+      "label": "La sous-interface Gi0/0.20 est active",
+      "hint": "L’interface physique doit être activée pour que ses sous-interfaces le soient.",
+      "check": {
+        "type": "iosInterface",
+        "device": "R1",
+        "interface": "Gi0/0.20",
+        "state": "up"
+      }
+    },
+    {
+      "id": "ping",
+      "label": "PC1 joint PC2 à travers le routeur",
+      "hint": "Chaque poste utilise la sous-interface de son VLAN comme passerelle.",
+      "check": {
+        "type": "ping",
+        "from": "PC1",
+        "to": "PC2"
+      }
+    }
+  ]
+}

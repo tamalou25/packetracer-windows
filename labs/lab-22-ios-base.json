@@ -1,0 +1,83 @@
+{
+  "formatVersion": 1,
+  "id": "lab-22-ios-base",
+  "title": "Premiers pas sur un routeur Cisco",
+  "difficulty": "Débutant",
+  "duration": "20 min",
+  "summary": "Sécuriser l’accès d’un routeur Cisco 1921, adresser son interface et enregistrer la configuration.",
+  "statement": "# Contexte\n\nLe routeur **R1** (Cisco 1921) vient d’être sorti de son carton. Son interface `Gi0/0` doit desservir le réseau `192.168.1.0/24` (PC1).\n\n## Travail demandé\n\n1. Ouvrez la console de R1 (double-clic) et passez en mode privilégié puis en configuration globale.\n2. Protégez le mode privilégié par un mot de passe **chiffré** (`enable secret`).\n3. Affichez un message d’avertissement à la connexion (`banner motd`).\n4. Donnez à `Gi0/0` l’adresse `192.168.1.1/24`, une description, et activez-la.\n5. Vérifiez avec `show ip interface brief`, puis testez la liaison depuis PC1.\n6. **Enregistrez** la configuration : sans cela, elle disparaît au redémarrage.",
+  "start": {
+    "devices": [
+      {
+        "kind": "router",
+        "name": "R1",
+        "x": 300,
+        "y": 200,
+        "model": "c1921"
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 300,
+        "y": 380,
+        "ip": "192.168.1.10/24",
+        "gateway": "192.168.1.1"
+      }
+    ],
+    "links": [["R1:Gi0/0", "PC1:Ethernet0"]]
+  },
+  "criteria": [
+    {
+      "id": "secret",
+      "label": "Le mode privilégié est protégé par un secret chiffré",
+      "hint": "Il existe une commande distincte de « enable password » qui stocke un condensat.",
+      "check": {
+        "type": "iosRunning",
+        "device": "R1",
+        "line": "enable secret",
+        "match": "prefix"
+      }
+    },
+    {
+      "id": "banner",
+      "label": "Un message de connexion est affiché",
+      "hint": "Une bannière « message of the day » s’affiche avant l’invite de connexion.",
+      "check": {
+        "type": "iosRunning",
+        "device": "R1",
+        "line": "banner motd",
+        "match": "prefix"
+      }
+    },
+    {
+      "id": "iface",
+      "label": "Gi0/0 est active (up/up)",
+      "hint": "Une interface de routeur est coupée administrativement tant qu’on ne l’a pas activée.",
+      "check": {
+        "type": "iosInterface",
+        "device": "R1",
+        "interface": "Gi0/0",
+        "state": "up"
+      }
+    },
+    {
+      "id": "ping",
+      "label": "PC1 joint R1",
+      "hint": "Vérifiez l’adresse de l’interface et son état.",
+      "check": {
+        "type": "ping",
+        "from": "PC1",
+        "to": "R1"
+      }
+    },
+    {
+      "id": "saved",
+      "label": "La configuration est enregistrée",
+      "hint": "La configuration en cours est en mémoire vive ; la startup-config est celle qui survit au redémarrage.",
+      "check": {
+        "type": "iosStartup",
+        "device": "R1"
+      }
+    }
+  ]
+}

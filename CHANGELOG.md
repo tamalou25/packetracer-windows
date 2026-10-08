@@ -6,6 +6,31 @@ La planification des versions suivantes est dans [ROADMAP.md](ROADMAP.md).
 
 ## [Non publié]
 
+## [2.5.0] — 2026-10-08
+
+Milestone « v2.5 — Équipements Cisco IOS » de la roadmap. Format `.slab` 9 (les labs 2.4 s'ouvrent ;
+une version 2.4 refuse les labs 2.5). Écarts connus avec le vrai IOS : `docs/fidelite.md` (I1 à I38).
+
+### Ajouté
+
+- Routeurs Cisco 1921 et 2811, switchs Catalyst 2960 et 9200 : se posent, se câblent, s'enregistrent ;
+  console IOS au double-clic, branchée sur le moteur réseau existant (#103).
+- Moteur de CLI IOS : modes, abréviations, `?`, Tab, `no`, `do`, erreurs fidèles (#105).
+- Configuration de base : `running-config` / `startup-config`, `copy`, `write`, `reload`, bannières,
+  `enable secret`, `show version` (#106).
+- Commutation : VLAN, trunk 802.1Q, router-on-a-stick, SVI sur Catalyst 9200 (#107).
+- Routage : statique, OSPF monozone, `show ip route` / `show ip ospf neighbor` (#108).
+- Services IP : relais DHCP, serveur DHCP IOS, NAT / PAT visible en mode Simulation (#109).
+- HSRP : passerelle virtuelle, priorité, préemption (#110).
+- Sécurité : ACL standard / étendues visibles en mode Simulation, port-security (`err-disabled`), SSH,
+  chiffrement des mots de passe (#111).
+- Labs notés `lab-22` à `lab-28` (base, VLAN, OSPF, DHCP / NAT, HSRP, sécurité, sujet E6 complet à deux
+  sites), disponibles en mode examen et dans l'éditeur de labs ; critères `ios*` lisant l'état IOS (#112).
+
+### Modifié
+
+- Format `.slab` 9 : modèle et état IOS des équipements Cisco (migration 8 → 9 sans transformation).
+
 ## [2.4.0] — 2026-10-08
 
 Milestone « v2.4 — Pédagogie avancée » de la roadmap. Format `.slab` 8 (les labs 2.3 s'ouvrent ;

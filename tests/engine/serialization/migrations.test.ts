@@ -63,8 +63,12 @@ describe('fichiers .slab de référence', () => {
           Object.values(lab.devices)
             .map((d) => d.name)
             .sort()
-        ).toEqual(['PC1', 'PC2', 'R1', 'SRV1', 'SW1'])
-        expect(Object.keys(lab.links)).toHaveLength(4)
+        ).toEqual(
+          version >= 9
+            ? ['CR1', 'CSW1', 'PC1', 'PC2', 'R1', 'SRV1', 'SW1']
+            : ['PC1', 'PC2', 'R1', 'SRV1', 'SW1']
+        )
+        expect(Object.keys(lab.links)).toHaveLength(version >= 9 ? 5 : 4)
         const domain = lab.domains['lab.local']
         expect(domain?.users.map((u) => u.sam)).toContain('jdupont')
         expect(domain?.groups.find((g) => g.name === 'GG_Compta')?.members).toHaveLength(1)
@@ -286,5 +290,35 @@ describe('migration 7 → 8 (postes Linux de la v2.4)', () => {
         []
       ])
     }
+  })
+})
+
+describe('migration 8 → 9 (équipements Cisco IOS de la v2.5)', () => {
+  it('change seulement la version ; les routeurs et switchs existants restent des équipements génériques', () => {
+    const doc = JSON.parse(readFixture(8)) as Record<string, unknown>
+    expect(migrations[8]!(doc)).toEqual({ ...doc, schemaVersion: 9 })
+    const parsed = parseSlab(readFixture(8))
+    if (!parsed.ok) throw new Error(parsed.message)
+    for (const name of ['R1', 'SW1']) {
+      const d = parsed.doc.lab.devices[deviceId(parsed.doc.lab, name)]
+      expect(d && 'model' in d ? d.model : undefined).toBeUndefined()
+      expect(d && 'ios' in d ? d.ios : undefined).toBeUndefined()
+    }
+  })
+
+  it('v9.slab : la configuration IOS enregistrée est restituée', () => {
+    const lab = open(9).lab
+    const cr1 = lab.devices[deviceId(lab, 'CR1')]
+    const csw1 = lab.devices[deviceId(lab, 'CSW1')]
+    expect(cr1 && 'model' in cr1 && cr1.model).toBe('c1921')
+    expect(csw1 && 'model' in csw1 && csw1.model).toBe('c2960')
+    expect(
+      evaluateCheck(lab, { type: 'iosRunning', device: 'CR1', line: 'standby 1 ip 192.168.30.254' })
+    ).toBe(true)
+    expect(evaluateCheck(lab, { type: 'iosStartup', device: 'CR1' })).toBe(true)
+    expect(evaluateCheck(lab, { type: 'iosStartup', device: 'CSW1' })).toBe(true)
+    expect(
+      evaluateCheck(lab, { type: 'switchport', device: 'CSW1', port: 'Fa0/2', mode: 'access', vlan: 30 })
+    ).toBe(true)
   })
 })
