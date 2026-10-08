@@ -1,0 +1,112 @@
+{
+  "formatVersion": 1,
+  "id": "lab-31-compromission-ad",
+  "title": "Compromission de l'annuaire (Red)",
+  "difficulty": "Intermédiaire",
+  "duration": "25 min",
+  "summary": "Un domaine aux comptes négligés : jouez les scénarios d'attaque simulés et faites tomber un compte, puis une machine.",
+  "statement": "## Contexte\n\nLe domaine `lab.local` a été installé il y a des années. Une stratégie de mot de passe plus stricte a été posée depuis, mais certains comptes datent d'avant.\n\n## Travail demandé\n\n1. Passez en **mode Simulation**, ouvrez le panneau **Simulation** et choisissez un scénario dans la section **Scénarios**.\n2. Jouez les étapes une à une et lisez la chronologie.\n3. Faites réussir au moins un scénario, puis réussissez celui qui s'appuie sur un accès déjà obtenu.\n4. Consultez l'Observateur d'événements de SRV1 : retrouvez les traces de vos actions.\n\nQuelles faiblesses ont rendu cela possible ? Notez-les : le lab suivant demande de les corriger.\n\n> **Simulation abstraite.** Aucun exploit ni code offensif : un scénario ne modélise que l'effet d'une faiblesse de configuration sur l'état simulé (compte marqué compromis, événement journalisé).",
+  "start": {
+    "devices": [
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 200,
+        "y": 150,
+        "ip": "192.168.10.1/24",
+        "dns": ["127.0.0.1"]
+      },
+      {
+        "kind": "switch",
+        "name": "SW1",
+        "x": 300,
+        "y": 330
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 500,
+        "y": 330,
+        "ip": "192.168.10.10/24",
+        "dns": ["192.168.10.1"],
+        "logon": {
+          "user": "jdupont",
+          "password": "jdupont"
+        },
+        "adminAccess": ["SRV1"]
+      }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/2"]
+    ],
+    "domain": {
+      "name": "lab.local",
+      "netbios": "LAB",
+      "dc": "SRV1",
+      "ous": ["Personnel"],
+      "creationPolicy": {
+        "minLength": 0,
+        "complexity": false
+      },
+      "passwordPolicy": {
+        "minLength": 8,
+        "complexity": true
+      },
+      "users": [
+        {
+          "name": "Jean Dupont",
+          "sam": "jdupont",
+          "ou": "Personnel",
+          "password": "jdupont"
+        },
+        {
+          "name": "Marie Martin",
+          "sam": "mmartin",
+          "ou": "Personnel",
+          "password": "Tr0ub4dor&Stable"
+        },
+        {
+          "name": "Service SQL",
+          "sam": "svc-sql",
+          "password": "Xq7!rT2mVb9#",
+          "spns": ["MSSQLSvc/srv1.lab.local:1433"],
+          "passwordAgeDays": 400
+        }
+      ],
+      "join": ["PC1"]
+    },
+    "cyber": {
+      "targetAccount": "jdupont",
+      "serviceMaxAgeDays": 180,
+      "scenarios": ["auth-repetee", "compte-service", "reutilisation-acces"]
+    }
+  },
+  "criteria": [
+    {
+      "id": "compromis",
+      "label": "Au moins un compte de l'annuaire est compromis",
+      "hint": "Lancez un scénario d'authentification ou de compte de service depuis le panneau Scénarios.",
+      "check": {
+        "type": "accountCompromised"
+      }
+    },
+    {
+      "id": "service",
+      "label": "Le compte de service est compromis",
+      "hint": "Un compte qui porte un nom de principal de service peut être une cible, selon l'ancienneté de son mot de passe.",
+      "check": {
+        "type": "accountCompromised",
+        "account": "svc-sql"
+      }
+    },
+    {
+      "id": "machine",
+      "label": "Un accès administrateur s'est propagé à un serveur",
+      "hint": "Il faut d'abord un compte compromis qui a une session ouverte sur un poste administrateur d'un autre ordinateur.",
+      "check": {
+        "type": "machineControlled"
+      }
+    }
+  ]
+}

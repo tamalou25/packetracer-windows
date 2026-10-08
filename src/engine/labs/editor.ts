@@ -47,6 +47,8 @@ const FIELD_LABELS: Record<string, string> = {
   minTranslations: 'Traductions NAT (minimum)',
   minBindings: 'Baux (minimum)',
   rule: 'Règle',
+  scenario: 'Scénario (identifiant)',
+  after: 'Scénarios joués avant (identifiants)',
   passed: 'Respectée',
   device: 'Équipement',
   interface: 'Carte',

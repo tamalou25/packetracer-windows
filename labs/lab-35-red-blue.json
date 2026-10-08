@@ -1,0 +1,196 @@
+{
+  "formatVersion": 1,
+  "id": "lab-35-red-blue",
+  "title": "Sujet Red / Blue : défendre le site",
+  "difficulty": "Avancé",
+  "duration": "45 min",
+  "summary": "Annuaire et réseau réunis : défendez le site contre les cinq scénarios, seul ou en partie Red / Blue contre l'IA.",
+  "statement": "## Contexte\n\nLe site comprend un contrôleur de domaine, un switch Cisco et trois postes. Les cinq scénarios d'attaque simulés réussissent : comptes faibles, compte de service négligé, accès administrateur réutilisable, switch non durci.\n\n## Travail demandé\n\n**Version examen** : durcissez le site (annuaire **et** réseau) pour que les cinq scénarios échouent. Contrôlez avec **Vérifier**.\n\n**Version jeu** : en **mode Simulation**, ouvrez **Mode Red / Blue**. L'IA joue Red ; vous êtes Blue, avec un minuteur et un nombre limité de contre-mesures. Comparez votre score à celui obtenu en jouant Red.\n\nÀ rendre : la liste des faiblesses trouvées et des corrections appliquées, avec la commande ou le réglage équivalent.\n\n> **Simulation abstraite.** Aucun exploit ni code offensif : un scénario ne modélise que l'effet d'une faiblesse de configuration sur l'état simulé (compte marqué compromis, événement journalisé).",
+  "start": {
+    "devices": [
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 200,
+        "y": 150,
+        "ip": "192.168.10.1/24",
+        "dns": ["127.0.0.1"]
+      },
+      {
+        "kind": "switch",
+        "name": "SW1",
+        "model": "c2960",
+        "x": 300,
+        "y": 330,
+        "ios": [
+          "enable",
+          "configure terminal",
+          "vlan 10",
+          "exit",
+          "vlan 20",
+          "exit",
+          "interface Fa0/1",
+          "switchport mode access",
+          "switchport access vlan 10",
+          "exit",
+          "interface Fa0/2",
+          "switchport mode access",
+          "switchport access vlan 10",
+          "exit",
+          "interface Fa0/3",
+          "switchport mode access",
+          "switchport access vlan 10",
+          "exit",
+          "interface Fa0/4",
+          "switchport mode access",
+          "switchport access vlan 10",
+          "exit",
+          "end"
+        ]
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 450,
+        "y": 330,
+        "ip": "192.168.10.10/24",
+        "dns": ["192.168.10.1"],
+        "logon": {
+          "user": "jdupont",
+          "password": "jdupont"
+        },
+        "adminAccess": ["SRV1"]
+      },
+      {
+        "kind": "client",
+        "name": "PC2",
+        "x": 600,
+        "y": 330,
+        "ip": "192.168.10.20/24",
+        "dns": ["192.168.10.1"]
+      },
+      {
+        "kind": "client",
+        "name": "PC3",
+        "x": 750,
+        "y": 330,
+        "ip": "192.168.10.66/24",
+        "dns": ["192.168.10.1"]
+      }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/2"],
+      ["PC2:Ethernet0", "SW1:Fa0/3"],
+      ["PC3:Ethernet0", "SW1:Fa0/4"]
+    ],
+    "domain": {
+      "name": "lab.local",
+      "netbios": "LAB",
+      "dc": "SRV1",
+      "ous": ["Personnel"],
+      "creationPolicy": {
+        "minLength": 0,
+        "complexity": false
+      },
+      "passwordPolicy": {
+        "minLength": 8,
+        "complexity": true
+      },
+      "users": [
+        {
+          "name": "Jean Dupont",
+          "sam": "jdupont",
+          "ou": "Personnel",
+          "password": "jdupont"
+        },
+        {
+          "name": "Marie Martin",
+          "sam": "mmartin",
+          "ou": "Personnel",
+          "password": "Tr0ub4dor&Stable"
+        },
+        {
+          "name": "Service SQL",
+          "sam": "svc-sql",
+          "password": "Xq7!rT2mVb9#",
+          "spns": ["MSSQLSvc/srv1.lab.local:1433"],
+          "passwordAgeDays": 400
+        }
+      ],
+      "join": ["PC1"]
+    },
+    "cyber": {
+      "targetAccount": "jdupont",
+      "serviceMaxAgeDays": 180,
+      "arpSpoof": {
+        "attacker": "PC3",
+        "victimA": "PC1",
+        "victimB": "PC2"
+      },
+      "vlanHop": {
+        "attacker": "PC3",
+        "toVlan": 20
+      },
+      "game": {
+        "maxTurns": 6,
+        "timerSeconds": 900,
+        "blueBudget": 4,
+        "aiSide": "red"
+      }
+    }
+  },
+  "criteria": [
+    {
+      "id": "auth",
+      "label": "L'authentification répétée n'aboutit plus",
+      "hint": "Deux défenses indépendantes y concourent : l'une sur le compte lui-même, l'autre sur le domaine.",
+      "check": {
+        "type": "scenarioOutcome",
+        "scenario": "auth-repetee",
+        "success": false
+      }
+    },
+    {
+      "id": "service",
+      "label": "Le compte de service n'est plus une cible",
+      "hint": "Un secret ancien se renouvelle ; l'ancienneté compte.",
+      "check": {
+        "type": "scenarioOutcome",
+        "scenario": "compte-service",
+        "success": false
+      }
+    },
+    {
+      "id": "rebond",
+      "label": "L'accès administrateur ne se propage plus",
+      "hint": "Même après une compromission préalable, la propagation doit échouer : elle dépend de ce qui a été compromis avant.",
+      "check": {
+        "type": "scenarioOutcome",
+        "scenario": "reutilisation-acces",
+        "after": ["auth-repetee", "compte-service"],
+        "success": false
+      }
+    },
+    {
+      "id": "arp",
+      "label": "L'usurpation d'adresse est refusée par le switch",
+      "hint": "Une fonction de contrôle des paquets ARP s'appuie sur la base du DHCP snooping.",
+      "check": {
+        "type": "scenarioOutcome",
+        "scenario": "usurpation-arp",
+        "success": false
+      }
+    },
+    {
+      "id": "vlan",
+      "label": "Le changement de VLAN est refusé par le port",
+      "hint": "Le port de l'hôte ne doit plus négocier de trunk.",
+      "check": {
+        "type": "scenarioOutcome",
+        "scenario": "saut-de-vlan",
+        "success": false
+      }
+    }
+  ]
+}

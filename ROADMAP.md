@@ -134,13 +134,13 @@ Scénarios d'attaque simulés de façon **abstraite** : on modélise leur résul
 (compte compromis, événement journalisé), jamais l'exploit ; aucun code offensif réel
 (`docs/fidelite.md`).
 
-| Fonctionnalité          | Critère d'acceptation                                                                 |
-| ----------------------- | ------------------------------------------------------------------------------------- |
-| Moteur de scénarios     | Un scénario progresse pas à pas en Simulation et modifie l'état de façon réversible   |
-| Attaques sur l'annuaire | Spraying, Kerberoasting, pass-the-hash : échouent sur un lab durci, réussissent sinon |
-| Attaques L2             | ARP spoofing, VLAN hopping : échouent après le durcissement de la v2.6                |
-| Mode Red / Blue         | Partie complète en solo contre l'IA, minuteur, score final par camp                   |
-| Labs                    | Un lab par attaque, sujet Red / Blue                                                  |
+| Fonctionnalité          | Critère d'acceptation                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------------------- |
+| Moteur de scénarios     | Un scénario progresse pas à pas en Simulation et modifie l'état de façon réversible               |
+| Attaques sur l'annuaire | Authentification répétée, compte de service, réutilisation d'accès : échouent sur un lab durci    |
+| Attaques L2             | Usurpation d'adresse, changement de VLAN : échouent après le durcissement de la v2.6              |
+| Mode Red / Blue         | Partie complète en solo contre l'IA (graine), minuteur, score final par camp, temps de détection  |
+| Labs et format          | `.slab` v14, labs 31 à 35 (compromission, durcissement, sujet Red / Blue), mode examen et éditeur |
 
 Hors périmètre (v2.6 et v2.6.1) : tout exploit réel ou code offensif utilisable hors du simulateur,
 attaques web (OWASP), reverse engineering, forensic disque, EDR, SIEM réel (pistes v2.7).

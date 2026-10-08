@@ -8,7 +8,7 @@ Ce journal permet à une nouvelle session de reprendre le travail là où il s'e
 - **Format .slab** : une seule version de format par milestone. La première issue qui modifie le format
   incrémente `CURRENT_SCHEMA_VERSION` et écrit `fixtures/vN.slab` ; les issues suivantes du même milestone
   ajoutent des champs avec valeurs par défaut (le fichier de référence de la version reste valable).
-  v2.1 → format 5 ; v2.2 → format 6 ; v2.3 → format 7 ; v2.4 → format 8 ; v2.5 → format 9 ; v2.6 → format 10 ; v2.6.1 → formats 11 à 13
+  v2.1 → format 5 ; v2.2 → format 6 ; v2.3 → format 7 ; v2.4 → format 8 ; v2.5 → format 9 ; v2.6 → format 10 ; v2.6.1 → formats 11 à 14
   (migration écrite dans la dernière issue : champs IOS facultatifs avec valeurs par défaut).
 - **Fidélité** : un comportement de Windows Server non sourcé est noté dans `docs/fidelite.md` (« à vérifier »).
 - **Fin de milestone** : `CHANGELOG.md`, version de `package.json`, tag `vX.Y.0` poussé par Gary.
@@ -420,3 +420,31 @@ Correction en cours de route : #114 (formulaire d'interface de routeur, PR #116)
 
 Volet attaque (#126, #127, #131, #133, #134) et lab de détection reportés au milestone v2.6.1. Correction en cours de route :
 README reformaté (Prettier), dans #135.
+
+## v2.6.1 — Cybersécurité, volet attaque
+
+| Issue | Sujet                                  | Branche                     | PR   | État     |
+| ----- | -------------------------------------- | --------------------------- | ---- | -------- |
+| 1/5   | Moteur de scénarios                    | `feat/1-moteur-scenarios`   | #139 | en cours |
+| 2/5   | Scénarios annuaire                     | `feat/2-scenarios-annuaire` | #140 | en cours |
+| 3/5   | Scénarios réseau                       | `feat/3-scenarios-reseau`   | #141 | en cours |
+| 4/5   | Mode Red / Blue                        | `feat/4-mode-red-blue`      | #142 | en cours |
+| 5/5   | Labs, format `.slab` 14, documentation | `feat/5-labs-cyber-docs`    |      | en cours |
+
+Le guide des formats : 11 (SPN, compromission, accès administrateur, paramètres `cyber`), 12 (saut de
+VLAN, flux interceptés, tampon syslog IOS), 13 (réglages de partie Red / Blue), 14 (scénarios activés par
+lab, paramètres de durcissement, camp de l'IA). Chaque version a son fichier de référence et son test de
+migration.
+
+### 5/5 Labs, format .slab 14, documentation
+
+- Format : `CURRENT_SCHEMA_VERSION` 14, `migrations[13]` (version seule), `fixtures/v14.slab`, tests de migration.
+- Moteur : départ de lab étendu (`cyber`, `logon`, `adminAccess`, `creationPolicy`, SPN, ancienneté du mot de
+  passe), commandes `cyber.configure`, `cyber.setAdminAccess`, `adds.setServicePrincipalNames` ; critères
+  `accountCompromised`, `machineControlled`, `trafficIntercepted`, `vlanHopped`, `scenarioOutcome`
+  (évaluation à blanc, sans trace d'attaque) ; scénarios activés par lab (`scenariosOf`) ; camp imposé à l'IA.
+- Labs 31 (compromission de l'annuaire), 32 (durcissement de l'annuaire), 33 (attaque réseau L2), 34
+  (durcissement réseau), 35 (sujet Red / Blue : annuaire + réseau, minuteur, camp de l'IA imposé) ; tests
+  `tests/engine/cyber/labs-attaque.test.ts` (solution à 100 %, examen, éditeur) et E2E `cyber-attack-labs.spec.ts`.
+- Documentation : récapitulatif du garde-fou et écarts avec les vraies techniques (`docs/fidelite.md`),
+  README (Cybersécurité), ROADMAP, CHANGELOG [2.6.1].

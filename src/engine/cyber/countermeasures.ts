@@ -82,8 +82,8 @@ export const COUNTERMEASURES: Countermeasure[] = [
   {
     id: 'lockout',
     domain: 'annuaire',
-    label: 'Activer le verrouillage de compte (3 échecs)',
-    hint: 'Stratégie de domaine : seuil de verrouillage 3, durée 30 min.',
+    label: 'Activer le verrouillage de compte',
+    hint: 'Stratégie de domaine : seuil et durée de verrouillage définis par le lab.',
     applicable: (state) => {
       const a = targetAccount(state)
       return !!a && domainLockoutPolicy(a.domain).threshold === 0
@@ -92,7 +92,11 @@ export const COUNTERMEASURES: Countermeasure[] = [
       const a = targetAccount(state)
       if (!a) return fail('NotApplicable', 'Aucun compte visé dans ce lab.')
       return updateGpoSettings(state, a.domain.name, DEFAULT_DOMAIN_POLICY_ID, {
-        computer: { lockoutThreshold: 3, lockoutDuration: 30, lockoutReset: 30 }
+        computer: {
+          lockoutThreshold: state.cyber.hardening.lockoutThreshold,
+          lockoutDuration: state.cyber.hardening.lockoutMinutes,
+          lockoutReset: state.cyber.hardening.lockoutMinutes
+        }
       })
     }
   },

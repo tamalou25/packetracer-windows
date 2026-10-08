@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { command, type Command, type CommandType, type CommandValue } from '../commands/catalog'
 import { dispatch } from '../commands/dispatch'
 import { runIosScript } from '../ios/cli'
+import type { CyberConfigPatch } from '../cyber/config'
 import { IOS_MODELS } from '../ios/models'
 import { createLab } from '../model/factory'
 import { DEVICE_KINDS } from '../model/kinds'
@@ -50,6 +51,10 @@ export const LabDeviceSchema = z.object({
   smb1: z.boolean().optional(),
   /** Profils du pare-feu désactivés. */
   firewallDisabled: z.array(z.enum(FIREWALL_PROFILES)).optional(),
+  /** Compte local ouvert en session sur le poste (après la jonction au domaine) : { user, password }. */
+  logon: z.object({ user: z.string(), password: z.string() }).optional(),
+  /** Machines vers lesquelles les sessions de ce poste ont un accès administrateur (cyber). */
+  adminAccess: z.array(z.string()).optional(),
   /** Dossiers partagés (créés au besoin) : comptes par niveau d'autorisation. */
   shares: z
     .array(
@@ -93,10 +98,20 @@ export const LabDomainSchema = z.object({
         memberOf: z.array(z.string()).optional(),
         /** Compte créé il y a N jours ; dernière ouverture de session il y a N jours (null : jamais). */
         createdDaysAgo: z.number().int().nonnegative().optional(),
+        /** Noms de principal de service (compte de service) ; mot de passe inchangé depuis N jours. */
+        spns: z.array(z.string()).optional(),
+        passwordAgeDays: z.number().int().nonnegative().optional(),
         lastLogonDaysAgo: z.number().int().nonnegative().nullable().optional()
       })
     )
     .default([]),
+  /**
+   * Stratégie en vigueur à la création des comptes (laxiste : comptes hérités aux mots de passe
+   * désormais non conformes) ; `passwordPolicy` s'applique ensuite.
+   */
+  creationPolicy: z
+    .object({ minLength: z.number().int().min(0).max(14).optional(), complexity: z.boolean().optional() })
+    .optional(),
   /** Stratégie de mot de passe de la Default Domain Policy. */
   passwordPolicy: z
     .object({ minLength: z.number().int().min(0).max(14).optional(), complexity: z.boolean().optional() })
@@ -110,7 +125,9 @@ export const LabDeclarativeStartSchema = z.object({
   devices: z.array(LabDeviceSchema),
   /** Câbles entre ports : ["PC1:Ethernet0", "SW1:Fa0/1"]. */
   links: z.array(z.tuple([z.string(), z.string()])).default([]),
-  domain: LabDomainSchema.optional()
+  domain: LabDomainSchema.optional(),
+  /** Paramètres des scénarios de cybersécurité (cibles, scénarios activés, mode Red/Blue) : voir `cyber.*`. */
+  cyber: z.record(z.string(), z.unknown()).optional()
 })
 
 /**
@@ -302,6 +319,17 @@ function buildDeclarativeStart(start: LabDeclarativeStart): LabState {
     const dn = (ou?: string) =>
       [ou ? `OU=${ou}` : '', ...domain.name.split('.').map((p) => `DC=${p}`)].filter((x) => x).join(',')
     for (const ou of domain.ous) apply(command('adds.addOrganizationalUnit', domain.name, { name: ou }))
+    // Stratégie en vigueur à la création des comptes (comptes hérités aux mots de passe faibles)
+    const policyPatch = (p: { minLength?: number | undefined; complexity?: boolean | undefined }) =>
+      apply(
+        command('gpo.updateSettings', domain.name, DEFAULT_DOMAIN_POLICY_ID, {
+          computer: {
+            ...(p.minLength !== undefined ? { minPasswordLength: p.minLength } : {}),
+            ...(p.complexity !== undefined ? { passwordComplexity: p.complexity } : {})
+          }
+        })
+      )
+    if (domain.creationPolicy) policyPatch(domain.creationPolicy)
     for (const u of domain.users)
       apply(
         command('adds.addUser', domain.name, {
@@ -327,27 +355,23 @@ function buildDeclarativeStart(start: LabDeclarativeStart): LabState {
     for (const u of domain.users) {
       for (const group of u.memberOf ?? [])
         apply(command('adds.addGroupMembers', domain.name, group, [u.sam]))
-      if (u.createdDaysAgo !== undefined || u.lastLogonDaysAgo !== undefined)
+      if (u.spns?.length) apply(command('adds.setServicePrincipalNames', domain.name, u.sam, u.spns))
+      if (
+        u.createdDaysAgo !== undefined ||
+        u.lastLogonDaysAgo !== undefined ||
+        u.passwordAgeDays !== undefined
+      )
         apply(
           command('adds.setAccountActivity', domain.name, u.sam, {
+            ...(u.passwordAgeDays !== undefined ? { passwordAgeDays: u.passwordAgeDays } : {}),
             ...(u.createdDaysAgo !== undefined ? { createdDaysAgo: u.createdDaysAgo } : {}),
             ...(u.lastLogonDaysAgo !== undefined ? { lastLogonDaysAgo: u.lastLogonDaysAgo } : {})
           })
         )
     }
-    if (domain.passwordPolicy)
-      apply(
-        command('gpo.updateSettings', domain.name, DEFAULT_DOMAIN_POLICY_ID, {
-          computer: {
-            ...(domain.passwordPolicy.minLength !== undefined
-              ? { minPasswordLength: domain.passwordPolicy.minLength }
-              : {}),
-            ...(domain.passwordPolicy.complexity !== undefined
-              ? { passwordComplexity: domain.passwordPolicy.complexity }
-              : {})
-          }
-        })
-      )
+    // Stratégie finale (par défaut : celle d'une installation si une stratégie de création a été posée)
+    if (domain.passwordPolicy) policyPatch(domain.passwordPolicy)
+    else if (domain.creationPolicy) policyPatch({ minLength: 7, complexity: true })
     const netbios = state.domains[domain.name]?.netbios ?? ''
     const dcHost = state.devices[dc]
     const adminPassword = dcHost && dcHost.kind === 'server' ? dcHost.host.localAdminPassword : 'P@ssw0rd'
@@ -363,7 +387,23 @@ function buildDeclarativeStart(start: LabDeclarativeStart): LabState {
       if (!joined.success) throw new Error(`Jonction de ${name} impossible : ${joined.message}`)
       apply(command('system.restartComputer', id))
     }
+    // Sessions ouvertes sur les postes (compte de domaine)
+    for (const d of start.devices) {
+      if (!d.logon) continue
+      const logged = apply(
+        command('adds.logon', idOf(d.name), {
+          user: d.logon.user,
+          password: d.logon.password,
+          domain: netbios
+        })
+      )
+      if (!logged.success)
+        throw new Error(`Session de ${d.logon.user} sur ${d.name} impossible : ${logged.message}`)
+    }
   }
+  for (const d of start.devices)
+    if (d.adminAccess?.length) apply(command('cyber.setAdminAccess', idOf(d.name), d.adminAccess.map(idOf)))
+  if (start.cyber) apply(command('cyber.configure', start.cyber as CyberConfigPatch))
   return state
 }
 

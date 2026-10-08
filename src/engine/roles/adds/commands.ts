@@ -42,6 +42,7 @@ import {
   resetPassword,
   restoreDeletedObject,
   setAccountActivity,
+  setServicePrincipalNames,
   setAccountEnabled,
   setUserProperties,
   unlockAccount
@@ -103,6 +104,10 @@ export const addsCommands = {
   'adds.setAccountActivity': def(
     setAccountActivity,
     (_s, _d, identity) => `Historique du compte ${identity}`
+  ),
+  'adds.setServicePrincipalNames': def(
+    setServicePrincipalNames,
+    (_s, _d, identity) => `Définir les SPN de ${identity}`
   ),
   'adds.unlockAccount': def(unlockAccount, (_s, _d, identity) => `Déverrouiller le compte ${identity}`),
   'adds.setUserProperties': def(

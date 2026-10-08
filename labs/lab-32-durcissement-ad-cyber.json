@@ -1,0 +1,118 @@
+{
+  "formatVersion": 1,
+  "id": "lab-32-durcissement-ad-cyber",
+  "title": "Durcissement de l'annuaire (Blue)",
+  "difficulty": "Intermédiaire",
+  "duration": "30 min",
+  "summary": "Même domaine que le lab 31 : corrigez les faiblesses pour que les trois scénarios d'attaque échouent.",
+  "statement": "## Contexte\n\nVous reprenez le domaine `lab.local` de l'exercice précédent. Les trois scénarios d'attaque simulés réussissent.\n\n## Travail demandé\n\nCorrigez la configuration du domaine pour que **chaque scénario échoue**. Vérifiez avec **Vérifier** : l'évaluation rejoue les scénarios à blanc, sans modifier votre lab.\n\nUtilisez les outils d'un administrateur (console PowerShell, stratégie de groupe, console Utilisateurs et ordinateurs).\n\nPensez à ce qui rend un compte vulnérable : son mot de passe, l'absence de limite d'échecs, l'ancienneté du mot de passe d'un compte de service.\n\n> **Simulation abstraite.** Aucun exploit ni code offensif : un scénario ne modélise que l'effet d'une faiblesse de configuration sur l'état simulé (compte marqué compromis, événement journalisé).",
+  "start": {
+    "devices": [
+      {
+        "kind": "server",
+        "name": "SRV1",
+        "x": 200,
+        "y": 150,
+        "ip": "192.168.10.1/24",
+        "dns": ["127.0.0.1"]
+      },
+      {
+        "kind": "switch",
+        "name": "SW1",
+        "x": 300,
+        "y": 330
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 500,
+        "y": 330,
+        "ip": "192.168.10.10/24",
+        "dns": ["192.168.10.1"],
+        "logon": {
+          "user": "jdupont",
+          "password": "jdupont"
+        },
+        "adminAccess": ["SRV1"]
+      }
+    ],
+    "links": [
+      ["SRV1:Ethernet0", "SW1:Fa0/1"],
+      ["PC1:Ethernet0", "SW1:Fa0/2"]
+    ],
+    "domain": {
+      "name": "lab.local",
+      "netbios": "LAB",
+      "dc": "SRV1",
+      "ous": ["Personnel"],
+      "creationPolicy": {
+        "minLength": 0,
+        "complexity": false
+      },
+      "passwordPolicy": {
+        "minLength": 8,
+        "complexity": true
+      },
+      "users": [
+        {
+          "name": "Jean Dupont",
+          "sam": "jdupont",
+          "ou": "Personnel",
+          "password": "jdupont"
+        },
+        {
+          "name": "Marie Martin",
+          "sam": "mmartin",
+          "ou": "Personnel",
+          "password": "Tr0ub4dor&Stable"
+        },
+        {
+          "name": "Service SQL",
+          "sam": "svc-sql",
+          "password": "Xq7!rT2mVb9#",
+          "spns": ["MSSQLSvc/srv1.lab.local:1433"],
+          "passwordAgeDays": 400
+        }
+      ],
+      "join": ["PC1"]
+    },
+    "cyber": {
+      "targetAccount": "jdupont",
+      "serviceMaxAgeDays": 180,
+      "scenarios": ["auth-repetee", "compte-service", "reutilisation-acces"]
+    }
+  },
+  "criteria": [
+    {
+      "id": "auth",
+      "label": "L'authentification répétée n'aboutit plus",
+      "hint": "Deux défenses indépendantes y concourent : l'une sur le compte lui-même, l'autre sur le domaine.",
+      "check": {
+        "type": "scenarioOutcome",
+        "scenario": "auth-repetee",
+        "success": false
+      }
+    },
+    {
+      "id": "service",
+      "label": "Le compte de service n'est plus une cible",
+      "hint": "Un secret ancien se renouvelle ; l'ancienneté compte.",
+      "check": {
+        "type": "scenarioOutcome",
+        "scenario": "compte-service",
+        "success": false
+      }
+    },
+    {
+      "id": "rebond",
+      "label": "L'accès administrateur ne se propage plus",
+      "hint": "Même après une compromission préalable, la propagation doit échouer : elle dépend de ce qui a été compromis avant.",
+      "check": {
+        "type": "scenarioOutcome",
+        "scenario": "reutilisation-acces",
+        "after": ["auth-repetee", "compte-service"],
+        "success": false
+      }
+    }
+  ]
+}

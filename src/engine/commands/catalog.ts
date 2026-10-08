@@ -10,6 +10,7 @@
 import { clearEventLog } from '../core/eventlog'
 import { playStep, type StepRecord } from '../cyber/scenario'
 import { getScenario } from '../cyber/registry'
+import { configureCyber, setAdminAccess } from '../cyber/config'
 import { applyCountermeasure, getCountermeasure } from '../cyber/countermeasures'
 import { fail, type EngineResult } from '../core/result'
 import { nextDeviceName } from '../model/factory'
@@ -110,6 +111,8 @@ function shellExec(
 function playScenarioStep(state: LabState, scenarioId: string, index: number): EngineResult<StepRecord> {
   const scenario = getScenario(scenarioId)
   if (!scenario) return fail('ScenarioNotFound', `Scénario introuvable : ${scenarioId}.`)
+  if (state.cyber.scenarios !== null && !state.cyber.scenarios.includes(scenarioId))
+    return fail('ScenarioDisabled', 'Ce scénario n’est pas activé dans ce lab.')
   return playStep(state, scenario, index)
 }
 
@@ -117,6 +120,9 @@ function playScenarioStep(state: LabState, scenarioId: string, index: number): E
 
 /** Commandes du système de base (topologie, réseau, système, consoles, lots). */
 const CORE_COMMANDS = {
+  // Cybersécurité : données de départ d'un lab (cibles, scénarios activés, réglages de partie)
+  'cyber.configure': def(configureCyber, () => 'Configurer les scénarios de cybersécurité'),
+  'cyber.setAdminAccess': def(setAdminAccess, (s, id) => `Accès administrateur depuis ${deviceName(s, id)}`),
   // Cybersécurité : contre-mesure du camp Blue (mode Red/Blue), actions de durcissement existantes
   'cyber.applyCountermeasure': def(
     applyCountermeasure,

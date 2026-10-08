@@ -1,0 +1,104 @@
+{
+  "formatVersion": 1,
+  "id": "lab-33-attaque-l2",
+  "title": "Attaque réseau L2 (Red)",
+  "difficulty": "Intermédiaire",
+  "duration": "20 min",
+  "summary": "Un switch Cisco sans durcissement : rejouez une usurpation d'adresse et un changement de VLAN simulés.",
+  "statement": "## Contexte\n\nTrois postes sont branchés sur un switch Cisco 2960 resté en configuration d'usine : PC1 et PC2 échangent, PC3 est l'hôte hostile.\n\n## Travail demandé\n\n1. En **mode Simulation**, jouez le scénario d'usurpation d'adresse : suivez la trame d'annonce dans la liste des événements.\n2. Jouez le changement de VLAN non autorisé.\n3. Sur SW1, saisissez `show logging` et retrouvez les messages du switch.\n\nNotez ce qui manque à la configuration du switch : le lab suivant demande de le corriger.\n\n> **Simulation abstraite.** Aucun exploit ni code offensif : un scénario ne modélise que l'effet d'une faiblesse de configuration sur l'état simulé (compte marqué compromis, événement journalisé).",
+  "start": {
+    "devices": [
+      {
+        "kind": "switch",
+        "name": "SW1",
+        "model": "c2960",
+        "x": 300,
+        "y": 330,
+        "ios": [
+          "enable",
+          "configure terminal",
+          "vlan 10",
+          "exit",
+          "vlan 20",
+          "exit",
+          "interface Fa0/1",
+          "switchport mode access",
+          "switchport access vlan 10",
+          "exit",
+          "interface Fa0/2",
+          "switchport mode access",
+          "switchport access vlan 10",
+          "exit",
+          "interface Fa0/3",
+          "switchport mode access",
+          "switchport access vlan 10",
+          "exit",
+          "interface Fa0/4",
+          "switchport mode access",
+          "switchport access vlan 10",
+          "exit",
+          "end"
+        ]
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 150,
+        "y": 330,
+        "ip": "192.168.10.10/24",
+        "dns": ["192.168.10.1"]
+      },
+      {
+        "kind": "client",
+        "name": "PC2",
+        "x": 350,
+        "y": 330,
+        "ip": "192.168.10.20/24",
+        "dns": ["192.168.10.1"]
+      },
+      {
+        "kind": "client",
+        "name": "PC3",
+        "x": 550,
+        "y": 330,
+        "ip": "192.168.10.66/24",
+        "dns": ["192.168.10.1"]
+      }
+    ],
+    "links": [
+      ["PC1:Ethernet0", "SW1:Fa0/1"],
+      ["PC2:Ethernet0", "SW1:Fa0/2"],
+      ["PC3:Ethernet0", "SW1:Fa0/3"]
+    ],
+    "cyber": {
+      "arpSpoof": {
+        "attacker": "PC3",
+        "victimA": "PC1",
+        "victimB": "PC2"
+      },
+      "vlanHop": {
+        "attacker": "PC3",
+        "toVlan": 20
+      },
+      "scenarios": ["usurpation-arp", "saut-de-vlan"]
+    }
+  },
+  "criteria": [
+    {
+      "id": "arp",
+      "label": "Le trafic entre deux hôtes est marqué comme intercepté",
+      "hint": "Le scénario d'usurpation d'adresse se joue depuis le panneau Scénarios.",
+      "check": {
+        "type": "trafficIntercepted"
+      }
+    },
+    {
+      "id": "vlan",
+      "label": "Un hôte est sorti de son VLAN",
+      "hint": "Le scénario de changement de VLAN se joue depuis le panneau Scénarios.",
+      "check": {
+        "type": "vlanHopped"
+      }
+    }
+  ]
+}

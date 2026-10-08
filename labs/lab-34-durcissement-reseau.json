@@ -1,0 +1,108 @@
+{
+  "formatVersion": 1,
+  "id": "lab-34-durcissement-reseau",
+  "title": "Durcissement réseau L2 (Blue)",
+  "difficulty": "Intermédiaire",
+  "duration": "25 min",
+  "summary": "Même topologie que le lab 33 : configurez le switch pour que l'usurpation et le changement de VLAN échouent.",
+  "statement": "## Contexte\n\nVous reprenez le switch Cisco du lab 33. Les deux scénarios simulés réussissent.\n\n## Travail demandé\n\nDepuis la console de SW1, appliquez les commandes de durcissement qui font **échouer les deux scénarios**. Contrôlez avec **Vérifier** (évaluation à blanc) puis rejouez les scénarios en mode Simulation : le switch doit expliquer ses refus (`show logging`).\n\n> **Simulation abstraite.** Aucun exploit ni code offensif : un scénario ne modélise que l'effet d'une faiblesse de configuration sur l'état simulé (compte marqué compromis, événement journalisé).",
+  "start": {
+    "devices": [
+      {
+        "kind": "switch",
+        "name": "SW1",
+        "model": "c2960",
+        "x": 300,
+        "y": 330,
+        "ios": [
+          "enable",
+          "configure terminal",
+          "vlan 10",
+          "exit",
+          "vlan 20",
+          "exit",
+          "interface Fa0/1",
+          "switchport mode access",
+          "switchport access vlan 10",
+          "exit",
+          "interface Fa0/2",
+          "switchport mode access",
+          "switchport access vlan 10",
+          "exit",
+          "interface Fa0/3",
+          "switchport mode access",
+          "switchport access vlan 10",
+          "exit",
+          "interface Fa0/4",
+          "switchport mode access",
+          "switchport access vlan 10",
+          "exit",
+          "end"
+        ]
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 150,
+        "y": 330,
+        "ip": "192.168.10.10/24",
+        "dns": ["192.168.10.1"]
+      },
+      {
+        "kind": "client",
+        "name": "PC2",
+        "x": 350,
+        "y": 330,
+        "ip": "192.168.10.20/24",
+        "dns": ["192.168.10.1"]
+      },
+      {
+        "kind": "client",
+        "name": "PC3",
+        "x": 550,
+        "y": 330,
+        "ip": "192.168.10.66/24",
+        "dns": ["192.168.10.1"]
+      }
+    ],
+    "links": [
+      ["PC1:Ethernet0", "SW1:Fa0/1"],
+      ["PC2:Ethernet0", "SW1:Fa0/2"],
+      ["PC3:Ethernet0", "SW1:Fa0/3"]
+    ],
+    "cyber": {
+      "arpSpoof": {
+        "attacker": "PC3",
+        "victimA": "PC1",
+        "victimB": "PC2"
+      },
+      "vlanHop": {
+        "attacker": "PC3",
+        "toVlan": 20
+      },
+      "scenarios": ["usurpation-arp", "saut-de-vlan"]
+    }
+  },
+  "criteria": [
+    {
+      "id": "arp",
+      "label": "L'usurpation d'adresse est refusée par le switch",
+      "hint": "Une fonction de contrôle des paquets ARP s'appuie sur la base du DHCP snooping.",
+      "check": {
+        "type": "scenarioOutcome",
+        "scenario": "usurpation-arp",
+        "success": false
+      }
+    },
+    {
+      "id": "vlan",
+      "label": "Le changement de VLAN est refusé par le port",
+      "hint": "Le port de l'hôte ne doit plus négocier de trunk.",
+      "check": {
+        "type": "scenarioOutcome",
+        "scenario": "saut-de-vlan",
+        "success": false
+      }
+    }
+  ]
+}

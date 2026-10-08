@@ -205,7 +205,12 @@ l'ouverture du lab et exporte un **rapport PDF** (lab, date, score, recommandati
 Les journaux de sécurité (ouvertures de session, gestion des comptes, verrouillages) se filtrent dans
 l'Observateur d'événements ou avec `Get-WinEvent`.
 
-## Cybersécurité défensive
+## Cybersécurité
+
+Deux volets complémentaires, **entièrement simulés** : aucune VM, aucun exploit, aucune charge utile
+(garde-fou et écarts avec la réalité dans `docs/fidelite.md`).
+
+**Défense (v2.6)**
 
 - **Détection** : affichages personnalisés de l'Observateur d'événements (échecs d'ouverture de session,
   verrouillages, tickets Kerberos, sessions privilégiées) ; section **Détection** de l'onglet Audit
@@ -214,5 +219,16 @@ l'Observateur d'événements ou avec `Get-WinEvent`.
   rapport PDF coche les recommandations satisfaites.
 - **Switchs Cisco** : DHCP snooping, inspection ARP, DTP coupé, VLAN natif dédié, port-security, vérifiés
   par l'audit et visibles en mode Simulation.
-- Labs 29 (durcissement L2 Cisco) et 30 (durcissement AD complet). Garde-fou : aucune attaque réelle ni
-  code offensif ; le volet attaque, abstrait, est prévu en v2.6.1 (`docs/fidelite.md`).
+
+**Attaque simulée (v2.6.1)**
+
+- **Scénarios** : cinq scénarios abstraits, joués pas à pas depuis le panneau **Simulation > Scénarios**.
+  Annuaire : authentification répétée, compte de service mal configuré, réutilisation d'un accès. Réseau :
+  usurpation d'adresse sur le segment, changement de VLAN. Chaque scénario réussit si une faiblesse de
+  configuration est présente et échoue sur un lab durci ; il journalise ses événements (Observateur, `show logging`).
+- **Mode Red / Blue** : partie solo contre l'IA (graine reproductible), minuteur, contre-mesures limitées pour
+  Blue ; écran de fin avec résultat, score par camp (scénarios réussis, attaques bloquées, temps de détection)
+  et chronologie.
+- **Labs** : 29 (durcissement L2 Cisco) et 30 (durcissement AD complet) ; 31 et 32 (compromission puis
+  durcissement de l'annuaire) ; 33 et 34 (attaque puis durcissement réseau L2) ; 35 (sujet Red / Blue, annuaire et
+  réseau), disponible en mode examen et dans l'éditeur de labs.
