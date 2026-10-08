@@ -88,7 +88,7 @@ npm run dist         # installeur local via electron-builder → dist/
 - Commits : Conventional Commits (`feat(engine): …`, `fix(renderer): …`, `test: …`, `ci: …`, `docs: …`).
 - Un commit par étape, tests verts avant d'enchaîner.
 
-## Règles de travail (roadmap v1.1 → v2.5)
+## Règles de travail (roadmap v1.1 → v2.6)
 
 La roadmap est dans `ROADMAP.md` ; ses milestones, labels et issues sont décrits dans
 `.github/roadmap/roadmap.json` et créés par le workflow « Roadmap sync » (ne crée que ce qui manque).
@@ -102,6 +102,10 @@ La roadmap est dans `ROADMAP.md` ; ses milestones, labels et issues sont décrit
 - Conventional Commits, code commenté en français.
 - Aucune image/icône/logo Microsoft ou Cisco, aucune vraie commande système exécutée.
 - Équipements IOS (v2.5) : commits avec le scope `ios` (`feat(ios): …`).
+- Cybersécurité (v2.6) : commits avec le scope `cyber` (`feat(cyber): …`). Garde-fou : une attaque est
+  simulée de façon **abstraite** — on modélise son résultat sur l'état simulé (compte compromis, événement
+  journalisé), jamais l'exploit lui-même. Aucun code offensif réel : pas de vrai bruteforce, pas de dumping
+  d'identifiants, pas de charge utile exploitable (voir `docs/fidelite.md`).
 
 ### Cibles d'architecture (prérequis v1.1)
 

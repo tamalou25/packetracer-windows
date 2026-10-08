@@ -5,14 +5,15 @@ chaque fonctionnalité (critères à cocher) est dans son issue GitHub, rattach�
 version. Source unique : [`.github/roadmap/roadmap.json`](.github/roadmap/roadmap.json), synchronisé
 avec GitHub par le workflow **Roadmap sync** (ne crée que ce qui manque).
 
-| Version | Thème                                                         | Milestone                                                            |
-| ------- | ------------------------------------------------------------- | -------------------------------------------------------------------- |
-| v1.1    | Consolider (prérequis d'architecture, ergonomie, performance) | [v1.1](https://github.com/tamalou25/packetracer-windows/milestone/1) |
-| v2.1    | Nouveaux rôles serveur                                        | [v2.1](https://github.com/tamalou25/packetracer-windows/milestone/2) |
-| v2.2    | Réseau avancé                                                 | [v2.2](https://github.com/tamalou25/packetracer-windows/milestone/3) |
-| v2.3    | Cybersécurité défensive                                       | [v2.3](https://github.com/tamalou25/packetracer-windows/milestone/4) |
-| v2.4    | Pédagogie et communauté                                       | [v2.4](https://github.com/tamalou25/packetracer-windows/milestone/5) |
-| v2.5    | Équipements Cisco IOS                                         | [v2.5](https://github.com/tamalou25/packetracer-windows/milestone/6) |
+| Version | Thème                                                         | Milestone                                                                  |
+| ------- | ------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| v1.1    | Consolider (prérequis d'architecture, ergonomie, performance) | [v1.1](https://github.com/tamalou25/packetracer-windows/milestone/1)       |
+| v2.1    | Nouveaux rôles serveur                                        | [v2.1](https://github.com/tamalou25/packetracer-windows/milestone/2)       |
+| v2.2    | Réseau avancé                                                 | [v2.2](https://github.com/tamalou25/packetracer-windows/milestone/3)       |
+| v2.3    | Cybersécurité défensive                                       | [v2.3](https://github.com/tamalou25/packetracer-windows/milestone/4)       |
+| v2.4    | Pédagogie et communauté                                       | [v2.4](https://github.com/tamalou25/packetracer-windows/milestone/5)       |
+| v2.5    | Équipements Cisco IOS                                         | [v2.5](https://github.com/tamalou25/packetracer-windows/milestone/6)       |
+| v2.6    | Cybersécurité (attaque et défense)                            | [v2.6](https://github.com/tamalou25/packetracer-windows/milestones?q=v2.6) |
 
 > Le milestone v1.1 est sorti sous le numéro de version **2.0.0** (choix de Gary), suivi de la 2.0.1
 > (stabilisation). Les milestones suivants ajoutent des fonctionnalités sans casser les fichiers
@@ -111,8 +112,29 @@ moteur réseau existant (pas de second moteur de routage).
 | Sécurité              | ACL (visible en Simulation), port-security err-disabled, SSH             |
 | Labs et format        | `.slab` v9, un lab par thème, sujet E6 complet, mode examen              |
 
-Hors périmètre : STP/RSTP détaillé, EtherChannel, OSPF multizone, EIGRP/BGP, IPv6, QoS, VTP,
-attaques L2 (v2.6).
+Hors périmètre : STP/RSTP détaillé, EtherChannel, OSPF multizone, EIGRP/BGP, IPv6, QoS, VTP
+(pistes ultérieures) ; attaques L2 : v2.6.
+
+## v2.6 — Cybersécurité (attaque et défense)
+
+Scénarios d'attaque simulés, détection dans les journaux, attaques L2 et contre-mesures Cisco, audit
+adossé à l'ANSSI et au CIS, mode Red / Blue. Prérequis : v2.5 (IOS, VLAN, ACL, port-security).
+
+**Garde-fou** : les attaques sont abstraites. On modélise leur résultat sur l'état simulé (compte
+compromis, événement journalisé), jamais l'exploit : aucun code offensif réel (`docs/fidelite.md`).
+
+| Fonctionnalité          | Critère d'acceptation                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------- |
+| Moteur de scénarios     | Un scénario progresse pas à pas en Simulation et modifie l'état de façon réversible   |
+| Attaques sur l'annuaire | Spraying, Kerberoasting, pass-the-hash : échouent sur un lab durci, réussissent sinon |
+| Détection               | 4624, 4625, 4740, 4769, 4672 émis ; un filtre fourni isole l'attaque                  |
+| Attaques L2             | ARP spoofing, VLAN hopping : échouent après DHCP snooping, DAI, DTP coupé…            |
+| Audit ANSSI / CIS       | Le rapport PDF cite la référence ; corriger un point coche la recommandation          |
+| Mode Red / Blue         | Partie complète en solo contre l'IA, minuteur, score final par camp                   |
+| Labs et format          | `.slab` v10, un lab par attaque, durcissement AD, sujet Red / Blue, mode examen       |
+
+Hors périmètre : tout exploit réel ou code offensif utilisable hors du simulateur, attaques web
+(OWASP), reverse engineering, forensic disque, EDR, SIEM réel (pistes v2.7).
 
 ## Points d'attention (audit v1.0)
 
