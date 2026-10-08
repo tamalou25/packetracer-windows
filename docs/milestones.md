@@ -394,8 +394,8 @@ Milestone terminé : `CHANGELOG.md` [2.3.0], `package.json` 2.3.0 ; tag `v2.3.0`
 | #108  | Routage statique et OSPF              | `feat/108-ios-routage`  | #119 | fusionné |
 | #109  | Services IP (DHCP, NAT / PAT)         | `feat/109-ios-services` | #120 | fusionné |
 | #110  | HSRP                                  | `feat/110-ios-hsrp`     | #121 | fusionné |
-| #111  | Sécurité (ACL, port-security, SSH)    | `feat/111-ios-securite` | #122 | en revue |
-| #112  | Labs, format `.slab` 9, documentation | `feat/112-ios-labs`     |      | en cours |
+| #111  | Sécurité (ACL, port-security, SSH)    | `feat/111-ios-securite` | #122 | fusionné |
+| #112  | Labs, format `.slab` 9, documentation | `feat/112-ios-labs`     |      | fusionné |
 
 Correction en cours de route : #114 (formulaire d'interface de routeur, PR #116).
 
