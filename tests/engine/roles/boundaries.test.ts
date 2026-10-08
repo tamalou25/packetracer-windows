@@ -24,6 +24,8 @@ function engineFiles(dir = ENGINE): string[] {
 const ALLOWED_CORE_TO_ROLE = [
   'commands/catalog.ts', // types des adaptateurs (réexport)
   'commands/labels.ts', // libellés : nom d'étendue DHCP
+  'cyber/scenarios/auth-repetee.ts', // scénario annuaire : verrouillage lu dans la stratégie du domaine
+  'cyber/scenarios/common.ts', // scénarios annuaire : stratégie de mot de passe, PDC (lecture seule)
   'index.ts', // API publique du moteur
   'labs/lab.ts', // construction des labs : jeton d'administrateur local, Default Domain Policy
   'serialization/migrations.ts', // migration 1 → 2 : GPO par défaut

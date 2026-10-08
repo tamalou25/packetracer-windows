@@ -28,8 +28,8 @@ export interface ScenarioStep {
   onSuccess: (state: SimState) => SimState
   /** Effet sinon. */
   onFailure: (state: SimState) => SimState
-  /** Événements à journaliser selon le résultat. */
-  emits: (success: boolean) => SecurityEvent[]
+  /** Événements à journaliser selon le résultat ; `state` est l'état avant l'étape. */
+  emits: (success: boolean, state: SimState) => SecurityEvent[]
 }
 
 export type ScenarioCategory = 'annuaire' | 'reseau'
@@ -55,7 +55,7 @@ export function playStep(state: SimState, scenario: AttackScenario, index: numbe
   const step = scenario.steps[index]
   if (!step) return fail('ScenarioFinished', 'Toutes les étapes du scénario ont déjà été jouées.')
   const success = step.precondition(state)
-  const events = step.emits(success)
+  const events = step.emits(success, state)
   // produce garantit que l'état précédent n'est jamais modifié, même par une étape maladroite
   const next = produce(success ? step.onSuccess(state) : step.onFailure(state), (draft) => {
     for (const { deviceId, ...event } of events) logEvent(draft, deviceId, { ...event, log: 'Sécurité' })

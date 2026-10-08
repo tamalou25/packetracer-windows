@@ -8,7 +8,7 @@ Ce journal permet à une nouvelle session de reprendre le travail là où il s'e
 - **Format .slab** : une seule version de format par milestone. La première issue qui modifie le format
   incrémente `CURRENT_SCHEMA_VERSION` et écrit `fixtures/vN.slab` ; les issues suivantes du même milestone
   ajoutent des champs avec valeurs par défaut (le fichier de référence de la version reste valable).
-  v2.1 → format 5 ; v2.2 → format 6 ; v2.3 → format 7 ; v2.4 → format 8 ; v2.5 → format 9 ; v2.6 → format 10
+  v2.1 → format 5 ; v2.2 → format 6 ; v2.3 → format 7 ; v2.4 → format 8 ; v2.5 → format 9 ; v2.6 → format 10 ; v2.6.1 → format 11
   (migration écrite dans la dernière issue : champs IOS facultatifs avec valeurs par défaut).
 - **Fidélité** : un comportement de Windows Server non sourcé est noté dans `docs/fidelite.md` (« à vérifier »).
 - **Fin de milestone** : `CHANGELOG.md`, version de `package.json`, tag `vX.Y.0` poussé par Gary.

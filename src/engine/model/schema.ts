@@ -459,6 +459,10 @@ export const HostSchema = z.object({
   pendingDomain: z.string().nullable().default(null),
   /** Mot de passe du compte Administrateur local. */
   localAdminPassword: z.string().default('P@ssw0rd'),
+  /** Machines vers lesquelles les sessions de cet ordinateur disposent d'un accès administrateur. */
+  adminTargets: z.array(z.string()).default([]),
+  /** Accès administrateur obtenu sur cet ordinateur par un scénario de cybersécurité (v2.6.1). */
+  controlled: z.boolean().default(false),
   /** Session ouverte (null = écran de connexion). */
   session: HostSessionSchema.nullable().default(null),
   /** Horloge du lab au dernier démarrage (redémarrage, mise sous tension). */
@@ -946,7 +950,13 @@ export const AdUserSchema = z.object({
   badPwdCount: z.number().int().default(0),
   lastBadPassword: z.number().nullable().default(null),
   /** Compte verrouillé (lockoutTime) ; null : non verrouillé. */
-  lockoutTime: z.number().nullable().default(null)
+  lockoutTime: z.number().nullable().default(null),
+  /** Noms de principal de service (servicePrincipalName) : non vide = compte de service. */
+  spns: z.array(z.string()).default([]),
+  /** Horloge du dernier changement de mot de passe (pwdLastSet). */
+  passwordLastSet: z.number().default(0),
+  /** Compte marqué compromis par un scénario de cybersécurité (état simulé, v2.6.1). */
+  compromised: z.boolean().default(false)
 })
 
 export const AdGroupSchema = z.object({
@@ -1089,6 +1099,16 @@ export const DomainSchema = z.object({
 })
 
 /** État complet d'un lab : source de vérité unique de l'application. */
+/** Paramètres des scénarios de cybersécurité, fournis par le lab (v2.6.1). */
+export const CyberConfigSchema = z.object({
+  /** sAMAccountName du compte visé par l'authentification répétée ; null : aucun. */
+  targetAccount: z.string().nullable().default(null),
+  /** Nombre de tentatives de la série d'authentifications. */
+  attempts: z.number().int().min(1).max(100).default(5),
+  /** Âge (jours) du mot de passe d'un compte de service au-delà duquel il est jugé négligé. */
+  serviceMaxAgeDays: z.number().int().min(1).default(90)
+})
+
 export const LabStateSchema = z.object({
   devices: z.record(z.string(), DeviceSchema),
   links: z.record(z.string(), LinkSchema),
@@ -1097,11 +1117,14 @@ export const LabStateSchema = z.object({
   /** Horloge simulée (millisecondes). */
   clock: z.number().nonnegative().default(0),
   /** Domaines Active Directory (clé : nom DNS du domaine). */
-  domains: z.record(z.string(), DomainSchema).default({})
+  domains: z.record(z.string(), DomainSchema).default({}),
+  /** Paramètres des scénarios de cybersécurité. */
+  cyber: CyberConfigSchema.default(() => ({ targetAccount: null, attempts: 5, serviceMaxAgeDays: 90 }))
 })
 
 export const DeviceKindSchema = z.enum(DEVICE_KINDS)
 
+export type CyberConfig = z.infer<typeof CyberConfigSchema>
 export type Position = z.infer<typeof PositionSchema>
 export type DhcpClientLease = z.infer<typeof DhcpClientLeaseSchema>
 export type NetInterface = z.infer<typeof NetInterfaceSchema>
