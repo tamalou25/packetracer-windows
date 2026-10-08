@@ -187,8 +187,9 @@ autres équipements : un poste Windows, un serveur DHCP Windows et un routeur Ci
 
 Pris en charge : VLAN et trunk 802.1Q, router-on-a-stick et SVI, routes statiques et OSPF monozone, relais
 DHCP et serveur DHCP IOS, NAT / PAT, HSRP, ACL standard et étendues, port-security, SSH, chiffrement des mots de
-passe. Hors périmètre (v2.6) : STP, EtherChannel, EIGRP, BGP, IPv6, QoS, VTP. Les écarts connus avec le
-vrai IOS sont listés dans [`docs/fidelite.md`](docs/fidelite.md) (I1 à I38).
+passe, DHCP snooping, inspection ARP dynamique, `switchport nonegotiate`. Hors périmètre : STP, EtherChannel,
+EIGRP, BGP, IPv6, QoS, VTP. Les écarts connus avec le vrai IOS sont listés dans
+[`docs/fidelite.md`](docs/fidelite.md) (I1 à I41).
 
 ## Langue
 
@@ -203,3 +204,15 @@ gravité (objets en cause, correction suggérée), en direct. Il compte les reco
 l'ouverture du lab et exporte un **rapport PDF** (lab, date, score, recommandations corrigées ou non).
 Les journaux de sécurité (ouvertures de session, gestion des comptes, verrouillages) se filtrent dans
 l'Observateur d'événements ou avec `Get-WinEvent`.
+
+## Cybersécurité défensive
+
+- **Détection** : affichages personnalisés de l'Observateur d'événements (échecs d'ouverture de session,
+  verrouillages, tickets Kerberos, sessions privilégiées) ; section **Détection** de l'onglet Audit
+  (corrélations « plusieurs échecs puis un succès » et « activité hors horaires »).
+- **Référentiels** : chaque règle d'audit cite le guide d'hygiène de l'ANSSI et les CIS Controls v8 ; le
+  rapport PDF coche les recommandations satisfaites.
+- **Switchs Cisco** : DHCP snooping, inspection ARP, DTP coupé, VLAN natif dédié, port-security, vérifiés
+  par l'audit et visibles en mode Simulation.
+- Labs 29 (durcissement L2 Cisco) et 30 (durcissement AD complet). Garde-fou : aucune attaque réelle ni
+  code offensif ; le volet attaque, abstrait, est prévu en v2.6.1 (`docs/fidelite.md`).

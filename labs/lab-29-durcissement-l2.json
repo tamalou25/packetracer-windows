@@ -1,0 +1,167 @@
+{
+  "formatVersion": 1,
+  "id": "lab-29-durcissement-l2",
+  "title": "Durcissement L2 d’un switch Cisco",
+  "difficulty": "Avancé",
+  "duration": "40 min",
+  "summary": "Un second serveur DHCP non autorisé distribue des adresses sur le LAN. Durcissez le switch pour que seul le serveur légitime réponde.",
+  "statement": "# Contexte\n\nLe LAN 192.168.1.0/24 est desservi par le switch **SW1** (Catalyst 2960). Le routeur **R1** (Gi0/1 du switch) est le seul serveur DHCP légitime ; un routeur de test **R2**, branché sur Fa0/3, distribue lui aussi des adresses. L’onglet **Audit** signale plusieurs faiblesses de niveau 2.\n\nLe port Gi0/2 est réservé à une future liaison trunk vers un second switch.\n\n## Travail demandé\n\n1. Activez le **DHCP snooping** sur le VLAN des postes ; seul le port vers R1 est de confiance.\n2. Activez l’**inspection ARP dynamique** sur ce VLAN (le port vers R1 est de confiance).\n3. Sur le trunk Gi0/2 : coupez la négociation **DTP** et utilisez un **VLAN natif dédié**, inutilisé.\n4. Activez la **port-security** sur les ports d’accès utilisés.\n5. Renouvelez le bail de **PC1** et **PC2** (`ipconfig /renew`) : ils doivent obtenir leur adresse de R1.\n6. Enregistrez la configuration du switch.\n\nRéférences de l’audit : ANSSI 7 et 19, CIS 12.2 et 13.9.",
+  "start": {
+    "devices": [
+      {
+        "kind": "router",
+        "name": "R1",
+        "x": 520,
+        "y": 150,
+        "model": "c1921",
+        "ios": [
+          "enable",
+          "configure terminal",
+          "interface Gi0/0",
+          "ip address 192.168.1.1 255.255.255.0",
+          "no shutdown",
+          "exit",
+          "ip dhcp excluded-address 192.168.1.1 192.168.1.99",
+          "ip dhcp pool LAN",
+          "network 192.168.1.0 255.255.255.0",
+          "default-router 192.168.1.1",
+          "end"
+        ]
+      },
+      {
+        "kind": "router",
+        "name": "R2",
+        "x": 520,
+        "y": 420,
+        "model": "c1921",
+        "ios": [
+          "enable",
+          "configure terminal",
+          "interface Gi0/0",
+          "ip address 192.168.1.66 255.255.255.0",
+          "no shutdown",
+          "exit",
+          "ip dhcp excluded-address 192.168.1.1 192.168.1.99",
+          "ip dhcp pool LAN",
+          "network 192.168.1.0 255.255.255.0",
+          "default-router 192.168.1.66",
+          "end"
+        ]
+      },
+      {
+        "kind": "switch",
+        "name": "SW1",
+        "x": 300,
+        "y": 280,
+        "model": "c2960",
+        "ios": ["enable", "configure terminal", "interface Gi0/2", "switchport mode trunk", "end"]
+      },
+      {
+        "kind": "client",
+        "name": "PC1",
+        "x": 100,
+        "y": 200,
+        "dhcp": true
+      },
+      {
+        "kind": "client",
+        "name": "PC2",
+        "x": 100,
+        "y": 380,
+        "dhcp": true
+      }
+    ],
+    "links": [
+      ["PC1:Ethernet0", "SW1:Fa0/1"],
+      ["PC2:Ethernet0", "SW1:Fa0/2"],
+      ["R2:Gi0/0", "SW1:Fa0/3"],
+      ["R1:Gi0/0", "SW1:Gi0/1"]
+    ]
+  },
+  "criteria": [
+    {
+      "id": "snooping",
+      "label": "Le DHCP snooping protège le VLAN des postes",
+      "hint": "La fonction s’active globalement puis par VLAN ; un port de confiance se déclare dans la configuration de l’interface.",
+      "check": {
+        "type": "auditRule",
+        "rule": "iosDhcpSnooping"
+      }
+    },
+    {
+      "id": "dai",
+      "label": "L’inspection ARP dynamique est active",
+      "hint": "Elle s’appuie sur la base du DHCP snooping ; pensez au port vers le routeur.",
+      "check": {
+        "type": "auditRule",
+        "rule": "iosArpInspection"
+      }
+    },
+    {
+      "id": "dtp",
+      "label": "Le trunk ne négocie plus DTP",
+      "hint": "Une commande de l’interface trunk désactive l’envoi des trames de négociation.",
+      "check": {
+        "type": "auditRule",
+        "rule": "iosDtp"
+      }
+    },
+    {
+      "id": "native",
+      "label": "Le trunk utilise un VLAN natif dédié",
+      "hint": "Créez un VLAN qui n’accueille aucun port d’accès et faites-en le VLAN natif du trunk.",
+      "check": {
+        "type": "auditRule",
+        "rule": "iosNativeVlan"
+      }
+    },
+    {
+      "id": "psec",
+      "label": "Les ports d’accès utilisés ont la port-security",
+      "hint": "Un port doit être explicitement en mode accès avant d’activer la sécurité de port.",
+      "check": {
+        "type": "auditRule",
+        "rule": "iosPortSecurity"
+      }
+    },
+    {
+      "id": "pc1",
+      "label": "PC1 obtient son adresse du serveur légitime",
+      "hint": "Une fois le switch protégé, renouvelez le bail depuis l’invite de commandes du poste.",
+      "check": {
+        "type": "dhcpLease",
+        "client": "PC1",
+        "server": "R1"
+      }
+    },
+    {
+      "id": "pc2",
+      "label": "PC2 obtient son adresse du serveur légitime",
+      "hint": "Même démarche que pour le premier poste.",
+      "check": {
+        "type": "dhcpLease",
+        "client": "PC2",
+        "server": "R1"
+      }
+    },
+    {
+      "id": "ping",
+      "label": "PC1 joint sa passerelle malgré l’inspection ARP",
+      "hint": "Un poste dont l’adresse vient d’un bail DHCP vu par le switch passe l’inspection ARP.",
+      "check": {
+        "type": "ping",
+        "from": "PC1",
+        "to": "R1"
+      }
+    },
+    {
+      "id": "saved",
+      "label": "La configuration du switch est enregistrée",
+      "hint": "La configuration en cours est perdue au redémarrage tant qu’elle n’est pas copiée.",
+      "check": {
+        "type": "iosStartup",
+        "device": "SW1"
+      }
+    }
+  ]
+}

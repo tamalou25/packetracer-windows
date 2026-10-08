@@ -1,4 +1,4 @@
-# Journal des milestones v2.1 → v2.5
+# Journal des milestones v2.1 → v2.6
 
 Suivi de la réalisation de la roadmap (`ROADMAP.md`), une issue = une branche `feat/<num>-<slug>` = une PR.
 Ce journal permet à une nouvelle session de reprendre le travail là où il s'est arrêté.
@@ -8,7 +8,7 @@ Ce journal permet à une nouvelle session de reprendre le travail là où il s'e
 - **Format .slab** : une seule version de format par milestone. La première issue qui modifie le format
   incrémente `CURRENT_SCHEMA_VERSION` et écrit `fixtures/vN.slab` ; les issues suivantes du même milestone
   ajoutent des champs avec valeurs par défaut (le fichier de référence de la version reste valable).
-  v2.1 → format 5 ; v2.2 → format 6 ; v2.3 → format 7 ; v2.4 → format 8 ; v2.5 → format 9
+  v2.1 → format 5 ; v2.2 → format 6 ; v2.3 → format 7 ; v2.4 → format 8 ; v2.5 → format 9 ; v2.6 → format 10
   (migration écrite dans la dernière issue : champs IOS facultatifs avec valeurs par défaut).
 - **Fidélité** : un comportement de Windows Server non sourcé est noté dans `docs/fidelite.md` (« à vérifier »).
 - **Fin de milestone** : `CHANGELOG.md`, version de `package.json`, tag `vX.Y.0` poussé par Gary.
@@ -408,3 +408,15 @@ Correction en cours de route : #114 (formulaire d'interface de routeur, PR #116)
   `iosHsrp`, `iosNat`, `iosDhcpBindings`, `iosPortSecurity` (`src/engine/ios/criteria.ts`) ; labs 22 à 28
   testés par `tests/engine/ios/labs.test.ts` (solution saisie en commandes IOS, 100 %).
 - Documentation : `docs/fidelite.md` (I36 à I38), README (section Cisco), CHANGELOG [2.5.0].
+
+## v2.6 — Cybersécurité défensive
+
+| Issue | Sujet                                    | Branche                     | PR   | État     |
+| ----- | ---------------------------------------- | --------------------------- | ---- | -------- |
+| #128  | Détection dans les journaux              | `feat/128-cyber-detection`  | #135 | fusionné |
+| #129  | Contre-mesures L2 Cisco                  | `feat/129-cyber-l2`         | #136 | en cours |
+| #130  | Audit adossé aux référentiels ANSSI, CIS | `feat/130-cyber-audit-refs` | #137 | en cours |
+| #132  | Labs, format `.slab` 10, documentation   | `feat/132-cyber-labs`       |      | en cours |
+
+Volet attaque (#126, #127, #131, #133, #134) et lab de détection reportés au milestone v2.6.1. Correction en cours de route :
+README reformaté (Prettier), dans #135.
