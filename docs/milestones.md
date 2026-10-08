@@ -310,7 +310,7 @@ Milestone terminé : `CHANGELOG.md` [2.3.0], `package.json` 2.3.0 ; tag `v2.3.0`
 | #34   | Mode examen                | `feat/34-exam-mode`    | #98  | fusionné |
 | #35   | Bibliothèque communautaire | `feat/35-lab-library`  | #100 | fusionné |
 | #36   | Client Linux simulé        | `feat/36-linux-client` | #99  | fusionné |
-| #37   | Interface FR / EN (i18n)   | `feat/37-i18n`         | #101 | en cours |
+| #37   | Interface FR / EN (i18n)   | `feat/37-i18n`         | #101 | fusionné |
 | #38   | Signature de code          |                        |      | gelée    |
 
 ### #33 Éditeur de labs intégré
