@@ -184,3 +184,21 @@ ne corrige que ce qui est sourcé (documentation Cisco publique).
 | I36 | `interface range` non pris en charge : une interface à la fois                                                                                                                                                  | `interface range Gi0/1 - 2` applique les commandes à plusieurs ports                  | Cisco, _interface range_                                         |
 | I37 | Labs IOS : l'état de départ est construit en saisissant les lignes d'un script (comme à la console) ; les invites interactives ne sont pas permises                                                             | départ = configuration déjà en mémoire de l'équipement                                | —                                                                |
 | I38 | Critères de lab IOS : les traductions NAT et les baux se constatent après un échange réel lancé par l'élève (un critère `ping` ne crée pas de traduction)                                                       | table de traduction alimentée par tout trafic                                         | Cisco, _show ip nat translations_                                |
+
+## Cybersécurité (v2.6, v2.6.1)
+
+### Garde-fou pédagogique
+
+Les attaques sont simulées de façon **abstraite**, dans un but de révision de l'épreuve E6.
+ServerLab ne contient **aucun code offensif réel** : pas de vrai bruteforce, pas de dumping
+d'identifiants, pas de calcul ni de cassage d'empreintes, pas de forge de paquets, pas de charge utile
+exploitable. Un scénario modélise le **résultat** d'une attaque sur l'état simulé (compte marqué
+compromis, accès accordé, événement journalisé), jamais l'exploit lui-même :
+
+- une attaque n'aboutit que si une **faiblesse** est présente dans le lab (mot de passe hors stratégie,
+  absence de verrouillage, compte de service mal configuré, port de switch non durci…) ;
+- un mot de passe est « faible » au sens de la **stratégie du domaine** (longueur, complexité, identique
+  au nom du compte), jamais par comparaison à une liste de mots de passe ;
+- tout se passe dans l'état simulé (`LabState`) : rien ne sort du simulateur.
+
+Écarts avec la réalité : relevés au fil des issues de la v2.6 et de la v2.6.1 (série C).

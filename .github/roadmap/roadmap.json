@@ -49,6 +49,11 @@
       "name": "ios",
       "color": "005cc5",
       "description": "Équipements Cisco IOS simulés (routeurs, switchs, CLI)"
+    },
+    {
+      "name": "cyber",
+      "color": "5319e7",
+      "description": "Cybersécurité simulée (scénarios d’attaque abstraits, détection, durcissement)"
     }
   ],
   "milestones": [
@@ -75,6 +80,14 @@
     {
       "title": "v2.5",
       "description": "Équipements Cisco IOS : routeurs 1921/2811, switchs 2960/9200, CLI IOS simulée branchée sur le moteur réseau."
+    },
+    {
+      "title": "v2.6",
+      "description": "Cybersécurité défensive : détection dans les journaux, contre-mesures L2 Cisco, audit adossé à l'ANSSI et au CIS, labs de durcissement."
+    },
+    {
+      "title": "v2.6.1",
+      "description": "Cybersécurité, volet attaque : scénarios d'attaque abstraits sur l'état simulé, attaques sur l'annuaire et L2, mode Red/Blue, labs d'attaque."
     }
   ],
   "issues": [
@@ -341,6 +354,60 @@
       "milestone": "v2.5",
       "labels": ["feature", "ios", "pedagogy"],
       "body": "## Objectif\n\nLabs notés IOS, migration du format et documentation.\n\n## Critères d'acceptation\n\n- [ ] Migration `.slab` v8 → v9, fichier de référence v9 et test\n- [ ] Un lab par thème (base, VLAN, routage, services, HSRP, sécurité) et un sujet type E6 complet\n- [ ] Labs disponibles dans le mode examen et l'éditeur de labs (critères fondés sur l'état IOS)\n- [ ] `docs/fidelite.md` (écarts avec IOS), CHANGELOG, ROADMAP, `docs/milestones.md`, README section Cisco\n- [ ] Tests Vitest du moteur et test de bout en bout, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Cyber : détection dans les journaux",
+      "milestone": "v2.6",
+      "labels": ["feature", "cyber", "security"],
+      "body": "## Objectif\n\nÉvénements de sécurité Windows émis par les scénarios (4624, 4625, 4740, 4769, 4672) et règles de corrélation simples.\n\n## Critères d'acceptation\n\n- [ ] Les événements attendus apparaissent après une attaque\n- [ ] Corrélations « N échecs puis 1 succès » et « activité hors horaires »\n- [ ] Un filtre fourni isole les événements de l'attaque\n- [ ] Tests Vitest du moteur et test de bout en bout, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Cyber : contre-mesures L2 Cisco",
+      "milestone": "v2.6",
+      "labels": ["feature", "cyber", "ios", "network"],
+      "body": "## Objectif\n\nCommandes de durcissement L2 sur les switchs Cisco de la v2.5, prises en compte par l'audit.\n\n## Critères d'acceptation\n\n- [ ] DHCP snooping (ports de confiance, serveur DHCP non autorisé bloqué)\n- [ ] Dynamic ARP Inspection\n- [ ] Désactivation du DTP (`switchport nonegotiate`, mode access explicite)\n- [ ] VLAN natif dédié et inutilisé sur les trunks\n- [ ] Règles d'audit : ports non durcis signalés, note qui remonte une fois corrigés\n- [ ] Tests Vitest du moteur et test de bout en bout, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Cyber : audit adossé aux référentiels ANSSI et CIS",
+      "milestone": "v2.6",
+      "labels": ["feature", "cyber", "security"],
+      "body": "## Objectif\n\nChaque règle de l'audit de la v2.3 est rattachée à une recommandation ANSSI (guide d'hygiène) et/ou CIS ; l'audit est étendu, pas réécrit.\n\n## Critères d'acceptation\n\n- [ ] Le rapport PDF affiche, pour chaque point, la règle, l'état, la recommandation et sa référence\n- [ ] Corriger un point fait monter la note et coche la recommandation liée\n- [ ] Références publiques vérifiées ; les références non vérifiées sont signalées dans `docs/fidelite.md`\n- [ ] Tests Vitest du moteur et test de bout en bout, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Cyber : labs, format .slab v10 et documentation",
+      "milestone": "v2.6",
+      "labels": ["feature", "cyber", "pedagogy"],
+      "body": "## Objectif\n\nLabs notés de la v2.6 (défense), migration du format et documentation.\n\n## Critères d'acceptation\n\n- [ ] Migration `.slab` v9 → v10, fichier de référence v10 et test\n- [ ] Labs : détection dans les journaux, durcissement L2 Cisco, durcissement AD complet (audit ANSSI/CIS)\n- [ ] Labs disponibles dans le mode examen et l'éditeur de labs\n- [ ] `docs/fidelite.md`, CHANGELOG, ROADMAP, `docs/milestones.md`, README section Cyber\n- [ ] Tests Vitest du moteur et test de bout en bout, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Cyber : moteur de scénarios d’attaque",
+      "milestone": "v2.6.1",
+      "labels": ["feature", "cyber", "engine"],
+      "body": "## Objectif\n\nModule `src/engine/cyber` : registre de faiblesses, format déclaratif d'un scénario (conditions de départ, étapes, effets sur l'état, événements émis), exécution pas à pas en mode Simulation avec une chronologie lisible.\n\n## Critères d'acceptation\n\n- [ ] Un scénario se lance, progresse étape par étape et modifie l'état simulé\n- [ ] Chaque étape s'annule (commandes nommées, patches immer)\n- [ ] Chronologie lisible des étapes et des événements émis\n- [ ] Tests Vitest du moteur et test de bout en bout, CI verte\n\n## Garde-fou\n\nAttaque simulée de façon abstraite : on modélise son résultat sur l'état simulé (compte compromis, événement journalisé), jamais l'exploit lui-même. Aucun code offensif réel (voir `docs/fidelite.md`).\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Cyber : attaques sur l’annuaire (spraying, Kerberoasting, pass-the-hash)",
+      "milestone": "v2.6.1",
+      "labels": ["feature", "cyber", "role", "security"],
+      "body": "## Objectif\n\nTrois scénarios abstraits sur Active Directory, qui n'aboutissent que si une faiblesse existe (mot de passe hors stratégie, SPN sur un compte faible, absence de verrouillage, mot de passe d'administrateur local partagé).\n\n## Critères d'acceptation\n\n- [ ] Password spraying : échecs puis succès si le mot de passe est faible au sens de la stratégie\n- [ ] Kerberoasting (abstrait) : compromission d'un compte de service mal configuré\n- [ ] Pass-the-hash (abstrait) : réutilisation d'un accès sur une autre machine\n- [ ] Un lab durci (mot de passe fort, verrouillage, moindre privilège) fait échouer les trois ; un lab vulnérable les laisse réussir\n- [ ] Tests Vitest du moteur et test de bout en bout, CI verte\n\n## Garde-fou\n\nAttaque simulée de façon abstraite : on modélise son résultat sur l'état simulé (compte compromis, événement journalisé), jamais l'exploit lui-même. Aucun code offensif réel (voir `docs/fidelite.md`).\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Cyber : mode Red / Blue",
+      "milestone": "v2.6.1",
+      "labels": ["feature", "cyber", "pedagogy", "ui"],
+      "body": "## Objectif\n\nDeux camps sur une même topologie : Red déclenche des attaques, Blue durcit et détecte. Partie en solo contre une IA déterministe (aucun réseau entre machines).\n\n## Critères d'acceptation\n\n- [ ] Minuteur, score par camp, objectifs (Red : compromettre une cible ; Blue : détecter et contenir)\n- [ ] Le joueur choisit son camp ; l'IA joue l'autre\n- [ ] Une partie complète se joue de bout en bout avec un score final par camp\n- [ ] Tests Vitest du moteur et test de bout en bout, CI verte\n\n## Garde-fou\n\nAttaque simulée de façon abstraite : on modélise son résultat sur l'état simulé (compte compromis, événement journalisé), jamais l'exploit lui-même. Aucun code offensif réel (voir `docs/fidelite.md`).\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Cyber : attaques L2 simulées (ARP spoofing, VLAN hopping)",
+      "milestone": "v2.6.1",
+      "labels": ["feature", "cyber", "ios", "network"],
+      "body": "## Objectif\n\nARP spoofing / MITM et VLAN hopping abstraits sur la topologie Cisco, contrés par les commandes de durcissement de la v2.6.\n\n## Critères d'acceptation\n\n- [ ] L'attaque réussit sans contre-mesure et échoue une fois le durcissement appliqué\n- [ ] Le tout est visible en mode Simulation\n- [ ] Tests Vitest du moteur et test de bout en bout, CI verte\n\n## Garde-fou\n\nAttaque simulée de façon abstraite : on modélise son résultat sur l'état simulé (compte compromis, événement journalisé), jamais l'exploit lui-même. Aucun code offensif réel (voir `docs/fidelite.md`).\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
+    },
+    {
+      "title": "Cyber : labs d’attaque et sujet Red / Blue",
+      "milestone": "v2.6.1",
+      "labels": ["feature", "cyber", "pedagogy"],
+      "body": "## Objectif\n\nLabs notés du volet attaque.\n\n## Critères d'acceptation\n\n- [ ] Un lab par type d'attaque (annuaire et L2), un sujet Red / Blue\n- [ ] Labs disponibles dans le mode examen et l'éditeur de labs\n- [ ] Migration `.slab` si le format évolue, CHANGELOG, ROADMAP, `docs/milestones.md`\n- [ ] Tests Vitest du moteur et test de bout en bout, CI verte\n\n---\n_Issue créée par la synchronisation de la roadmap (`.github/roadmap/roadmap.json`)._"
     }
   ]
 }
