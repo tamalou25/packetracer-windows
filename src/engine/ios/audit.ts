@@ -36,6 +36,7 @@ export const IOS_AUDIT_RULES: AuditRule[] = [
     title: 'DHCP snooping absent',
     severity: 'moyenne',
     fix: 'Activez « ip dhcp snooping » et « ip dhcp snooping vlan <vlans> », puis déclarez les ports vers les serveurs DHCP légitimes avec « ip dhcp snooping trust ».',
+    refs: ['anssi-19', 'cis-12.2'],
     check: (state) =>
       switches(state).flatMap((d) => {
         const ios = iosState(d)
@@ -57,6 +58,7 @@ export const IOS_AUDIT_RULES: AuditRule[] = [
     title: 'Inspection ARP dynamique absente',
     severity: 'moyenne',
     fix: 'Activez « ip arp inspection vlan <vlans> » (avec le DHCP snooping) et déclarez les ports vers les routeurs et les autres switchs avec « ip arp inspection trust ».',
+    refs: ['anssi-19', 'cis-12.2'],
     check: (state) =>
       switches(state).flatMap((d) => {
         const ios = iosState(d)
@@ -71,6 +73,7 @@ export const IOS_AUDIT_RULES: AuditRule[] = [
     title: 'Négociation DTP active sur un trunk',
     severity: 'moyenne',
     fix: 'Sur chaque trunk, ajoutez « switchport nonegotiate » ; laissez les ports vers les postes en « switchport mode access ».',
+    refs: ['anssi-19', 'cis-12.2'],
     check: (state) =>
       switches(state).flatMap((d) =>
         trunks(d)
@@ -83,6 +86,7 @@ export const IOS_AUDIT_RULES: AuditRule[] = [
     title: 'VLAN natif non dédié',
     severity: 'faible',
     fix: 'Créez un VLAN natif inutilisé (ex. 999) et appliquez « switchport trunk native vlan 999 » à chaque trunk.',
+    refs: ['anssi-19', 'cis-12.2'],
     check: (state) =>
       switches(state).flatMap((d) => {
         const used = accessVlans(state, d)
@@ -102,6 +106,7 @@ export const IOS_AUDIT_RULES: AuditRule[] = [
     title: 'Ports d’accès sans port-security',
     severity: 'faible',
     fix: 'Sur chaque port d’accès utilisé : « switchport port-security », « switchport port-security maximum 1 », « switchport port-security mac-address sticky ».',
+    refs: ['anssi-7', 'cis-13.9'],
     check: (state) =>
       switches(state).flatMap((d) => {
         const open = usedAccessPorts(state, d).filter(

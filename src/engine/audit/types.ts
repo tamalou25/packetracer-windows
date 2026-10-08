@@ -4,6 +4,7 @@
  * déclarent leurs règles dans leur module (`RoleModule.auditRules`).
  */
 import type { LabState } from '../model/schema'
+import type { AuditReferenceKey } from './references'
 
 export const AUDIT_SEVERITIES = ['critique', 'élevée', 'moyenne', 'faible'] as const
 export type AuditSeverity = (typeof AUDIT_SEVERITIES)[number]
@@ -29,6 +30,8 @@ export interface AuditRule {
   severity: AuditSeverity
   /** Correction suggérée (console et PowerShell). */
   fix: string
+  /** Recommandations des référentiels (ANSSI, CIS) vérifiées par la règle. */
+  refs?: AuditReferenceKey[]
   check(state: LabState): AuditFinding[]
 }
 

@@ -10,6 +10,7 @@ export const gpoAuditRules: AuditRule[] = [
     title: 'Stratégie de mot de passe faible',
     severity: 'élevée',
     fix: `Dans la Default Domain Policy, imposez au moins ${MIN_PASSWORD_LENGTH} caractères et activez la complexité.`,
+    refs: ['anssi-10', 'cis-5.2'],
     check: (state) =>
       Object.values(state.domains).flatMap((d) => {
         const policy = domainPasswordPolicy(d)

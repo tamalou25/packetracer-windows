@@ -15,6 +15,7 @@ export const addsAuditRules: AuditRule[] = [
     title: 'Trop de membres dans Admins du domaine',
     severity: 'élevée',
     fix: 'Retirez les comptes inutiles du groupe (Remove-ADGroupMember « Admins du domaine ») et déléguez des droits ciblés.',
+    refs: ['anssi-5', 'cis-5.4'],
     check: (state) =>
       domains(state).flatMap((d) => {
         const group = d.groups.find((g) => g.name === AD_GROUPS.domainAdmins)
@@ -35,6 +36,7 @@ export const addsAuditRules: AuditRule[] = [
     title: 'Mots de passe sans expiration',
     severity: 'moyenne',
     fix: 'Décochez « Le mot de passe n’expire jamais » (Set-ADUser -PasswordNeverExpires $false).',
+    refs: ['anssi-10', 'cis-5.2'],
     check: (state) =>
       domains(state).flatMap((d) =>
         d.users
@@ -50,6 +52,7 @@ export const addsAuditRules: AuditRule[] = [
     title: 'Comptes inactifs',
     severity: 'moyenne',
     fix: `Désactivez (Disable-ADAccount) ou supprimez les comptes inutilisés depuis plus de ${INACTIVE_DAYS} jours.`,
+    refs: ['anssi-6', 'cis-5.3'],
     check: (state) =>
       domains(state).flatMap((d) =>
         d.users

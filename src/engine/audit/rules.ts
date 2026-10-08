@@ -24,6 +24,7 @@ export const CORE_AUDIT_RULES: AuditRule[] = [
     title: 'Pare-feu désactivé',
     severity: 'élevée',
     fix: 'Réactivez le pare-feu sur tous les profils (Set-NetFirewallProfile -All -Enabled True) ou par stratégie de groupe.',
+    refs: ['anssi-17', 'cis-4.4', 'cis-4.5'],
     check: (state) =>
       hosts(state).flatMap((h) =>
         FIREWALL_PROFILES.filter((p) => !profileEnabled(h, p)).map((p) => ({

@@ -6,7 +6,14 @@
  */
 import { useMemo } from 'react'
 import { FileDown, Radar, ShieldAlert, ShieldCheck } from 'lucide-react'
-import { auditLab, compareAudits, detectAlerts, type AuditSeverity } from '@engine/index'
+import {
+  AUDIT_REFERENCES,
+  auditLab,
+  compareAudits,
+  detectAlerts,
+  referenceLabel,
+  type AuditSeverity
+} from '@engine/index'
 import { exportAuditReport } from '../../lib/auditReport'
 import { useLabStore } from '../../store/lab'
 import { Button } from '../common/ui'
@@ -90,6 +97,25 @@ export function AuditPanel() {
                   <span className="font-semibold text-fg">{t('audit.correction')} </span>
                   {r.fix}
                 </p>
+                {r.refs.length > 0 && (
+                  <p className="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-fg-muted">
+                    <span className="font-semibold text-fg">{t('audit.references')}</span>
+                    {r.refs.map((key) => {
+                      const ref = AUDIT_REFERENCES[key]
+                      return (
+                        <span
+                          key={key}
+                          className="rounded-sm border border-line px-1 font-mono"
+                          title={`${ref.title}${ref.verified ? '' : ` (${t('audit.unverified')})`}`}
+                          data-testid={`audit-ref-${key}`}
+                        >
+                          {referenceLabel(ref)}
+                          {ref.verified ? '' : '*'}
+                        </span>
+                      )
+                    })}
+                  </p>
+                )}
               </li>
             ))}
           </ul>

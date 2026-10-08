@@ -24,7 +24,8 @@ const report: AuditReportData = {
       fix: 'Réactivez le pare-feu.',
       status: 'non corrigé',
       added: false,
-      findings: [{ object: 'SRV1 (profil Public)', detail: 'Le pare-feu est désactivé.' }]
+      findings: [{ object: 'SRV1 (profil Public)', detail: 'Le pare-feu est désactivé.' }],
+      refs: [{ label: 'ANSSI 17', title: 'Activer et configurer le pare-feu local', verified: true }]
     },
     {
       rule: 'smb1',
@@ -33,12 +34,22 @@ const report: AuditReportData = {
       fix: 'Désactivez SMB 1.0.',
       status: 'corrigé',
       added: false,
-      findings: [{ object: 'SRV1', detail: 'SMB 1.0 est activé.' }]
+      findings: [{ object: 'SRV1', detail: 'SMB 1.0 est activé.' }],
+      refs: [{ label: 'ANSSI 21', title: 'Utiliser des protocoles réseaux sécurisés', verified: false }]
     }
   ],
   corrected: 1,
   remaining: 1,
-  passed: 6
+  passed: 6,
+  references: [
+    { label: 'ANSSI 17', title: 'Activer et configurer le pare-feu local', verified: true, satisfied: false },
+    {
+      label: 'ANSSI 21',
+      title: 'Utiliser des protocoles réseaux sécurisés',
+      verified: false,
+      satisfied: true
+    }
+  ]
 }
 
 describe('rapport d’audit exporté', () => {
@@ -49,6 +60,21 @@ describe('rapport d’audit exporté', () => {
     expect(parseAuditReport({ ...report, lab: 'x'.repeat(500) })).toBeNull()
     expect(parseAuditReport('rapport')).toBeNull()
     expect(parseAuditReport(null)).toBeNull()
+  })
+
+  it('rapport sans références (format antérieur) accepté', () => {
+    const { references: _references, ...old } = report
+    const parsed = parseAuditReport({ ...old, items: old.items.map(({ refs: _refs, ...i }) => i) })
+    expect(parsed?.references).toEqual([])
+    expect(parsed?.items[0]?.refs).toEqual([])
+  })
+
+  it('page HTML : références par point et recommandations cochées', () => {
+    const html = renderAuditReportHtml(report)
+    expect(html).toContain('<b>Référence :</b> ANSSI 17 — Activer et configurer le pare-feu local')
+    expect(html).toContain('Référentiels (ANSSI, CIS Controls v8)')
+    expect(html).toMatch(/class="ko"><span class="box">&#9744;<\/span> ANSSI 17/)
+    expect(html).toMatch(/class="ok"><span class="box">&#9745;<\/span> ANSSI 21 — .*\(numéro à vérifier\)/)
   })
 
   it('nom de fichier proposé sans caractère interdit', () => {

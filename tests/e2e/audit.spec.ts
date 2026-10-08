@@ -18,6 +18,9 @@ test('Audit : score et recommandation SMB 1.0 (objet et correction)', async () =
     await expect(panel.getByTestId('audit-score')).toContainText('75')
     await expect(panel.getByTestId('audit-smb1')).toContainText('SMB 1.0')
     await expect(panel.getByTestId('audit-smb1')).toContainText('Set-SmbServerConfiguration')
+    // Références des référentiels : ANSSI (numéro à vérifier, astérisque) et CIS Controls v8
+    await expect(panel.getByTestId('audit-ref-anssi-21')).toHaveText('ANSSI 21*')
+    await expect(panel.getByTestId('audit-ref-cis-4.8')).toHaveText('CIS 4.8')
     expect(consoleErrors).toEqual([])
   } finally {
     await close()

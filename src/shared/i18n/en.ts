@@ -511,6 +511,8 @@ export const en: Record<MessageKey, string> = {
   'detection.none': 'No alert: nothing suspicious in the Security logs.',
   'detection.rule.failuresThenSuccess': 'Failures then success',
   'detection.rule.offHours': 'Off-hours activity',
+  'audit.references': 'References:',
+  'audit.unverified': 'number to be confirmed',
   'audit.correction': 'Fix:',
   'audit.scoreDeSecurite': 'Security score',
   'audit.aucuneRecommandationToutesLes': 'No recommendation: every audit rule is met.',
