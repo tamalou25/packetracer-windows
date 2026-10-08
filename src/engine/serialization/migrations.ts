@@ -5,7 +5,7 @@
  */
 import { DEFAULT_DC_POLICY_ID, DEFAULT_DOMAIN_POLICY_ID, defaultDomainGpos } from '../roles/gpo/defaults'
 
-export const CURRENT_SCHEMA_VERSION = 12
+export const CURRENT_SCHEMA_VERSION = 13
 
 type RawDocument = Record<string, unknown>
 
@@ -141,6 +141,14 @@ function addV261Network(doc: RawDocument): RawDocument {
   return { ...doc, schemaVersion: 12 }
 }
 
+/**
+ * Version 13 : mode Red/Blue (réglages de partie dans `cyber.game`). Les valeurs par défaut des
+ * schémas suffisent : seul le numéro de version change.
+ */
+function addV261Game(doc: RawDocument): RawDocument {
+  return { ...doc, schemaVersion: 13 }
+}
+
 /** migrations[n] migre un document de la version n vers n + 1. */
 export const migrations: Record<number, (doc: RawDocument) => RawDocument> = {
   1: addDefaultGpos,
@@ -153,7 +161,8 @@ export const migrations: Record<number, (doc: RawDocument) => RawDocument> = {
   8: addV25Ios,
   9: addV26Cyber,
   10: addV261Scenarios,
-  11: addV261Network
+  11: addV261Network,
+  12: addV261Game
 }
 
 export type MigrationResult = { ok: true; doc: RawDocument } | { ok: false; message: string }

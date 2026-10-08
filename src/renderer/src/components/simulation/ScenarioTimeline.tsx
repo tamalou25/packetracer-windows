@@ -5,6 +5,7 @@
 import { CheckCircle2, StepForward, XCircle } from 'lucide-react'
 import { getScenario, listScenarios } from '@engine/index'
 import { useT } from '../../lib/i18n'
+import { useGameStore } from '../../store/game'
 import { useScenarioStore } from '../../store/scenario'
 import { Button } from '../common/ui'
 
@@ -17,7 +18,12 @@ export function ScenarioTimeline() {
 
   return (
     <div className="border-b border-line px-4 py-3" data-testid="scenario-panel">
-      <div className="mb-2 text-xs font-semibold text-fg">{t('scenario.title')}</div>
+      <div className="mb-2 flex items-center gap-2">
+        <span className="flex-1 text-xs font-semibold text-fg">{t('scenario.title')}</span>
+        <Button variant="ghost" onClick={() => useGameStore.getState().openDialog()} data-testid="game-open">
+          {t('game.open')}
+        </Button>
+      </div>
       {scenarios.length === 0 ? (
         <p className="text-xs text-fg-muted">{t('scenario.none')}</p>
       ) : (

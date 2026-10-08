@@ -10,6 +10,7 @@
 import { clearEventLog } from '../core/eventlog'
 import { playStep, type StepRecord } from '../cyber/scenario'
 import { getScenario } from '../cyber/registry'
+import { applyCountermeasure, getCountermeasure } from '../cyber/countermeasures'
 import { fail, type EngineResult } from '../core/result'
 import { nextDeviceName } from '../model/factory'
 import type { LabState, Position } from '../model/schema'
@@ -116,6 +117,11 @@ function playScenarioStep(state: LabState, scenarioId: string, index: number): E
 
 /** Commandes du système de base (topologie, réseau, système, consoles, lots). */
 const CORE_COMMANDS = {
+  // Cybersécurité : contre-mesure du camp Blue (mode Red/Blue), actions de durcissement existantes
+  'cyber.applyCountermeasure': def(
+    applyCountermeasure,
+    (_s, id) => `Contre-mesure : ${getCountermeasure(id)?.label ?? id}`
+  ),
   // Cybersécurité : un tour d'un scénario (le déroulé vit dans l'interface, l'effet dans l'état)
   'cyber.playStep': def(playScenarioStep, (_s, id, index) => {
     const step = getScenario(id)?.steps[index]

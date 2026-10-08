@@ -358,6 +358,18 @@ describe('migration 9 → 10 (cybersécurité défensive de la v2.6)', () => {
   })
 })
 
+describe('migration 12 → 13 (mode Red/Blue de la v2.6.1)', () => {
+  it('change seulement la version ; réglages de partie par défaut', () => {
+    const doc = JSON.parse(readFixture(12)) as Record<string, unknown>
+    expect(migrations[12]!(doc)).toEqual({ ...doc, schemaVersion: 13 })
+    expect(open(12).lab.cyber.game).toEqual({ maxTurns: 8, timerSeconds: null, blueBudget: 3 })
+  })
+
+  it('v13.slab : s’ouvre sans migration', () => {
+    expect(open(13).lab.cyber.game.maxTurns).toBe(8)
+  })
+})
+
 describe('migration 11 → 12 (scénarios réseau de la v2.6.1)', () => {
   it('change seulement la version ; ports et journal IOS prennent leurs valeurs par défaut', () => {
     const doc = JSON.parse(readFixture(11)) as Record<string, unknown>

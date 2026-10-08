@@ -12,12 +12,12 @@ import { produce } from 'immer'
 import { iosState } from '../../ios/config'
 import { isIos } from '../../ios/device'
 import type { Device, NetInterface } from '../../model/schema'
-import { linkAt, peerOf, type Hop } from '../../net/segment'
+import type { Hop } from '../../net/segment'
 import { switchportOf } from '../../net/switchport'
 import { createContext, recordUnicast } from '../../sim/forward'
 import { createRecorder, type PacketTrace } from '../../sim/trace'
 import type { AttackScenario, SimState } from '../scenario'
-import { addressedPort, deviceByName } from './reseau'
+import { deviceByName, hostPortOf } from './reseau'
 
 type Verdict = 'vulnerable' | 'protege' | 'sans-objet'
 
@@ -35,13 +35,9 @@ function targetOf(state: SimState): Target | null {
   const cfg = state.cyber.vlanHop
   const attacker = cfg && deviceByName(state, cfg.attacker)
   if (!cfg || !attacker) return null
-  const card = addressedPort(attacker)?.iface ?? attacker.interfaces[0]
-  const link = card && linkAt(state, { deviceId: attacker.id, ifaceId: card.id })
-  if (!card || !link) return null
-  const peer = peerOf(link, { deviceId: attacker.id, ifaceId: card.id })
-  const sw = state.devices[peer.deviceId]
-  const port = sw?.interfaces.find((i) => i.id === peer.ifaceId)
-  if (!sw || sw.kind !== 'switch' || !port || port.svi || port.l3) return null
+  const located = hostPortOf(state, attacker)
+  if (!located) return null
+  const { card, link, sw, port } = located
   const config = switchportOf(port)
   const hop: Hop = {
     linkId: link.id,
