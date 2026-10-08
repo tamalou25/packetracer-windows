@@ -3,6 +3,7 @@
  */
 import type { Draft } from 'immer'
 import { DEVICE_KIND_INFO, type DeviceKind } from './kinds'
+import { IOS_MODEL_INFO, type IosModel } from '../ios/models'
 import {
   defaultFsNodes,
   defaultRootAcl,
@@ -153,14 +154,16 @@ export function buildDevice(
   position: Position,
   name?: string,
   /** Poste Linux (Ubuntu simulé) : kind « client » et os « linux ». */
-  os: HostOs = 'windows'
+  os: HostOs = 'windows',
+  /** Équipement Cisco IOS (routeur ou switch du même type que `kind`). */
+  model?: IosModel
 ): Device {
   const linux = kind === 'client' && os === 'linux'
   const id = `d${nextSeq(draft)}`
   const deviceName = name ?? nextDeviceName(draft, kind, linux ? 'linux' : 'windows')
-  const interfaces = (linux ? [LINUX_INTERFACE] : defaultInterfaceNames(kind)).map((n) =>
-    createInterface(draft, n, kind)
-  )
+  const ios = model && IOS_MODEL_INFO[model].kind === kind ? model : undefined
+  const names = linux ? [LINUX_INTERFACE] : ios ? IOS_MODEL_INFO[ios].ports : defaultInterfaceNames(kind)
+  const interfaces = names.map((n) => createInterface(draft, n, kind))
   const base = { id, name: deviceName, position: { ...position }, powered: true, interfaces, hostedBy: null }
   switch (kind) {
     case 'server':
@@ -174,9 +177,14 @@ export function buildDevice(
     case 'client':
       return { ...base, kind, host: createHost('client', linux ? 'linux' : 'windows') }
     case 'switch':
-      return { ...base, kind, vlans: [{ id: 1, name: 'default' }] }
+      return {
+        ...base,
+        kind,
+        vlans: [{ id: 1, name: 'default' }],
+        ...(ios === 'c2960' || ios === 'c9200' ? { model: ios } : {})
+      }
     case 'router':
-      return { ...base, kind, routes: [] }
+      return { ...base, kind, routes: [], ...(ios === 'c1921' || ios === 'c2811' ? { model: ios } : {}) }
     case 'cloud':
       return { ...base, kind }
   }

@@ -40,7 +40,7 @@ import {
 import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
 import { runCommand } from '../../lib/run'
-import { DEVICE_ICONS, deviceIcon, deviceLabel, isLinux, KIND_STRIPE } from '../../lib/devices'
+import { DEVICE_ICONS, deviceIcon, deviceLabel, iosModel, isLinux, KIND_STRIPE } from '../../lib/devices'
 import { formatSimTime } from '../../lib/format'
 import { EditableName } from '../common/EditableName'
 import { Button, StatusDot } from '../common/ui'
@@ -128,6 +128,7 @@ function DeviceProperties({ device }: { device: Device }) {
   const health = deviceHealth(lab, device)
   const host = isHostDevice(device) ? device : null
   const linux = isLinux(device)
+  const ios = iosModel(device) !== undefined
 
   return (
     <>
@@ -174,6 +175,14 @@ function DeviceProperties({ device }: { device: Device }) {
                 testId="open-console"
               />
             </>
+          )}
+          {ios && (
+            <IconAction
+              icon={SquareTerminal}
+              label={t('props.ouvrirLaConsole')}
+              onClick={() => ui().openWindow(device.id, 'console')}
+              testId="open-console"
+            />
           )}
           <IconAction
             icon={Power}

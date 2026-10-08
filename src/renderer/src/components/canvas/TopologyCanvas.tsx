@@ -14,8 +14,8 @@ import {
   type NodeTypes,
   type EdgeTypes
 } from '@xyflow/react'
-import { DEVICE_KINDS, type DeviceKind, command } from '@engine/index'
-import { paletteParams, type PaletteKind } from '../../lib/devices'
+import { type DeviceKind, command } from '@engine/index'
+import { isPaletteKind, paletteParams, type PaletteKind } from '../../lib/devices'
 import { useLabStore } from '../../store/lab'
 import { useUiStore } from '../../store/ui'
 import { runCommand } from '../../lib/run'
@@ -189,8 +189,7 @@ export function TopologyCanvas() {
     (e: DragEvent) => {
       e.preventDefault()
       const kind = e.dataTransfer.getData(DND_DEVICE_MIME)
-      if ((DEVICE_KINDS as readonly string[]).includes(kind) || kind === 'linux')
-        placeDevice(kind as PaletteKind, { x: e.clientX, y: e.clientY })
+      if (isPaletteKind(kind)) placeDevice(kind, { x: e.clientX, y: e.clientY })
     },
     [placeDevice]
   )

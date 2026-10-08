@@ -8,6 +8,7 @@
  */
 import { z } from 'zod'
 import { DEVICE_KINDS } from './kinds'
+import { IOS_ROUTER_MODELS, IOS_SWITCH_MODELS } from '../ios/models'
 
 // Messages de validation en français (fichiers .slab et labs importés) : locale fournie par zod
 z.config(z.locales.fr())
@@ -603,12 +604,16 @@ export const SwitchDeviceSchema = z.object({
   ...deviceBase,
   kind: z.literal('switch'),
   /** Base des VLAN (VLAN 1 « default » toujours présent). */
-  vlans: z.array(VlanSchema).default(() => [{ id: 1, name: 'default' }])
+  vlans: z.array(VlanSchema).default(() => [{ id: 1, name: 'default' }]),
+  /** Switch Cisco IOS (CLI IOS) ; absent : switch générique configuré par l'interface. */
+  model: z.enum(IOS_SWITCH_MODELS).optional()
 })
 export const RouterDeviceSchema = z.object({
   ...deviceBase,
   kind: z.literal('router'),
-  routes: z.array(StaticRouteSchema).default([])
+  routes: z.array(StaticRouteSchema).default([]),
+  /** Routeur Cisco IOS (CLI IOS) ; absent : routeur générique configuré par l'interface. */
+  model: z.enum(IOS_ROUTER_MODELS).optional()
 })
 export const CloudDeviceSchema = z.object({ ...deviceBase, kind: z.literal('cloud') })
 

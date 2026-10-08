@@ -9,6 +9,7 @@ import { buildDevice, createInterface, SERVER_MAX_INTERFACES, nextSeq } from '..
 import type { DeviceKind } from '../model/kinds'
 import type { Device, HostOs, LabState, LinkEnd, Position } from '../model/schema'
 import { linkOnInterface } from './queries'
+import { IOS_MODEL_INFO, type IosModel } from '../ios/models'
 
 /** Refus d'une opération de topologie sur un équipement virtuel (géré par Hyper-V). */
 const HYPERV_MANAGED = (name: string) =>
@@ -54,6 +55,8 @@ export interface AddDeviceParams {
   name?: string
   /** Poste client : Windows (par défaut) ou Linux (Ubuntu simulé). */
   os?: HostOs
+  /** Routeur ou switch Cisco IOS : modèle (du même type que `kind`). */
+  model?: IosModel
 }
 
 /** Ajoute un équipement et renvoie son identifiant. */
@@ -64,7 +67,19 @@ export function addDevice(state: LabState, params: AddDeviceParams): EngineResul
       if (err) raise('InvalidName', err)
       assertNameAvailable(draft, params.name.trim())
     }
-    const device = buildDevice(draft, params.kind, params.position, params.name?.trim(), params.os)
+    if (params.model !== undefined && IOS_MODEL_INFO[params.model]?.kind !== params.kind)
+      raise(
+        'InvalidModel',
+        `Le modèle ${params.model} ne correspond pas à un équipement de type ${params.kind}.`
+      )
+    const device = buildDevice(
+      draft,
+      params.kind,
+      params.position,
+      params.name?.trim(),
+      params.os,
+      params.model
+    )
     draft.devices[device.id] = device
     return device.id
   })
@@ -254,10 +269,14 @@ export function duplicateDevices(
     const ifaceMap = new Map<string, string>()
     const created: string[] = []
     for (const original of source.devices) {
-      const copy = buildDevice(draft, original.kind, {
-        x: original.position.x + offset.x,
-        y: original.position.y + offset.y
-      })
+      const copy = buildDevice(
+        draft,
+        original.kind,
+        { x: original.position.x + offset.x, y: original.position.y + offset.y },
+        undefined,
+        'windows',
+        original.kind === 'router' || original.kind === 'switch' ? original.model : undefined
+      )
       // Recopie la configuration des cartes (hors identité matérielle et bail)
       copy.interfaces = original.interfaces.map((iface) => {
         const fresh = createInterface(draft, iface.name, original.kind)

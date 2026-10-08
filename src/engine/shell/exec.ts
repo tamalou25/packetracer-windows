@@ -8,6 +8,7 @@ import { bashPrompt, executeBash } from './bash/interpreter'
 import { executeCmd } from './cmd/interpreter'
 import { CommandFailure } from './context'
 import { CmdContext, executePowerShell } from './ps/interpreter'
+import { executeIos, iosPrompt, IOS_BANNER, isIosDevice } from '../ios/cli'
 import { NeedInput, type ShellKind, type ShellResult, type ShellSession } from './types'
 
 function sessionUser(state: LabState, deviceId: string): string {
@@ -23,6 +24,7 @@ export function isLinuxHost(state: LabState, deviceId: string): boolean {
 }
 
 export function createShellSession(state: LabState, deviceId: string, kind: ShellKind): ShellSession {
+  if (isIosDevice(state, deviceId)) return { deviceId, stack: ['ios'], cwd: '', variables: {} }
   if (isLinuxHost(state, deviceId))
     return { deviceId, stack: ['bash'], cwd: `/home/${sessionUser(state, deviceId)}`, variables: {} }
   return { deviceId, stack: [kind], cwd: `C:\\Users\\${sessionUser(state, deviceId)}`, variables: {} }
@@ -36,6 +38,7 @@ export function activeShell(session: ShellSession): ShellKind {
 /** Invite affichée avant la saisie (bash : utilisateur et nom du poste, lus dans l'état). */
 export function shellPrompt(session: ShellSession, state?: LabState): string {
   const kind = activeShell(session)
+  if (kind === 'ios') return iosPrompt(session, state)
   if (kind === 'bash') {
     const d = state?.devices[session.deviceId]
     const host = d?.name ?? 'ubuntu'
@@ -62,6 +65,7 @@ export function cmdDisabledByPolicy(state: LabState, deviceId: string): boolean 
 
 /** Texte d'accueil d'une nouvelle console. */
 export function shellBanner(kind: ShellKind): string[] {
+  if (kind === 'ios') return IOS_BANNER
   if (kind === 'bash')
     return [
       'Ubuntu 22.04 LTS (simulé) — ServerLab',
@@ -87,12 +91,13 @@ export function executeLine(
   line: string,
   answers: string[] = []
 ): ShellResult {
-  const ctx = new CmdContext(state, session, answers, shellCatalog(), line)
   const base = { trace: null, clear: false, prompt: null, exit: false }
   const device = state.devices[session.deviceId]
   if (!device || !device.powered) {
     return { ...base, state, session, output: [{ text: 'L’ordinateur est éteint.', kind: 'error' }] }
   }
+  if (activeShell(session) === 'ios') return executeIos(state, session, line)
+  const ctx = new CmdContext(state, session, answers, shellCatalog(), line)
   try {
     const kind = activeShell(session)
     if (kind === 'bash') {

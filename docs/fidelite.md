@@ -138,3 +138,14 @@ ont été trouvées par recherche (TechNet / Learn, pages archivées).
 | F103 | `dig` : section AUTHORITY absente (NXDOMAIN), taille de message et identifiant calculés                           | SOA de la zone en AUTHORITY, valeurs réelles                                   | `dig(1)`                                                                                  |
 | F104 | `id compte@domaine` : uid / gid déterministes simulés                                                             | correspondance SID → uid de sssd (tranches calculées par hachage)              | `sssd-ad(5)` (ldap_id_mapping)                                                            |
 | F105 | `ip addr add` remplace l’adresse de la carte                                                                      | ajoute une adresse secondaire                                                  | `ip-address(8)`                                                                           |
+
+## Équipements Cisco IOS (v2.5)
+
+Écarts connus avec le vrai IOS (IOS 15.x sur 1921 / 2811 / 2960, IOS-XE 17 sur 9200). Même règle : on
+ne corrige que ce qui est sourcé (documentation Cisco publique).
+
+| #   | Comportement simulé                                                                   | IOS réel                                                                        | Source                                                           |
+| --- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| I1  | Nom d'hôte d'usine = nom du nœud (R1, SW1)                                            | `Router` / `Switch` tant que `hostname` n'est pas configuré                     | Cisco, _Configuration Fundamentals_ (hostname)                   |
+| I2  | Console ouverte directement après le démarrage, sans séquence de boot ni setup dialog | messages de démarrage puis « initial configuration dialog » sans startup-config | Cisco, _Using Setup Mode to Configure a Cisco Networking Device_ |
+| I3  | Mot inconnu en mode utilisateur : message immédiat (pas d'attente de résolution DNS)  | tentative de résolution (`Translating…`) qui dure jusqu'au délai DNS            | Cisco, `ip domain-lookup`                                        |
