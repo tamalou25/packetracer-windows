@@ -39,7 +39,6 @@ ServerLab, système, versions d'Electron et de Chromium, et les rubriques à com
 reproduire, résultat attendu, résultat obtenu). Rien d'autre n'est transmis : ni le lab en cours,
 ni le nom d'utilisateur ou de la machine. Joignez vous-même un fichier `.slab` si besoin.
 
-
 ## Développement
 
 Prérequis : **Node.js 22+** et npm.
