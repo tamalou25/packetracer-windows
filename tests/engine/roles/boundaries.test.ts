@@ -24,6 +24,7 @@ function engineFiles(dir = ENGINE): string[] {
 const ALLOWED_CORE_TO_ROLE = [
   'commands/catalog.ts', // types des adaptateurs (réexport)
   'commands/labels.ts', // libellés : nom d'étendue DHCP
+  'cyber/countermeasures.ts', // contre-mesures Blue : actions de durcissement existantes (GPO, mots de passe)
   'cyber/scenarios/auth-repetee.ts', // scénario annuaire : verrouillage lu dans la stratégie du domaine
   'cyber/scenarios/common.ts', // scénarios annuaire : stratégie de mot de passe, PDC (lecture seule)
   'index.ts', // API publique du moteur

@@ -1121,6 +1121,17 @@ export const CyberConfigSchema = z.object({
     .default(null),
   /** Saut de VLAN : nom de l'hôte et VLAN visé. */
   vlanHop: z.object({ attacker: z.string(), toVlan: VlanIdSchema }).nullable().default(null),
+  /** Mode Red/Blue : réglages de la partie, fournis par le lab. */
+  game: z
+    .object({
+      /** Nombre maximal de tours (un tour = un coup de chaque camp). */
+      maxTurns: z.number().int().min(1).max(50).default(8),
+      /** Minuteur de la partie en secondes ; null : sans minuteur. */
+      timerSeconds: z.number().int().min(10).nullable().default(null),
+      /** Nombre de contre-mesures que le camp Blue peut appliquer pendant la partie. */
+      blueBudget: z.number().int().min(0).max(20).default(3)
+    })
+    .default(() => ({ maxTurns: 8, timerSeconds: null, blueBudget: 3 })),
   /** Trafic marqué comme intercepté (identifiants d'équipements) : A ↔ B passe par `by`. */
   intercepts: z.array(z.object({ a: z.string(), b: z.string(), by: z.string() })).default([])
 })

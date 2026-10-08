@@ -13,6 +13,7 @@ switch, routeur, poste en DHCP joint au domaine, poste statique, OU, utilisateur
 | `v5.slab`  | 5      | ServerLab 2.1 : WSUS, stratégies Windows Update                             |
 | `v9.slab`  | 9      | ServerLab 2.5 : équipements Cisco IOS (CR1, CSW1)                           |
 | `v10.slab` | 10     | ServerLab 2.6 : sécurité L2 de CSW1 (DHCP snooping, inspection ARP, DTP)    |
+| `v13.slab` | 13     | ServerLab 2.6.1 : mode Red/Blue (réglages de partie)                        |
 | `v12.slab` | 12     | ServerLab 2.6.1 : scénarios réseau (saut de VLAN, interception, syslog IOS) |
 | `v11.slab` | 11     | ServerLab 2.6.1 : scénarios de cybersécurité (SPN, compromission, `cyber`)  |
 
