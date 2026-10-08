@@ -39,22 +39,6 @@ ServerLab, système, versions d'Electron et de Chromium, et les rubriques à com
 reproduire, résultat attendu, résultat obtenu). Rien d'autre n'est transmis : ni le lab en cours,
 ni le nom d'utilisateur ou de la machine. Joignez vous-même un fichier `.slab` si besoin.
 
-## État d'avancement
-
-| Phase | Contenu                                | État |
-| ----- | -------------------------------------- | ---- |
-| 1     | Squelette Electron + CI                | ✅   |
-| 2     | Canvas de topologie, fichiers `.slab`  | ✅   |
-| 3     | Moteur IP, mode Simulation             | ✅   |
-| 4     | Consoles PowerShell / CMD              | ✅   |
-| 5     | DHCP                                   | ✅   |
-| 6     | DNS                                    | ✅   |
-| 7     | AD DS                                  | ✅   |
-| 7b    | Bureau façon serveur (fenêtres, menus) | ✅   |
-| 8     | Stratégies de groupe (GPO)             | ✅   |
-| 9     | Fichiers, partages, NTFS               | ✅   |
-| 10    | Mode Labs                              | ✅   |
-| 11    | Installeur + mises à jour              | ✅   |
 
 ## Développement
 
