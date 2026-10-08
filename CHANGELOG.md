@@ -6,6 +6,22 @@ La planification des versions suivantes est dans [ROADMAP.md](ROADMAP.md).
 
 ## [Non publié]
 
+## [2.4.0] — 2026-10-08
+
+Milestone « v2.4 — Pédagogie avancée » de la roadmap. Format `.slab` 8 (les labs 2.3 s'ouvrent ;
+une version 2.3 refuse les labs 2.4). Écarts connus : `docs/fidelite.md` (F97 à F105).
+
+### Ajouté
+
+- Éditeur de labs intégré : énoncé Markdown, départ capturé, critères sans code testés aussitôt, indices
+  progressifs, import / export JSON (#33).
+- Mode examen : chronomètre, sans indice, vérification finale unique, note sur 20 exportable, sorties
+  signalées (#34).
+- Bibliothèque communautaire de labs : index vérifié, empreinte SHA-256 ; dépôt public
+  `tamalou25/serverlab-labs` à créer (`docs/bibliotheque.md`) (#35).
+- Poste Linux simulé : console bash, `realm join`, montage CIFS selon les droits NTFS (#36).
+- Interface FR / EN : Affichage › Langue (langue du système par défaut) (#37).
+
 ## [2.3.0] — 2026-10-07
 
 Milestone « v2.3 — Cybersécurité (défensif) » de la roadmap. Format `.slab` 7 (les labs 2.2 s'ouvrent ;
