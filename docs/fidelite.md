@@ -204,6 +204,13 @@ compromis, accès accordé, événement journalisé), jamais l'exploit lui-même
   au nom du compte), jamais par comparaison à une liste de mots de passe ;
 - tout se passe dans l'état simulé (`LabState`) : rien ne sort du simulateur.
 
+Moteur de scénarios (v2.6.1, `src/engine/cyber/`) : un scénario est une suite d'étapes déclaratives
+(`precondition`, `onSuccess`, `onFailure`, `emits`). Une étape ne fait que **lire et modifier l'état simulé**
+(comptes, machines, tickets, ACL) et **journaliser des événements de sécurité** : aucun accès réseau, disque
+ou système, aucune charge utile. Elle réussit ou échoue selon une condition sur l'état, jamais par calcul
+offensif. Les scénarios concrets sont ajoutés un par fichier sous `scenarios/` et passent par la commande
+`cyber.playStep` (une étape = un tour du mode Simulation).
+
 Écarts avec la réalité : relevés au fil des issues de la v2.6 et de la v2.6.1 (série C).
 
 ### Écarts (série C)
