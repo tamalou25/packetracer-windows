@@ -9,13 +9,21 @@
 import { produce } from 'immer'
 import { logEvent, type NewEvent } from '../core/eventlog'
 import { fail, type EngineResult } from '../core/result'
+import { appendSyslog } from '../ios/features/logging'
 import type { LabState } from '../model/schema'
+import type { PacketTrace } from '../sim/trace'
 
 /** État simulé lu et modifié par les étapes (comptes, machines, tickets, ACL…). */
 export type SimState = LabState
 
-/** Événement de sécurité à journaliser : toujours inscrit dans le journal Sécurité de `deviceId`. */
-export type SecurityEvent = Omit<NewEvent, 'log'> & { deviceId: string }
+/** Événement à journaliser sur `deviceId` : journal Sécurité par défaut, `log` pour un autre journal. */
+export type SecurityEvent = NewEvent & { deviceId: string }
+
+/** Message syslog à inscrire dans le tampon d'un switch ou routeur IOS (`show logging`). */
+export interface SyslogEvent {
+  deviceId: string
+  syslog: string
+}
 
 /** Étape d'un scénario : lecture et écriture de l'état simulé, rien d'autre. */
 export interface ScenarioStep {
@@ -29,7 +37,9 @@ export interface ScenarioStep {
   /** Effet sinon. */
   onFailure: (state: SimState) => SimState
   /** Événements à journaliser selon le résultat ; `state` est l'état avant l'étape. */
-  emits: (success: boolean, state: SimState) => SecurityEvent[]
+  emits: (success: boolean, state: SimState) => (SecurityEvent | SyslogEvent)[]
+  /** Échange de paquets rejouable en mode Simulation (état avant l'étape). */
+  trace?: (success: boolean, state: SimState) => PacketTrace | null
 }
 
 export type ScenarioCategory = 'annuaire' | 'reseau'
@@ -48,6 +58,8 @@ export interface StepRecord {
   success: boolean
   /** Nombre d'événements inscrits dans les journaux. */
   eventCount: number
+  /** Échange de paquets à rejouer pas à pas en mode Simulation. */
+  trace?: PacketTrace
 }
 
 /** Joue l'étape d'indice `index` (une étape = un tour) et renvoie son résultat. */
@@ -58,12 +70,25 @@ export function playStep(state: SimState, scenario: AttackScenario, index: numbe
   const events = step.emits(success, state)
   // produce garantit que l'état précédent n'est jamais modifié, même par une étape maladroite
   const next = produce(success ? step.onSuccess(state) : step.onFailure(state), (draft) => {
-    for (const { deviceId, ...event } of events) logEvent(draft, deviceId, { ...event, log: 'Sécurité' })
+    for (const event of events) {
+      if ('syslog' in event) appendSyslog(draft, event.deviceId, event.syslog)
+      else {
+        const { deviceId, ...entry } = event
+        logEvent(draft, deviceId, { log: 'Sécurité', ...entry })
+      }
+    }
   })
+  const trace = step.trace?.(success, state)
   return {
     ok: true,
     state: next,
-    value: { stepId: step.id, label: step.label, success, eventCount: events.length }
+    value: {
+      stepId: step.id,
+      label: step.label,
+      success,
+      eventCount: events.length,
+      ...(trace ? { trace } : {})
+    }
   }
 }
 

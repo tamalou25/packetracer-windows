@@ -5,6 +5,7 @@ import type { Draft } from 'immer'
 import { DEVICE_KIND_INFO, type DeviceKind } from './kinds'
 import { IOS_MODEL_INFO, type IosModel } from '../ios/models'
 import {
+  CyberConfigSchema,
   defaultFsNodes,
   defaultRootAcl,
   type Device,
@@ -28,7 +29,7 @@ export function createLab(): LabState {
     seq: 0,
     clock: 0,
     domains: {},
-    cyber: { targetAccount: null, attempts: 5, serviceMaxAgeDays: 90 }
+    cyber: CyberConfigSchema.parse({})
   }
 }
 

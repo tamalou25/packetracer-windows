@@ -19,6 +19,7 @@ import { acl } from './features/acl'
 import { base } from './features/base'
 import { hsrp } from './features/hsrp'
 import { l2sec } from './features/l2sec'
+import { logging } from './features/logging'
 import { navigation } from './features/navigation'
 import { routing } from './features/routing'
 import { security } from './features/security'
@@ -27,7 +28,7 @@ import { vlan } from './features/vlan'
 
 /** Fonctionnalités, dans l'ordre d'enregistrement. */
 export function iosFeatures(): readonly IosFeature[] {
-  return [navigation, base, vlan, routing, services, hsrp, acl, security, l2sec]
+  return [navigation, base, vlan, routing, services, hsrp, acl, security, l2sec, logging]
 }
 
 /** Crochets d'acheminement des fonctionnalités (routage d'un switch, NAT, ACL…). */
@@ -103,7 +104,7 @@ export function iosL2Inspect(
     const port = device.interfaces.find((i) => i.id === hop.toIfaceId)
     if (!port) continue
     const sp = switchportOf(port)
-    const vlan = hop.vlan ?? (sp.mode === 'access' ? sp.accessVlan : sp.nativeVlan)
+    const vlan = hop.vlan ?? (sp.mode === 'access' ? (sp.hoppedVlan ?? sp.accessVlan) : sp.nativeVlan)
     for (const f of iosFeatures()) {
       const reason = f.inspect?.(state, device, port, vlan, frame)
       if (reason) return { deviceId: device.id, hopIndex: index, reason }

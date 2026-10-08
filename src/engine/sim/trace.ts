@@ -3,7 +3,7 @@
  */
 
 export type Protocol =
-  'ARP' | 'ICMP' | 'DHCP' | 'DNS' | 'LDAP' | 'KERBEROS' | 'SMB' | 'HTTP' | 'RDP' | 'VPN' | 'RADIUS'
+  'ARP' | 'ICMP' | 'DHCP' | 'DNS' | 'LDAP' | 'KERBEROS' | 'SMB' | 'HTTP' | 'RDP' | 'VPN' | 'RADIUS' | 'DTP'
 
 export const PROTOCOLS: Protocol[] = [
   'ARP',
@@ -16,7 +16,8 @@ export const PROTOCOLS: Protocol[] = [
   'HTTP',
   'RDP',
   'VPN',
-  'RADIUS'
+  'RADIUS',
+  'DTP'
 ]
 
 /** Une couche du modèle OSI avec ses champs principaux. */

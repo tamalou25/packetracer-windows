@@ -5,5 +5,13 @@ import type { AttackScenario } from '../scenario'
 import { authRepetee } from './auth-repetee'
 import { compteService } from './compte-service'
 import { reutilisationAcces } from './reutilisation-acces'
+import { sautDeVlan } from './saut-de-vlan'
+import { usurpationArp } from './usurpation-arp'
 
-export const SCENARIOS: AttackScenario[] = [authRepetee, compteService, reutilisationAcces]
+export const SCENARIOS: AttackScenario[] = [
+  authRepetee,
+  compteService,
+  reutilisationAcces,
+  usurpationArp,
+  sautDeVlan
+]

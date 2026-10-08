@@ -79,7 +79,7 @@ export function physicalPort(
     : { port, vlan: null }
 }
 
-function peerOf(link: Link, port: PortRef): PortRef {
+export function peerOf(link: Link, port: PortRef): PortRef {
   return link.a.deviceId === port.deviceId && link.a.ifaceId === port.ifaceId ? link.b : link.a
 }
 
@@ -132,7 +132,7 @@ function ingressVlan(sw: Device, port: NetInterface, tag: number | null): number
   let vlan: number
   if (config.mode === 'access') {
     if (tag !== null) return null
-    vlan = config.accessVlan
+    vlan = config.hoppedVlan ?? config.accessVlan
   } else {
     vlan = tag ?? config.nativeVlan
     if (!trunkAllows(config, vlan)) return null
@@ -143,7 +143,7 @@ function ingressVlan(sw: Device, port: NetInterface, tag: number | null): number
 /** Étiquette de sortie d'une trame du VLAN `vlan` par ce port, ou undefined s'il ne la transmet pas. */
 function egressTag(port: NetInterface, vlan: number): number | null | undefined {
   const config = switchportOf(port)
-  if (config.mode === 'access') return config.accessVlan === vlan ? null : undefined
+  if (config.mode === 'access') return (config.hoppedVlan ?? config.accessVlan) === vlan ? null : undefined
   if (!trunkAllows(config, vlan)) return undefined
   return vlan === config.nativeVlan ? null : vlan
 }

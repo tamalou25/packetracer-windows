@@ -53,7 +53,7 @@ function setup(s: LabState, edit: (lab: LabState) => void): LabState {
 function base(): LabState {
   return setup(buildReferenceLab(), (lab) => {
     lab.clock = 200 * DAY
-    lab.cyber = { targetAccount: 'jdupont', attempts: 5, serviceMaxAgeDays: 90 }
+    lab.cyber = { ...lab.cyber, targetAccount: 'jdupont' }
     const domain = lab.domains[DOMAIN]!
     domain.users.push({
       ...structuredClone(user(lab, 'jdupont')),
@@ -96,12 +96,8 @@ function hardened(): LabState {
 
 describe('registre des scénarios annuaire', () => {
   it('fournit les trois scénarios de la catégorie annuaire', () => {
-    expect(listScenarios().map((s) => s.id)).toEqual([
-      'auth-repetee',
-      'compte-service',
-      'reutilisation-acces'
-    ])
-    expect(listScenarios().every((s) => s.category === 'annuaire')).toBe(true)
+    const annuaire = listScenarios().filter((s) => s.category === 'annuaire')
+    expect(annuaire.map((s) => s.id)).toEqual(['auth-repetee', 'compte-service', 'reutilisation-acces'])
   })
 })
 

@@ -14,7 +14,8 @@ export const PROTOCOL_COLORS: Record<Protocol, { fill: string; chip: string }> =
   HTTP: { fill: 'fill-orange-500', chip: 'bg-orange-500' },
   RDP: { fill: 'fill-violet-500', chip: 'bg-violet-500' },
   VPN: { fill: 'fill-lime-600', chip: 'bg-lime-600' },
-  RADIUS: { fill: 'fill-cyan-700', chip: 'bg-cyan-700' }
+  RADIUS: { fill: 'fill-cyan-700', chip: 'bg-cyan-700' },
+  DTP: { fill: 'fill-slate-500', chip: 'bg-slate-500' }
 }
 
 /** Issue d'un événement de la simulation (clés de traduction `outcome.<issue>`). */
