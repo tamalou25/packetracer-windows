@@ -6,6 +6,7 @@
  */
 import type { LabState } from '../model/schema'
 import type { PacketTrace } from '../sim/trace'
+import { IOS_BACKGROUND_TASK } from '../ios/registry'
 import { roleBackgroundTasks } from './registry'
 
 /** Dépendances de chaque tâche lors de son dernier passage (par identifiant de tâche). */
@@ -30,7 +31,7 @@ export function runBackgroundTasks(state: LabState, memo: BackgroundMemo = {}): 
   const traces: PacketTrace[] = []
   const next: Record<string, readonly unknown[]> = { ...memo }
   const ran: string[] = []
-  for (const task of roleBackgroundTasks()) {
+  for (const task of [...roleBackgroundTasks(), IOS_BACKGROUND_TASK]) {
     if (task.deps && sameDeps(memo[task.id], task.deps(current))) continue
     const result = task.run(current)
     current = result.state
@@ -44,7 +45,5 @@ export function runBackgroundTasks(state: LabState, memo: BackgroundMemo = {}): 
 
 /** Libellé du passage des tâches de fond (journal). */
 export function backgroundLabel(): string {
-  return `Tâches de fond (${roleBackgroundTasks()
-    .map((t) => t.label)
-    .join(', ')})`
+  return `Tâches de fond (${[...roleBackgroundTasks(), IOS_BACKGROUND_TASK].map((t) => t.label).join(', ')})`
 }

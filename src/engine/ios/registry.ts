@@ -6,12 +6,15 @@ import type { CliCommand } from './cli/types'
 import type { Device, LabState, NetInterface } from '../model/schema'
 import { ifaceStatus } from './status'
 import type { Route } from '../net/routing'
+import { networkDeps } from '../net/network-key'
+import type { BackgroundTask } from '../roles/types'
 import type { TransitHooks } from '../sim/transit'
 import { produce, type Draft } from 'immer'
 import type { PacketTrace } from '../sim/trace'
 import { isIos, type IosDevice } from './device'
 import type { IosFeature } from './feature'
 import { base } from './features/base'
+import { hsrp } from './features/hsrp'
 import { navigation } from './features/navigation'
 import { routing } from './features/routing'
 import { services } from './features/services'
@@ -19,7 +22,7 @@ import { vlan } from './features/vlan'
 
 /** Fonctionnalités, dans l'ordre d'enregistrement. */
 export function iosFeatures(): readonly IosFeature[] {
-  return [navigation, base, vlan, routing, services]
+  return [navigation, base, vlan, routing, services, hsrp]
 }
 
 /** Crochets d'acheminement des fonctionnalités (routage d'un switch, NAT, ACL…). */
@@ -52,6 +55,26 @@ export function applyTraceEffects(state: LabState, trace: PacketTrace | null): L
       for (const f of iosFeatures()) f.onEffect?.(device as Draft<IosDevice>, effect)
     }
   })
+}
+
+/** Stabilise l'état des équipements IOS (élection HSRP…) après une modification. */
+export function settleIos(state: LabState): LabState {
+  return iosFeatures().reduce((s, f) => f.settle?.(s) ?? s, state)
+}
+
+/** Messages affichés sur la console d'un équipement à la suite de la stabilisation. */
+export function settleMessages(before: LabState, after: LabState, deviceId: string): string[] {
+  if (before === after) return []
+  return iosFeatures().flatMap((f) => f.settleMessages?.(before, after, deviceId) ?? [])
+}
+
+/** Tâche de fond des équipements IOS (mode Temps réel) : stabilisation après chaque changement. */
+export const IOS_BACKGROUND_TASK: BackgroundTask = {
+  id: 'ios',
+  label: 'Équipements IOS (HSRP)',
+  // Réseau seulement : déplacer ou renommer un équipement ne relance pas la tâche
+  deps: (state) => [state.links, ...Object.values(state.devices).flatMap(networkDeps)],
+  run: (state) => ({ state: settleIos(state), traces: [] })
 }
 
 /** Toutes les commandes déclarées. */

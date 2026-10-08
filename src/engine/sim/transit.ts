@@ -42,6 +42,8 @@ export interface TransitContext {
 export interface TransitHooks {
   /** Le serveur route-t-il les paquets qui ne lui sont pas destinés (routage LAN) ? */
   forwards?(state: LabState, device: Device): boolean
+  /** Adresse portée par l'équipement sans être celle d'une carte (adresse virtuelle HSRP) ? */
+  owns?(state: LabState, device: Device, ip: string): boolean
   /** Répond-il à l'ARP pour cette adresse (proxy ARP, clients VPN) ? */
   proxyArp?(state: LabState, device: Device, ip: string): boolean
   /** Paquet adressé à l'une de ses adresses : nouvelle destination (retraduction NAT), ou null. */

@@ -22,7 +22,8 @@ export function defaultIosState(): IosState {
     natRules: [],
     interfaces: {},
     startup: null,
-    natTranslations: []
+    natTranslations: [],
+    hsrpStates: {}
   }
 }
 
@@ -40,7 +41,7 @@ export function draftIosState(device: Draft<IosDevice>): Draft<IosState> {
 /** Instantané de la running-config (copy running-config startup-config). */
 export function snapshotOf(device: IosDevice): IosSnapshot {
   // État de fonctionnement exclu : traductions NAT, baux DHCP
-  const { startup: _startup, natTranslations: _nat, ...running } = iosState(device)
+  const { startup: _startup, natTranslations: _nat, hsrpStates: _hsrp, ...running } = iosState(device)
   const config = clone(running)
   for (const scope of config.dhcpServer?.scopes ?? []) scope.leases = []
   const byId = new Map(device.interfaces.map((i) => [i.id, i.name]))
@@ -97,7 +98,12 @@ export function applyStartup(device: Draft<IosDevice>, nextId: () => number): vo
   for (const iface of device.interfaces) factoryInterface(iface, router)
   if (device.kind === 'router') device.routes = []
   else delete device.routes
-  device.ios = { ...clone(startup?.config ?? defaultIosState()), startup, natTranslations: [] }
+  device.ios = {
+    ...clone(startup?.config ?? defaultIosState()),
+    startup,
+    natTranslations: [],
+    hsrpStates: {}
+  }
   if (!startup) return
   device.name = startup.hostname
   for (const saved of startup.interfaces) {
@@ -176,4 +182,9 @@ export function createSviDraft(device: IosDevice, vlan: number, seq: number): Ne
     bridge: null,
     svi: { vlan }
   }
+}
+
+/** Données IOS modifiables d'une interface (créées à la première modification). */
+export function draftIfaceEntry(ios: Draft<IosState>, name: string): Draft<IosState['interfaces'][string]> {
+  return (ios.interfaces[name] ??= { description: null, nat: null, hsrp: [] })
 }

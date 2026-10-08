@@ -184,7 +184,12 @@ export function arpResolve(ctx: SimContext, origin: PortRef, targetIp: string): 
     if (iface && effectiveIpv4(iface)?.address === targetIp) return true
     // Proxy ARP (serveur VPN répondant pour l'adresse attribuée à un client)
     const device = ctx.state.devices[member.port.deviceId]
-    return !!device && transitHooks().some((h) => h.proxyArp?.(ctx.state, device, targetIp))
+    return (
+      !!device &&
+      transitHooks().some(
+        (h) => h.proxyArp?.(ctx.state, device, targetIp) || h.owns?.(ctx.state, device, targetIp)
+      )
+    )
   }
 
   recordBroadcast(
@@ -378,7 +383,7 @@ export function sendIp(ctx: SimContext, fromDeviceId: string, original: IpPacket
         }
       }
 
-    if (ownsAddress(device, packet.dst)) {
+    if (ownsAddress(device, packet.dst) || hooks.some((h) => h.owns?.(ctx.state, device, packet.dst))) {
       if (transit) {
         const blocked = firewallBlocks(device, packet, 'Inbound')
         if (blocked) {

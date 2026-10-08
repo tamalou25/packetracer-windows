@@ -10,7 +10,7 @@ import { ping, tracert, type EchoOutcome } from '../../net/diagnostics'
 import { deviceNameError } from '../../topology/actions'
 import { IPV4, LINE, WORD, iface } from '../cli/args'
 import type { ArgContext, CliCommand, IosRunContext, SyntaxToken } from '../cli/types'
-import { applyStartup, configModified, draftIosState, iosState, snapshotOf } from '../config'
+import { applyStartup, configModified, draftIfaceEntry, draftIosState, iosState, snapshotOf } from '../config'
 import { updateIos } from '../actions'
 import { isIos, type IosDevice } from '../device'
 import { defineIosFeature } from '../feature'
@@ -148,7 +148,7 @@ function setDescription(ctx: IosRunContext, text: string | null): void {
   update(ctx, (d) => {
     const ios = draftIosState(d)
     for (const name of names) {
-      const entry = (ios.interfaces[name] ??= { description: null, nat: null })
+      const entry = draftIfaceEntry(ios, name)
       entry.description = text
     }
   })
