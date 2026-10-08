@@ -13,6 +13,7 @@ import { ping } from '../net/diagnostics'
 import { switchportOf } from '../net/switchport'
 import { effectiveRules, profileEnabled } from '../services/firewall'
 import { auditLab } from '../audit/audit'
+import { CYBER_CRITERIA } from '../cyber/criteria'
 import { IOS_CRITERIA } from '../ios/criteria'
 import { roleCriteria } from '../roles/registry'
 import { defineCriterion, type CriterionType } from '../roles/types'
@@ -149,7 +150,9 @@ let types: Map<string, CriterionType> | null = null
 
 /** Types de critères disponibles (système de base + modules de rôles), par nom. */
 export function criterionTypes(): Map<string, CriterionType> {
-  return (types ??= new Map([...CORE_CRITERIA, ...roleCriteria(), ...IOS_CRITERIA].map((c) => [c.type, c])))
+  return (types ??= new Map(
+    [...CORE_CRITERIA, ...roleCriteria(), ...IOS_CRITERIA, ...CYBER_CRITERIA].map((c) => [c.type, c])
+  ))
 }
 
 /** Vérification d'un critère : `type` plus les paramètres propres à ce type. */

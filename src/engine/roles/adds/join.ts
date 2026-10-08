@@ -185,6 +185,7 @@ function logSpecialPrivileges(draft: Draft<LabState>, deviceId: string, account:
     source: 'Security-Auditing',
     eventId: 4672,
     log: 'Sécurité',
+    account,
     message: `Privilèges spéciaux attribués à la nouvelle ouverture de session. Compte : ${account}. Privilèges : SeSecurityPrivilege, SeBackupPrivilege, SeRestorePrivilege, SeTakeOwnershipPrivilege, SeDebugPrivilege, SeSystemEnvironmentPrivilege, SeLoadDriverPrivilege, SeImpersonatePrivilege.`
   })
 }
@@ -219,6 +220,7 @@ export function logon(state: LabState, deviceId: string, input: LogonInput): Log
           source: 'Security-Auditing',
           eventId: 4625,
           log: 'Sécurité',
+          account: localAccount,
           message: `Échec d’ouverture de session pour ${localAccount}. Type d’ouverture de session : 2 (Interactive).`
         })
         return undefined
@@ -236,6 +238,7 @@ export function logon(state: LabState, deviceId: string, input: LogonInput): Log
         source: 'Security-Auditing',
         eventId: 4624,
         log: 'Sécurité',
+        account: localAccount,
         message: `Ouverture de session réussie : ${localAccount}. Type d’ouverture de session : 2 (Interactive).`
       })
       if (sam.toLowerCase() === 'administrateur') logSpecialPrivileges(draft, deviceId, localAccount)
@@ -290,6 +293,7 @@ export function logon(state: LabState, deviceId: string, input: LogonInput): Log
       source: 'Security-Auditing',
       eventId: ok || locked ? 4768 : 4771,
       log: 'Sécurité',
+      account: `${domain.netbios}\\${sam}`,
       message: ok
         ? `Un ticket d’authentification Kerberos (TGT) a été demandé pour ${domain.netbios}\\${sam} depuis ${host.name}.`
         : locked
@@ -304,6 +308,7 @@ export function logon(state: LabState, deviceId: string, input: LogonInput): Log
         source: 'Security-Auditing',
         eventId: 4625,
         log: 'Sécurité',
+        account: `${domain.netbios}\\${sam}`,
         message: `Échec d’ouverture de session pour ${domain.netbios}\\${sam}.${locked ? ' Raison : le compte est verrouillé.' : ''}`
       })
       const account = user ? draft.domains[domain.name]?.users.find((u) => u.id === user.id) : undefined
@@ -325,6 +330,7 @@ export function logon(state: LabState, deviceId: string, input: LogonInput): Log
             source: 'Security-Auditing',
             eventId: 4740,
             log: 'Sécurité',
+            account: `${domain.netbios}\\${account.sam}`,
             message: `Un compte d’utilisateur a été verrouillé. Compte : ${domain.netbios}\\${account.sam}. Ordinateur appelant : ${host.name}.`
           })
         }
@@ -369,6 +375,15 @@ export function logon(state: LabState, deviceId: string, input: LogonInput): Log
       logonServer: draft.devices[located.dcId]?.name ?? ''
     }
     audit(draft, true)
+    // Ticket de service pour l'ordinateur où la session s'ouvre (TGS host/<poste>)
+    logEvent(draft, located.dcId, {
+      level: 'information',
+      source: 'Security-Auditing',
+      eventId: 4769,
+      log: 'Sécurité',
+      account: `${domain.netbios}\\${user.sam}`,
+      message: `Un ticket de service Kerberos a été demandé. Compte : ${user.sam}@${domain.name.toUpperCase()}. Nom du service : ${host.name}$. Adresse du client : ${host.name}.`
+    })
     const account = draft.domains[domain.name]?.users.find((u) => u.id === user.id)
     if (account) account.lastLogon = draft.clock
     logAudited(draft, deviceId, 'logon', 'success', {
@@ -376,6 +391,7 @@ export function logon(state: LabState, deviceId: string, input: LogonInput): Log
       source: 'Security-Auditing',
       eventId: 4624,
       log: 'Sécurité',
+      account: `${domain.netbios}\\${user.sam}`,
       message: `Ouverture de session réussie : ${domain.netbios}\\${user.sam}. Type d’ouverture de session : 2 (Interactive).`
     })
     if (isDomainAdmin(domain, user.sam))
@@ -462,6 +478,7 @@ export function logoff(state: LabState, deviceId: string): LabState {
         source: 'Security-Auditing',
         eventId: 4634,
         log: 'Sécurité',
+        account: `${d.host.session.domain ?? d.name}\\${d.host.session.user}`,
         message: `Fermeture de session : ${d.host.session.domain ?? d.name}\\${d.host.session.user}.`
       })
       d.host.session = null
