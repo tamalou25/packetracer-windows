@@ -1,5 +1,6 @@
 /**
- * Onglet Console : Invite de commandes ou PowerShell ; bash sur un poste Linux.
+ * Onglet Console : Invite de commandes ou PowerShell ; bash sur un poste Linux ; console IOS sur
+ * un routeur ou un switch Cisco.
  */
 import { useState } from 'react'
 import type { HostDevice, ShellKind } from '@engine/index'
@@ -38,6 +39,15 @@ export function ConsoleTab({ device }: { device: HostDevice }) {
       <div className="min-h-0 flex-1">
         <Terminal key={k(device.id, kind)} deviceId={device.id} kind={kind} autoFocus />
       </div>
+    </div>
+  )
+}
+
+/** Console IOS (ligne console) d'un équipement Cisco. */
+export function IosConsoleTab({ deviceId }: { deviceId: string }) {
+  return (
+    <div className="h-full" data-testid="console-ios">
+      <Terminal key={k(deviceId, 'ios')} deviceId={deviceId} kind="ios" autoFocus />
     </div>
   )
 }

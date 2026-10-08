@@ -5,7 +5,8 @@ import type { LabState } from '../model/schema'
 import type { PacketTrace } from '../sim/trace'
 import type { PsValue } from './ps/values'
 
-export type ShellKind = 'cmd' | 'powershell' | 'bash'
+/** Interpréteurs : consoles des ordinateurs et console IOS des équipements Cisco. */
+export type ShellKind = 'cmd' | 'powershell' | 'bash' | 'ios'
 
 export type LineKind = 'out' | 'error' | 'warning' | 'verbose'
 

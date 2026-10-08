@@ -30,6 +30,8 @@ function quote(value: string): string {
 }
 
 export function complete(state: LabState, session: ShellSession, line: string, cursor: number): Completion {
+  // Console IOS : complétion propre à son arbre de commandes
+  if (activeShell(session) === 'ios') return { start: cursor, end: cursor, candidates: [] }
   let start = cursor
   while (start > 0 && !SEPARATORS.has(line[start - 1] as string)) start--
   const token = line.slice(start, cursor)

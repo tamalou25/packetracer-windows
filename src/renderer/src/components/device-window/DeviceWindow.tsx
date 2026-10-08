@@ -6,9 +6,9 @@ import { useRef, type PointerEvent } from 'react'
 import { Maximize2, Minimize2, Monitor, Settings, SquareTerminal, X, type LucideIcon } from 'lucide-react'
 import { useLabStore } from '../../store/lab'
 import { useUiStore, type DeviceTab, type DeviceWindowState } from '../../store/ui'
-import { DEVICE_COLORS, deviceIcon, deviceLabel, isLinux } from '../../lib/devices'
+import { DEVICE_COLORS, deviceIcon, deviceLabel, iosModel, isLinux } from '../../lib/devices'
 import { ConfigTab } from './ConfigTab'
-import { ConsoleTab } from '../console/ConsoleTab'
+import { ConsoleTab, IosConsoleTab } from '../console/ConsoleTab'
 import { DesktopShell } from '../desktop/DesktopShell'
 import { isHostDevice } from '@engine/index'
 import { t } from '../../lib/i18n'
@@ -47,13 +47,17 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
   if (!device) return null
   const Icon = deviceIcon(device)
   const isHost = device.kind === 'server' || device.kind === 'client'
+  // Équipement Cisco IOS : console uniquement (configuration en CLI, comme le vrai matériel)
+  const ios = iosModel(device) !== undefined
   // Poste Linux : configuration et console bash (pas de Bureau Windows)
-  const tabs = !isHost
-    ? TABS.filter((t) => t.id === 'config')
-    : isLinux(device)
-      ? TABS.filter((t) => t.id !== 'desktop')
-      : TABS
-  const tab = tabs.some((t) => t.id === win.tab) ? win.tab : 'config'
+  const tabs = ios
+    ? TABS.filter((t) => t.id === 'console')
+    : !isHost
+      ? TABS.filter((t) => t.id === 'config')
+      : isLinux(device)
+        ? TABS.filter((t) => t.id !== 'desktop')
+        : TABS
+  const tab = tabs.some((t) => t.id === win.tab) ? win.tab : (tabs[0]?.id ?? 'config')
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest('button') || win.maximized) return
@@ -152,6 +156,9 @@ export function DeviceWindow({ win }: { win: DeviceWindowState }) {
         {tab === 'console' &&
           isHostDevice(device) &&
           (device.powered ? <ConsoleTab device={device} /> : <Placeholder text={t('win.off')} />)}
+        {tab === 'console' &&
+          ios &&
+          (device.powered ? <IosConsoleTab deviceId={device.id} /> : <Placeholder text={t('win.off')} />)}
       </div>
       {!win.maximized && (
         <div

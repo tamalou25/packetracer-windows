@@ -34,6 +34,14 @@ const THEMES: Record<
     warning: 'text-yellow-300',
     verbose: 'text-cyan-300'
   },
+  // Émulateur de terminal sur le port console d'un équipement Cisco
+  ios: {
+    root: 'bg-black',
+    text: 'text-neutral-200',
+    error: 'text-neutral-200',
+    warning: 'text-neutral-200',
+    verbose: 'text-neutral-200'
+  },
   // Terminal d'Ubuntu (profil par défaut)
   bash: {
     root: 'bg-[#300a24]',
