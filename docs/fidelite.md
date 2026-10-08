@@ -185,7 +185,7 @@ ne corrige que ce qui est sourcé (documentation Cisco publique).
 | I37 | Labs IOS : l'état de départ est construit en saisissant les lignes d'un script (comme à la console) ; les invites interactives ne sont pas permises                                                             | départ = configuration déjà en mémoire de l'équipement                                | —                                                                |
 | I38 | Critères de lab IOS : les traductions NAT et les baux se constatent après un échange réel lancé par l'élève (un critère `ping` ne crée pas de traduction)                                                       | table de traduction alimentée par tout trafic                                         | Cisco, _show ip nat translations_                                |
 
-## Cybersécurité (v2.6)
+## Cybersécurité (v2.6, v2.6.1)
 
 ### Garde-fou pédagogique
 
@@ -201,4 +201,4 @@ compromis, accès accordé, événement journalisé), jamais l'exploit lui-même
   au nom du compte), jamais par comparaison à une liste de mots de passe ;
 - tout se passe dans l'état simulé (`LabState`) : rien ne sort du simulateur.
 
-Écarts avec la réalité : relevés au fil des issues de la v2.6 (série C).
+Écarts avec la réalité : relevés au fil des issues de la v2.6 et de la v2.6.1 (série C).
