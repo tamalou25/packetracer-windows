@@ -2,7 +2,7 @@
  * Terminal simulé : sortie défilante + ligne de saisie avec historique (↑↓) et complétion (Tab).
  */
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { complete, type ShellKind } from '@engine/index'
+import { complete, IOS_CTRL_Z, iosComplete, iosHelp, type ShellKind } from '@engine/index'
 import { terminalKey, useConsoleStore } from '../../store/console'
 import { useLabStore } from '../../store/lab'
 import { cancelConsoleInput, ensureTerminal, promptOf, submitConsoleInput } from '../../lib/console'
@@ -90,7 +90,40 @@ export function Terminal({ deviceId, kind, autoFocus }: TerminalProps) {
   const promptText = term.pending ? term.pending.prompt.message : promptOf(term.session)
   const secure = term.pending?.prompt.secure ?? false
 
+  const ios = kind === 'ios'
+
+  /** Console IOS : « ? » (aide immédiate), Tab (mot unique) et Ctrl+Z (fin de la configuration). */
+  const onIosKey = (e: KeyboardEvent<HTMLInputElement>): boolean => {
+    if (!term.session || term.pending) return false
+    const lab = useLabStore.getState().lab
+    if (e.key === '?') {
+      e.preventDefault()
+      useConsoleStore
+        .getState()
+        .append(key, [
+          { text: `${promptText}${input}?`, kind: 'input' },
+          ...iosHelp(lab, term.session, input).map((text) => ({ text, kind: 'out' as const }))
+        ])
+      return true
+    }
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      const result = iosComplete(lab, term.session, input)
+      if (result) setInput(input.slice(0, result.start) + result.word)
+      return true
+    }
+    if (e.ctrlKey && e.key.toLowerCase() === 'z') {
+      e.preventDefault()
+      setInput('')
+      setHistoryIndex(null)
+      submitConsoleInput(key, IOS_CTRL_Z)
+      return true
+    }
+    return false
+  }
+
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (ios && onIosKey(e)) return
     if (e.key !== 'Tab') cycle.current = null
     if (e.key === 'Enter') {
       e.preventDefault()

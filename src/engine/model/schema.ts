@@ -43,8 +43,11 @@ export const SwitchportSchema = z.object({
   allowedVlans: z.array(VlanIdSchema).nullable().default(null)
 })
 
-/** Sous-interface de routeur (Gi0/0.10) : carte physique parente et VLAN de l'encapsulation dot1Q. */
-export const SubinterfaceSchema = z.object({ parent: z.string(), vlan: VlanIdSchema })
+/**
+ * Sous-interface de routeur (Gi0/0.10) : carte physique parente et VLAN de l'encapsulation dot1Q
+ * (null : sous-interface IOS créée, pas encore d'encapsulation).
+ */
+export const SubinterfaceSchema = z.object({ parent: z.string(), vlan: VlanIdSchema.nullable() })
 
 /** VLAN de la base d'un switch. */
 export const VlanSchema = z.object({ id: VlanIdSchema, name: z.string() })

@@ -8,7 +8,8 @@ import { bashPrompt, executeBash } from './bash/interpreter'
 import { executeCmd } from './cmd/interpreter'
 import { CommandFailure } from './context'
 import { CmdContext, executePowerShell } from './ps/interpreter'
-import { executeIos, iosPrompt, IOS_BANNER, isIosDevice } from '../ios/cli'
+import { executeIos, iosPrompt, IOS_BANNER } from '../ios/cli'
+import { isIosDevice } from '../ios/device'
 import { NeedInput, type ShellKind, type ShellResult, type ShellSession } from './types'
 
 function sessionUser(state: LabState, deviceId: string): string {
@@ -96,7 +97,7 @@ export function executeLine(
   if (!device || !device.powered) {
     return { ...base, state, session, output: [{ text: 'L’ordinateur est éteint.', kind: 'error' }] }
   }
-  if (activeShell(session) === 'ios') return executeIos(state, session, line)
+  if (activeShell(session) === 'ios') return executeIos(state, session, line, answers)
   const ctx = new CmdContext(state, session, answers, shellCatalog(), line)
   try {
     const kind = activeShell(session)

@@ -4,6 +4,7 @@
 import type { LabState } from '../model/schema'
 import type { PacketTrace } from '../sim/trace'
 import type { PsValue } from './ps/values'
+import type { IosSession } from '../ios/cli/types'
 
 /** Interpréteurs : consoles des ordinateurs et console IOS des équipements Cisco. */
 export type ShellKind = 'cmd' | 'powershell' | 'bash' | 'ios'
@@ -23,6 +24,8 @@ export interface ShellSession {
   cwd: string
   /** Variables PowerShell ($x = …). */
   variables: Record<string, PsValue>
+  /** Console IOS : mode et contexte de configuration. */
+  ios?: IosSession
 }
 
 /** Saisie demandée à l'utilisateur pendant une commande (mot de passe, confirmation…). */
