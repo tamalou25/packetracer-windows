@@ -168,17 +168,7 @@ const commands: CliCommand[] = [
       }
       ctx.setMode('config-line', { line: { type: 'vty', first, last } })
     }
-  })),
-  {
-    modes: ['config'],
-    syntax: [
-      kw('router', 'Enable a routing process'),
-      kw('ospf', 'Open Shortest Path First (OSPF)'),
-      { arg: 'process', type: number(1, 65535), help: 'Process ID' }
-    ],
-    run: (ctx, args) =>
-      ctx.setMode('config-router', { router: { protocol: 'ospf', process: Number(args.process) } })
-  }
+  }))
 ]
 
 export const navigation = defineIosFeature({ id: 'navigation', commands })
