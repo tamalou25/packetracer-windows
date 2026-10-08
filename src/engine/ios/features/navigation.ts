@@ -21,7 +21,9 @@ const EXIT_HELP: Partial<Record<IosMode, string>> = {
   'config-line': 'Exit from line configuration mode',
   'config-router': 'Exit from routing protocol configuration mode',
   'config-vlan': 'Apply changes, bump revision number, and exit mode',
-  'dhcp-config': 'Exit from DHCP pool configuration mode'
+  'dhcp-config': 'Exit from DHCP pool configuration mode',
+  'config-std-nacl': 'Exit from access-list configuration mode',
+  'config-ext-nacl': 'Exit from access-list configuration mode'
 }
 
 /** exit : remonte d'un niveau (sous-mode → configuration → privilégié → déconnexion). */

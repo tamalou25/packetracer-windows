@@ -23,7 +23,14 @@ export function defaultIosState(): IosState {
     interfaces: {},
     startup: null,
     natTranslations: [],
-    hsrpStates: {}
+    aclCounters: {},
+    hsrpStates: {},
+    domainName: null,
+    rsaBits: null,
+    sshVersion: null,
+    users: [],
+    lines: [],
+    passwordEncryption: false
   }
 }
 
@@ -41,8 +48,20 @@ export function draftIosState(device: Draft<IosDevice>): Draft<IosState> {
 /** Instantané de la running-config (copy running-config startup-config). */
 export function snapshotOf(device: IosDevice): IosSnapshot {
   // État de fonctionnement exclu : traductions NAT, baux DHCP
-  const { startup: _startup, natTranslations: _nat, hsrpStates: _hsrp, ...running } = iosState(device)
+  const {
+    startup: _startup,
+    natTranslations: _nat,
+    hsrpStates: _hsrp,
+    aclCounters: _acl,
+    ...running
+  } = iosState(device)
   const config = clone(running)
+  // Port-security : seules les adresses collées (sticky) et configurées sont enregistrées
+  for (const entry of Object.values(config.interfaces)) {
+    entry.errDisabled = false
+    if (entry.portSecurity)
+      entry.portSecurity = { ...entry.portSecurity, dynamicMacs: [], violations: 0, lastViolation: null }
+  }
   for (const scope of config.dhcpServer?.scopes ?? []) scope.leases = []
   const byId = new Map(device.interfaces.map((i) => [i.id, i.name]))
   return clone({
@@ -102,7 +121,8 @@ export function applyStartup(device: Draft<IosDevice>, nextId: () => number): vo
     ...clone(startup?.config ?? defaultIosState()),
     startup,
     natTranslations: [],
-    hsrpStates: {}
+    hsrpStates: {},
+    aclCounters: {}
   }
   if (!startup) return
   device.name = startup.hostname
@@ -186,5 +206,13 @@ export function createSviDraft(device: IosDevice, vlan: number, seq: number): Ne
 
 /** Données IOS modifiables d'une interface (créées à la première modification). */
 export function draftIfaceEntry(ios: Draft<IosState>, name: string): Draft<IosState['interfaces'][string]> {
-  return (ios.interfaces[name] ??= { description: null, nat: null, hsrp: [] })
+  return (ios.interfaces[name] ??= {
+    description: null,
+    nat: null,
+    hsrp: [],
+    aclIn: null,
+    aclOut: null,
+    portSecurity: null,
+    errDisabled: false
+  })
 }

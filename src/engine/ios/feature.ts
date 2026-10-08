@@ -31,6 +31,8 @@ export interface IosFeature {
   settle?(state: LabState): LabState
   /** Messages de la console d'un équipement après stabilisation (%HSRP-6-STATECHANGE…). */
   settleMessages?(before: LabState, after: LabState, deviceId: string): string[]
+  /** Le port de switch accepte-t-il les trames de cette adresse MAC source (port-security) ? */
+  admits?(state: LabState, device: IosDevice, iface: NetInterface, mac: string): boolean
   /** Routes apprises dynamiquement (OSPF), ajoutées à la table de routage du moteur. */
   routes?(state: LabState, device: IosDevice): Route[]
 }

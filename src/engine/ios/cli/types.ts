@@ -14,7 +14,9 @@ export const IOS_MODES = [
   'config-line',
   'config-router',
   'config-vlan',
-  'dhcp-config'
+  'dhcp-config',
+  'config-std-nacl',
+  'config-ext-nacl'
 ] as const
 export type IosMode = (typeof IOS_MODES)[number]
 
@@ -25,7 +27,9 @@ export const CONFIG_SUBMODES: readonly IosMode[] = [
   'config-line',
   'config-router',
   'config-vlan',
-  'dhcp-config'
+  'dhcp-config',
+  'config-std-nacl',
+  'config-ext-nacl'
 ]
 
 /** Modes de configuration (Ctrl+Z, end et do y sont disponibles). */
@@ -47,6 +51,8 @@ export interface IosSession {
   ifaces?: string[]
   /** Lignes en cours de configuration, en config-line. */
   line?: IosLineRef
+  /** Liste d'accès nommée en cours de configuration (config-std-nacl, config-ext-nacl). */
+  acl?: string
   /** Pool DHCP en cours de configuration, en dhcp-config. */
   pool?: string
   /** VLAN en cours de configuration, en config-vlan. */
